@@ -15,7 +15,7 @@ import {
 import { provideLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
 
-const props = defineProps<{ debug?: boolean }>();
+const props = defineProps<{ debug?: boolean; baseFill?: string }>();
 
 const container = ref<HTMLElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -39,6 +39,8 @@ onMounted(() => {
   if (canvas.value) {
     manager.initRenderer(canvas.value);
   }
+
+  manager.setBaseFill(props.baseFill || undefined);
 
   resizeCanvas();
 

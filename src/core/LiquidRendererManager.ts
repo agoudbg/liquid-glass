@@ -30,6 +30,14 @@ export class LiquidRendererManager {
 
   private scrollAreas = new Map<string, ScrollAreaSnapshot & { element: HTMLElement }>();
 
+  private baseFill: string | undefined;
+
+  private compositeCanvas: HTMLCanvasElement | null = null;
+
+  private compositeBitmap: ImageBitmap | undefined;
+
+  private compositeBitmapUpdatedAt: number | undefined;
+
   constructor(opts?: { debug?: boolean }) {
     this.worker = new TextureBuilderWorker();
     this.debugEnabled = Boolean(opts?.debug);
@@ -63,6 +71,11 @@ export class LiquidRendererManager {
     this.debugEnabled = enabled;
   }
 
+  public setBaseFill(fill?: string) {
+    this.baseFill = fill;
+    void this.composeBackdrop();
+  }
+
   public updateTextureMap(item: TextureMapItem) {
     const { previewBitmap, ...transferItem } = item;
 
@@ -87,12 +100,16 @@ export class LiquidRendererManager {
 
     // Send texture data to worker. Note: ImageBitmap is transferable
     this.worker.postMessage({ type: 'UPDATE_TEXTURE', item: transferItem }, [transferItem.imageBitmap]);
+
+    void this.composeBackdrop();
   }
 
   public updateScroll(offset: ScrollOffset) {
     this.scrollOffset = { ...offset };
     this.worker.postMessage({ type: 'UPDATE_SCROLL', offset: this.scrollOffset });
     this.logDebug('updateScroll', this.scrollOffset);
+
+    void this.composeBackdrop();
   }
 
   public updateScrollArea(id: string, offset: ScrollOffset) {
@@ -151,7 +168,7 @@ export class LiquidRendererManager {
     console.debug('Trigger ripple', event);
   }
 
-  public getDebugSnapshot(): DebugSnapshot {
+  public async getDebugSnapshot(): Promise<DebugSnapshot> {
     const materials: MaterialSnapshot[] = [];
     this.materials.forEach((value) => {
       const rect = value.element.getBoundingClientRect();
@@ -178,10 +195,61 @@ export class LiquidRendererManager {
       materials,
       scrollAreas,
       scrollOffset: { ...this.scrollOffset },
+      rendererBitmap: this.compositeBitmap,
+      rendererSize: this.compositeCanvas
+        ? { width: this.compositeCanvas.width, height: this.compositeCanvas.height }
+        : undefined,
+      rendererUpdatedAt: this.compositeBitmapUpdatedAt,
     };
   }
 
   public destroy() {
     this.worker.terminate();
+  }
+
+  private async composeBackdrop() {
+    if (!this.canvas) return;
+    const targetWidth = this.canvas.width;
+    const targetHeight = this.canvas.height;
+
+    if (!this.compositeCanvas) {
+      this.compositeCanvas = document.createElement('canvas');
+    }
+
+    if (this.compositeCanvas.width !== targetWidth || this.compositeCanvas.height !== targetHeight) {
+      this.compositeCanvas.width = targetWidth;
+      this.compositeCanvas.height = targetHeight;
+    }
+
+    const ctx = this.compositeCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, targetWidth, targetHeight);
+    if (this.baseFill) {
+      ctx.fillStyle = this.baseFill;
+      ctx.fillRect(0, 0, targetWidth, targetHeight);
+    }
+
+    const rect = this.canvas.getBoundingClientRect();
+    const dpr = rect.width ? this.canvas.width / rect.width : 1;
+
+    const orderedSources = Array.from(this.sources.values()).sort((a, b) => a.zIndex - b.zIndex);
+    for (const src of orderedSources) {
+      if (!src.previewBitmap) continue;
+      ctx.drawImage(
+        src.previewBitmap,
+        src.rect.x * dpr,
+        src.rect.y * dpr,
+        src.rect.width * dpr,
+        src.rect.height * dpr,
+      );
+    }
+
+    try {
+      this.compositeBitmap = await createImageBitmap(this.compositeCanvas);
+      this.compositeBitmapUpdatedAt = Date.now();
+    } catch (err) {
+      this.logDebug('composeBackdrop bitmap failed', err);
+    }
   }
 }

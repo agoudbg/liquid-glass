@@ -4,7 +4,7 @@
 
   <div class="single-glass-container">
     <h2>LiquidGlass Demo</h2>
-    <LiquidGlass debug>
+    <LiquidGlass debug baseFill="#404c79">
       <div class="single-glass-layout">
         <LgBackdropConverter>
           <div class="demo-backdrop">
@@ -91,7 +91,7 @@ html {
   overflow: hidden;
   margin: 20px;
   position: relative;
-  background: #0b0e1a;
+  background: #404c79;
   color: #e8ecf8;
 }
 
@@ -149,6 +149,7 @@ html {
 
 .demo-materials {
   position: absolute;
+  top: 50px;
   display: flex;
   align-items: center;
   justify-content: center;

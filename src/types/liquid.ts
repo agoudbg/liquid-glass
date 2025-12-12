@@ -58,4 +58,7 @@ export interface DebugSnapshot {
   materials: MaterialSnapshot[];
   scrollAreas: ScrollAreaSnapshot[];
   scrollOffset: ScrollOffset;
+  rendererBitmap?: ImageBitmap;
+  rendererSize?: { width: number; height: number };
+  rendererUpdatedAt?: number;
 }

@@ -29,6 +29,19 @@
     </section>
 
     <section class="lg-debugger__section">
+      <div class="lg-debugger__section-title">Renderer Backdrop</div>
+      <div v-if="!rendererPreviewUrl" class="lg-debugger__empty">No renderer snapshot</div>
+      <div v-else class="lg-debugger__card">
+        <div class="lg-debugger__row">
+          <span class="lg-debugger__meta">{{ rendererSizeLabel }}</span>
+        </div>
+        <div class="lg-debugger__preview">
+          <img :src="rendererPreviewUrl" alt="renderer" />
+        </div>
+      </div>
+    </section>
+
+    <section class="lg-debugger__section">
       <div class="lg-debugger__section-title">Materials</div>
       <div v-if="materials.length === 0" class="lg-debugger__empty">No materials registered</div>
       <div v-for="mat in materials" :key="mat.id" class="lg-debugger__card">
@@ -72,6 +85,8 @@ const sources = ref<Array<RegisteredSourceSnapshot & { previewUrl?: string }>>([
 const materials = ref<DebugSnapshot['materials']>([]);
 const scrollAreas = ref<DebugSnapshot['scrollAreas']>([]);
 const cache = reactive(new Map<string, { updatedAt: number; url?: string }>());
+const rendererPreviewUrl = ref<string | undefined>();
+const rendererSizeLabel = ref<string>('');
 let timer: number | undefined;
 
 const bitmapToDataUrl = async (bitmap: ImageBitmap) => {
@@ -87,7 +102,7 @@ const bitmapToDataUrl = async (bitmap: ImageBitmap) => {
 const formatRect = (rect: { x: number; y: number; width: number; height: number }) => `x:${rect.x.toFixed(1)}, y:${rect.y.toFixed(1)}, w:${rect.width.toFixed(1)}, h:${rect.height.toFixed(1)}`;
 
 const refresh = async () => {
-  const snapshot = manager.getDebugSnapshot();
+  const snapshot = await manager.getDebugSnapshot();
   materials.value = snapshot.materials;
   scrollAreas.value = snapshot.scrollAreas;
 
@@ -107,6 +122,26 @@ const refresh = async () => {
   }
 
   sources.value = enrichedSources;
+
+  if (snapshot.rendererBitmap) {
+    const key = 'renderer';
+    const updatedAt = snapshot.rendererUpdatedAt ?? Date.now();
+    const cached = cache.get(key);
+    if (cached && cached.updatedAt === updatedAt) {
+      rendererPreviewUrl.value = cached.url;
+    } else {
+      rendererPreviewUrl.value = await bitmapToDataUrl(snapshot.rendererBitmap);
+      cache.set(key, { updatedAt, url: rendererPreviewUrl.value });
+    }
+    if (snapshot.rendererSize) {
+      rendererSizeLabel.value = `w:${snapshot.rendererSize.width} h:${snapshot.rendererSize.height}`;
+    } else {
+      rendererSizeLabel.value = '';
+    }
+  } else {
+    rendererPreviewUrl.value = undefined;
+    rendererSizeLabel.value = '';
+  }
 };
 
 onMounted(() => {

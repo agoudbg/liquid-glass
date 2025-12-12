@@ -34,13 +34,18 @@ const onMouseDown = (e: MouseEvent) => {
   const x = (e.clientX - rect.left) / rect.width;
   const y = (e.clientY - rect.top) / rect.height;
 
-  // Send interaction to manager/shader
-  // manager.triggerRipple({ x, y, timestamp: Date.now() });
+  manager.triggerRipple({ x, y, timestamp: Date.now() });
 };
 
 onMounted(() => {
-  // Register material with manager
-  // manager.registerMaterial(el.value, props);
+  if (!el.value) return;
+
+  manager.registerMaterial(el.value, {
+    strength: props.strength ?? 1,
+    borderRadius: props.borderRadius || '0px',
+    fallbackBlur: props.fallbackBlur || '10px',
+    shapePath: undefined,
+  });
 });
 </script>
 

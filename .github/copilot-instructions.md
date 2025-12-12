@@ -15,6 +15,6 @@
 获取所有 BackdropCanvas/BackdropConverter/ScrollArea 的位置，将其图像排布成页面范围的大 Canvas
 获取所有 LiquidGlassMaterial 的位置，在大 Canvas 的这些位置应用 Liquid Glass 效果
 通过裁剪或类似雪碧图等方式让 LiquidGlassMaterial 截取大 Canvas 的效果
-具体的技术细节与 AI 探讨后 在 [需求](../.development/doc/需求.md) & [开发计划](../.development/doc/开发计划.md) 中。Liquid Glass 效果参考 Telegram Android 的效果，将其 Java 转换为 Canvas&JS 实现。 [tAndroidReference](../.development/tAndroidReference/README.md)
+具体的技术细节与 AI 探讨后 在 [需求](../.development/doc/需求.md) & [开发计划](../.development/doc/开发计划.md) 中。Liquid Glass 效果参考 Telegram Android 的效果和外部存储库 https://github.com/Muggleee/liquid-glass，将其 Java 转换为 Canvas&JS 实现。 [tAndroidReference](../.development/tAndroidReference/README.md)
 
 组件库&技术栈为 Vite+Vue+TS 开发。

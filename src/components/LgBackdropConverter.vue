@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import html2canvas from 'html2canvas';
-import { inject, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 

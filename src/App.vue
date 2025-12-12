@@ -23,12 +23,28 @@
 
         <LgBackdropCanvas :draw-function="drawPattern" class="canvas-box" />
 
+        <div class="spacer"></div>
+
+        <div class="playground-container">
+          <h2>Playground</h2>
+          <LiquidGlassPlayground />
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="multi-glass-container">
+          <h2>Multi-Glass Demo</h2>
+          <MultiGlassDemo />
+        </div>
+
       </div>
     </LgBackdropScrollArea>
   </LiquidGlassBackdropLayer>
 </template>
 
 <script setup lang="ts">
+import LiquidGlassPlayground from './components/LiquidGlassPlayground.vue';
+import MultiGlassDemo from './components/MultiGlassDemo.vue';
 import {
   LgBackdropCanvas,
   LgBackdropConverter,
@@ -107,6 +123,27 @@ html {
 .canvas-box {
   width: 300px;
   height: 200px;
+}
+
+.playground-container {
+  width: 1100px;
+  height: 750px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px;
+  position: relative;
+}
+
+.multi-glass-container {
+  width: 1100px;
+  height: 750px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px;
+  position: relative;
+  background: #000;
 }
 
 .spacer {

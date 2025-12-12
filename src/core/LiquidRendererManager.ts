@@ -1,4 +1,6 @@
-import { ScrollOffset, TextureMapItem } from '../types/liquid';
+import {
+  ClickEvent, MaterialConfig, ScrollOffset, TextureMapItem,
+} from '../types/liquid';
 import TextureBuilderWorker from '../workers/TextureBuilderWorker?worker';
 
 export class LiquidRendererManager {
@@ -9,6 +11,8 @@ export class LiquidRendererManager {
   private gl: WebGLRenderingContext | null = null;
 
   private isSupported: boolean = false;
+
+  private scrollOffset: ScrollOffset = { x: 0, y: 0 };
 
   constructor() {
     this.worker = new TextureBuilderWorker();
@@ -38,7 +42,18 @@ export class LiquidRendererManager {
   }
 
   public updateScroll(offset: ScrollOffset) {
-    // Update scroll uniform
+    this.scrollOffset = { ...offset };
+    this.worker.postMessage({ type: 'UPDATE_SCROLL', offset: this.scrollOffset });
+  }
+
+  public registerMaterial(element: HTMLElement, config: MaterialConfig) {
+    if (!this.gl || !element) return;
+    console.debug('Registering material', { element, config });
+  }
+
+  public triggerRipple(event: ClickEvent) {
+    if (!this.gl) return;
+    console.debug('Trigger ripple', event);
   }
 
   public destroy() {

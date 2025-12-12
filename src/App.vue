@@ -1,45 +1,48 @@
 <template>
-  <LiquidGlassBackdropLayer>
-    <LgBackdropScrollArea class="scroll-container">
-      <div class="content">
-        <h1>Liquid Glass Demo</h1>
+  <div class="liquid-glass-container">
+  </div>
 
-        <LgBackdropConverter class="converter-box">
-          <div class="gradient-box">
-            <h2>This is a DOM Element</h2>
-            <p>It will be converted to a texture.</p>
+  <div class="single-glass-container">
+    <h2>LiquidGlass Demo</h2>
+    <LiquidGlass debug>
+      <div class="single-glass-layout">
+        <LgBackdropConverter>
+          <div class="demo-backdrop">
+            <div class="demo-pill"><input value="Frosted tag"></div>
+            <div class="demo-tiles">
+              <div class="demo-tile">Color</div>
+              <div class="demo-tile">Noise</div>
+              <div class="demo-tile">Texture</div>
+              <div class="demo-tile">Shape</div>
+            </div>
           </div>
         </LgBackdropConverter>
 
-        <div class="spacer"></div>
-
-        <LiquidGlassMaterial class="glass-card" border-radius="20px" fallback-blur="20px">
-          <h3>Glass Card</h3>
-          <p>This card should have a liquid glass effect.</p>
-          <button>Click Me</button>
-        </LiquidGlassMaterial>
-
-        <div class="spacer"></div>
-
-        <LgBackdropCanvas :draw-function="drawPattern" class="canvas-box" />
-
-        <div class="spacer"></div>
-
-        <div class="playground-container">
-          <h2>Playground</h2>
-          <LiquidGlassPlayground />
+        <div class="demo-materials">
+          <LiquidGlassMaterial borderRadius="18px" fallbackBlur="14px">
+            <div class="demo-card">
+              <h3>Glass card</h3>
+              <p>Scoped provider demo with html2canvas backdrop.</p>
+            </div>
+          </LiquidGlassMaterial>
         </div>
-
-        <div class="spacer"></div>
-
-        <div class="multi-glass-container">
-          <h2>Multi-Glass Demo</h2>
-          <MultiGlassDemo />
-        </div>
-
       </div>
-    </LgBackdropScrollArea>
-  </LiquidGlassBackdropLayer>
+      <LiquidGlassDebugger initiallyOpen />
+    </LiquidGlass>
+  </div>
+
+  <div class="playground-container">
+    <h2>Playground</h2>
+    <LiquidGlassPlayground />
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="multi-glass-container">
+    <h2>Multi-Glass Demo</h2>
+    <MultiGlassDemo />
+  </div>
+
 </template>
 
 <script setup lang="ts">
@@ -49,23 +52,12 @@ import {
   LgBackdropCanvas,
   LgBackdropConverter,
   LgBackdropScrollArea,
+  LiquidGlass,
   LiquidGlassBackdropLayer,
+  LiquidGlassDebugger,
   LiquidGlassMaterial,
 } from './index';
 
-const drawPattern = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
-  ctx.fillStyle = '#f0f0f0';
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.fillStyle = '#ff0000';
-  ctx.beginPath();
-  ctx.arc(width / 2, height / 2, 50, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = '#0000ff';
-  ctx.font = '20px Arial';
-  ctx.fillText('Canvas Content', 20, 40);
-};
 </script>
 
 <style>
@@ -81,50 +73,6 @@ html {
   height: 100%;
 }
 
-.scroll-container {
-  height: 100vh;
-  background: #e0e0e0;
-}
-
-.content {
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-height: 200vh;
-  /* Ensure scrolling */
-}
-
-.converter-box {
-  margin-bottom: 20px;
-}
-
-.gradient-box {
-  width: 300px;
-  height: 200px;
-  background: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 99%, #fad0c4 100%);
-  padding: 20px;
-  border-radius: 10px;
-  color: white;
-}
-
-.glass-card {
-  width: 300px;
-  height: 200px;
-  padding: 20px;
-  color: #333;
-  /* Glass effect will be applied here */
-  background: rgba(255, 255, 255, 0.1);
-  /* Fallback or base */
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-}
-
-.canvas-box {
-  width: 300px;
-  height: 200px;
-}
-
 .playground-container {
   width: 1100px;
   height: 750px;
@@ -133,6 +81,88 @@ html {
   overflow: hidden;
   margin: 20px;
   position: relative;
+}
+
+.single-glass-container {
+  width: 1100px;
+  height: 420px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px;
+  position: relative;
+  background: #0b0e1a;
+  color: #e8ecf8;
+}
+
+.single-glass-container h2 {
+  margin: 12px 16px 0;
+  font-weight: 600;
+}
+
+.single-glass-layout {
+  height: calc(100% - 42px);
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+  padding: 12px 16px 16px;
+}
+
+.demo-backdrop {
+  height: 100%;
+  border-radius: 12px;
+  background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
+    radial-gradient(circle at 80% 30%, #a24df0 0%, rgba(162, 77, 240, 0) 38%),
+    linear-gradient(135deg, #0f1427 0%, #131931 60%, #0f1427 100%);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.demo-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+  letter-spacing: 0.2px;
+}
+
+.demo-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.demo-tile {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 14px 10px;
+  text-align: center;
+  font-weight: 600;
+  letter-spacing: 0.1px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.demo-materials {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.demo-card {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  border-radius: 18px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  color: #0b0e1a;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
 .multi-glass-container {

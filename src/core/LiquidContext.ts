@@ -7,7 +7,7 @@ export const LiquidContextKey: InjectionKey<LiquidRendererManager> = Symbol('Liq
 export function useLiquidContext() {
   const context = inject(LiquidContextKey);
   if (!context) {
-    throw new Error('useLiquidContext must be used within a LiquidGlassBackdropLayer');
+    throw new Error('useLiquidContext must be used within a LiquidGlass');
   }
   return context;
 }

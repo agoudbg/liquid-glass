@@ -6,9 +6,9 @@
 允许开发者提供一个 div，通过 html2canvas 转换为 Canvas。实际使用时，显示在界面上的是 div，而转换的 Canvas 提供给 Liquid Glass 层使用。
 我的想法是，使用 Vue 作为框架，开发一个 Vue 组件库，提供 <LiquidGlassMaterial> 作为 Glass 材料，应用一个圆角矩形的带折射和扭曲效果的背景 Canvas，一个模拟光效的 Border，内容为一个 <template> 来允许自定义。在用户点击时，这个 <LiquidGlassMaterial> 也负责呈现点击的变形效果。
 
-同时提供 <LiquidGlassBackdropLayer>，在这个层中的元素会被用作 Liquid Glass 的背景。提供 <LiquidGlassBackdropCanvas> 允许开发者直接通过写代码生成 Canvas 用作页面展示和 Liquid Glass 背景；提供 <LiquidGlassBackdropConverter> 作为需要应用 html2canvas 的内容层；提供 <LiquidGlassBackdropScrollArea> 作为需要监听的滚动层。
+同时提供 <LiquidGlass>，在这个层中的元素会被用作 Liquid Glass 的背景。提供 <LiquidGlassBackdropCanvas> 允许开发者直接通过写代码生成 Canvas 用作页面展示和 Liquid Glass 背景；提供 <LiquidGlassBackdropConverter> 作为需要应用 html2canvas 的内容层；提供 <LiquidGlassBackdropScrollArea> 作为需要监听的滚动层。
 
-在发生 LiquidGlassBackdropLayer 内容层更新事件，或 LiquidGlassMaterial 发生点击等需要重新计算的事件时：
+在发生 LiquidGlass 内容层更新事件，或 LiquidGlassMaterial 发生点击等需要重新计算的事件时：
 
 如果 BackdropCanvas/BackdropConverter 的内容或大小有变化，重新截取
 如果 ScrollArea 有滚动，重新计算位置，或和下一步一块进行

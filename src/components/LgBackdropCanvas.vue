@@ -5,16 +5,22 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import {
+  nextTick, onBeforeUnmount, onMounted, ref, watch,
+} from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 
 const props = defineProps<{
-  drawFunction:(ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  drawFunction: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  id?: string;
+  zIndex?: number;
+  debugLabel?: string;
 }>();
 
 const canvas = ref<HTMLCanvasElement | null>(null);
 const manager = useLiquidContext();
+const sourceId = props.id || crypto.randomUUID();
 
 const draw = async () => {
   if (!canvas.value) return;
@@ -28,26 +34,38 @@ const draw = async () => {
   ctx.clearRect(0, 0, width, height);
 
   // Draw user content
-  props.drawFunction(ctx, width, height);
+  await Promise.resolve(props.drawFunction(ctx, width, height));
 
   // Send to manager
-  const imageBitmap = await createImageBitmap(canvas.value);
+  await nextTick();
+  const workerBitmap = await createImageBitmap(canvas.value);
+  const previewBitmap = await createImageBitmap(canvas.value);
   const rect = canvas.value.getBoundingClientRect();
 
   manager.updateTextureMap({
-    id: crypto.randomUUID(),
+    id: sourceId,
     x: rect.left,
     y: rect.top,
     width: rect.width,
     height: rect.height,
-    imageBitmap,
-    zIndex: 0,
+    imageBitmap: workerBitmap,
+    previewBitmap,
+    zIndex: props.zIndex ?? 0,
+    sourceType: 'canvas',
+    debugLabel: props.debugLabel,
   });
 };
 
 onMounted(() => {
-  draw();
+  manager.registerSource(sourceId, 'canvas', props.debugLabel);
+  void draw();
 });
 
-watch(() => props.drawFunction, draw);
+watch(() => props.drawFunction, () => {
+  void draw();
+});
+
+onBeforeUnmount(() => {
+  manager.unregisterSource(sourceId);
+});
 </script>

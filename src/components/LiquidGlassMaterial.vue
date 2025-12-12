@@ -7,7 +7,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import {
+  computed, onBeforeUnmount, onMounted, ref,
+} from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { isWebGLSupported } from '../utils/featureDetect';
@@ -47,12 +49,19 @@ onMounted(() => {
     shapePath: undefined,
   });
 });
+
+onBeforeUnmount(() => {
+  if (el.value) {
+    manager.unregisterMaterial(el.value);
+  }
+});
 </script>
 
 <style scoped>
 .liquid-glass-material {
   position: relative;
-  overflow: hidden; /* Ensure content respects border radius */
+  overflow: hidden;
+  /* Ensure content respects border radius */
 }
 
 .fallback-layer {
@@ -62,6 +71,7 @@ onMounted(() => {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: -1; /* Behind content */
+  z-index: -1;
+  /* Behind content */
 }
 </style>

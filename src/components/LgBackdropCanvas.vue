@@ -12,7 +12,7 @@ import {
 import { useLiquidContext } from '../core/LiquidContext';
 
 const props = defineProps<{
-  drawFunction: (ctx: CanvasRenderingContext2D, width: number, height: number) => void;
+  drawFunction:(ctx: CanvasRenderingContext2D, width: number, height: number) => void;
   id?: string;
   zIndex?: number;
   debugLabel?: string;

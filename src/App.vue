@@ -2,11 +2,11 @@
   <div class="liquid-glass-container">
   </div>
 
+  <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <h2>LiquidGlass Demo</h2>
     <LiquidGlass debug baseFill="#404c79">
       <div class="single-glass-layout">
-        <LgBackdropConverter>
+        <LgBackdropConverter :capture-lib="'html-to-image'">
           <div class="demo-backdrop">
             <div class="demo-pill"><input value="Frosted tag"></div>
             <div class="demo-tiles">
@@ -53,7 +53,6 @@ import {
   LgBackdropConverter,
   LgBackdropScrollArea,
   LiquidGlass,
-  LiquidGlassBackdropLayer,
   LiquidGlassDebugger,
   LiquidGlassMaterial,
 } from './index';
@@ -84,7 +83,7 @@ html {
 }
 
 .single-glass-container {
-  width: 1100px;
+  width: 80vw;
   height: 420px;
   border: 1px solid #ccc;
   border-radius: 12px;

@@ -140,7 +140,9 @@ export class LiquidRendererManager {
     this.sources.set(id, {
       id,
       type,
-      rect: { x: 0, y: 0, width: 0, height: 0 },
+      rect: {
+        x: 0, y: 0, width: 0, height: 0,
+      },
       zIndex: 0,
       updatedAt: Date.now(),
       debugLabel,

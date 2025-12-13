@@ -17,7 +17,7 @@
           </template>
         </LgBackdropConverter>
 
-        <div class="demo-materials" :position="demoMaterial0Position">
+        <div class="demo-material" :position="demoMaterial0Position">
           <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
             <div class="demo-card">
               <h3>Glass card</h3>
@@ -25,8 +25,18 @@
             </div>
           </LiquidGlassMaterial>
         </div>
+
+        <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
+          <LiquidGlassMaterial :radius="20" :radiusBR="30" ref="demoMaterial1">
+            <div class="demo-card">
+              <h3>Drag or Resize</h3>
+            </div>
+          </LiquidGlassMaterial>
+
+          <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
+        </div>
       </div>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 
@@ -45,7 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import {
+  computed, onBeforeUnmount, onMounted, reactive, ref,
+} from 'vue';
 
 import LiquidGlassPlayground from './components/LiquidGlassPlayground.vue';
 import MultiGlassDemo from './components/MultiGlassDemo.vue';
@@ -60,6 +72,32 @@ import {
 
 const demoMaterial0Position = ref<number>(0);
 const demoMaterial0 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
+const demoMaterial1 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
+
+const demoMaterial1Helper = reactive({
+  x: 300,
+  y: 50,
+  width: 200,
+  height: 140,
+  dragOffsetX: 0,
+  dragOffsetY: 0,
+  isDragging: false,
+  isResizing: false,
+  resizeStartX: 0,
+  resizeStartY: 0,
+  resizeStartWidth: 200,
+  resizeStartHeight: 140,
+});
+
+const MIN_WIDTH = 140;
+const MIN_HEIGHT = 100;
+
+const demoMaterial1Style = computed(() => ({
+  left: `${demoMaterial1Helper.x}px`,
+  top: `${demoMaterial1Helper.y}px`,
+  width: `${demoMaterial1Helper.width}px`,
+  height: `${demoMaterial1Helper.height}px`,
+}));
 
 const updateDemoMaterial0Position = () => {
   demoMaterial0Position.value = (demoMaterial0Position.value + 1) % 4;
@@ -68,6 +106,51 @@ const updateDemoMaterial0Position = () => {
   console.log('App.vue: triggering reRender on demoMaterial0');
   demoMaterial0.value?.updating(600);
 };
+
+const clampSize = (value: number, min: number) => (value < min ? min : value);
+
+const onDemoMaterial1DragStart = (event: PointerEvent) => {
+  demoMaterial1Helper.isDragging = true;
+  demoMaterial1Helper.dragOffsetX = event.clientX - demoMaterial1Helper.x;
+  demoMaterial1Helper.dragOffsetY = event.clientY - demoMaterial1Helper.y;
+  demoMaterial1.value?.startUpdating();
+};
+
+const onDemoMaterial1ResizeStart = (event: PointerEvent) => {
+  demoMaterial1Helper.isResizing = true;
+  demoMaterial1Helper.resizeStartX = event.clientX;
+  demoMaterial1Helper.resizeStartY = event.clientY;
+  demoMaterial1Helper.resizeStartWidth = demoMaterial1Helper.width;
+  demoMaterial1Helper.resizeStartHeight = demoMaterial1Helper.height;
+};
+
+const handlePointerMove = (event: PointerEvent) => {
+  if (demoMaterial1Helper.isDragging) {
+    demoMaterial1Helper.x = event.clientX - demoMaterial1Helper.dragOffsetX;
+    demoMaterial1Helper.y = event.clientY - demoMaterial1Helper.dragOffsetY;
+  } else if (demoMaterial1Helper.isResizing) {
+    const deltaX = event.clientX - demoMaterial1Helper.resizeStartX;
+    const deltaY = event.clientY - demoMaterial1Helper.resizeStartY;
+    demoMaterial1Helper.width = clampSize(demoMaterial1Helper.resizeStartWidth + deltaX, MIN_WIDTH);
+    demoMaterial1Helper.height = clampSize(demoMaterial1Helper.resizeStartHeight + deltaY, MIN_HEIGHT);
+  }
+};
+
+const handlePointerUp = () => {
+  demoMaterial1Helper.isDragging = false;
+  demoMaterial1Helper.isResizing = false;
+  demoMaterial1.value?.stopUpdating();
+};
+
+onMounted(() => {
+  window.addEventListener('pointermove', handlePointerMove);
+  window.addEventListener('pointerup', handlePointerUp);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointermove', handlePointerMove);
+  window.removeEventListener('pointerup', handlePointerUp);
+});
 </script>
 
 <style>
@@ -95,7 +178,7 @@ html {
 
 .single-glass-container {
   width: 80vw;
-  height: 420px;
+  height: 920px;
   border: 1px solid #ccc;
   border-radius: 12px;
   overflow: hidden;
@@ -166,7 +249,7 @@ html {
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
 }
 
-.demo-materials {
+.demo-material {
   position: absolute;
   top: 50px;
   display: flex;
@@ -195,6 +278,27 @@ html {
     left: 30px;
     top: 120px;
   }
+}
+
+.demo-material-2 {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 200px;
+  height: 140px;
+  touch-action: none;
+}
+
+.demo-material-2__resize-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 4px 0 0 0;
+  cursor: se-resize;
 }
 
 .demo-card {

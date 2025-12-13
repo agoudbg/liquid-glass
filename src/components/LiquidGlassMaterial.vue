@@ -1,12 +1,14 @@
 <template>
-  <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode">
-    <slot :updating="updating"></slot>
+  <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode"
+    :allowing-color-transition="allowingColorTransition">
+    <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
 </template>
 
 <script lang="ts" setup>
 import {
   computed, onMounted, onUnmounted, ref,
+  watch,
 } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
@@ -23,7 +25,7 @@ const props = defineProps<{
   radiusTL?: number;
   blur?: number;
   saturation?: number;
-  useAutomaticColor?: boolean;
+  useCustomColor?: boolean;
   backgroundColor?: string;
 }>();
 
@@ -49,6 +51,49 @@ const onFallbackModeChanged = (fallback: boolean) => {
 manager.on('fallbackModeChanged', onFallbackModeChanged);
 isFallbackMode.value = manager.isFallbackMode;
 
+const calculatedBackgroundColor = ref(<string>(props.backgroundColor ?? 'initial'));
+const calculatedForegroundColor = ref('initial');
+
+const calculatedBoxShadowBackgroundColor = computed(() => '#00000033');
+
+const calculatedBoxShadowInsetBackgroundColor = computed(() => `${calculatedBackgroundColor.value.slice(-2)}33`);
+
+const boxShadowSize = computed(() => '10px');
+
+const boxShadowInsetSize = computed(() => {
+  const thickness = materialManager.value?.glassAttributes.thickness ?? 20;
+  return `${Math.max(5, thickness)}px`;
+});
+
+const allowingColorTransition = ref<boolean | undefined>(undefined);
+
+const updateBackgroundColor = () => {
+  if (materialManager.value && !materialManager.value?.options.useCustomColor) {
+    const autoBackgroundColorMode = materialManager.value.automaticBackgroundColorMode;
+    switch (autoBackgroundColorMode) {
+      case 'ultra_light':
+        calculatedBackgroundColor.value = '#ffffff33';
+        calculatedForegroundColor.value = '#000000';
+        break;
+      case 'light':
+        calculatedBackgroundColor.value = '#ffffff99';
+        calculatedForegroundColor.value = '#000000';
+        break;
+      case 'ultra_dark':
+        calculatedBackgroundColor.value = '#00000022';
+        calculatedForegroundColor.value = '#ffffff';
+        break;
+      case 'dark':
+        calculatedBackgroundColor.value = '#00000066';
+        calculatedForegroundColor.value = '#ffffff';
+        break;
+      default:
+    }
+  } else if (props.backgroundColor) {
+    calculatedBackgroundColor.value = props.backgroundColor;
+  }
+};
+
 const renderMode = computed(() => manager.renderMode);
 onMounted(() => {
   console.log('LgMaterialConverter mounted');
@@ -65,7 +110,11 @@ onMounted(() => {
       radiusBR: props.radiusBR,
       radiusBL: props.radiusBL,
       radiusTL: props.radiusTL,
-      useAutomaticColor: props.useAutomaticColor,
+      useCustomColor: props.useCustomColor,
+    });
+
+    materialManager.value.on('backgroundColorModeChanged', () => {
+      updateBackgroundColor();
     });
   }
 });
@@ -112,7 +161,30 @@ const updating = (duration: number) => {
   }
 };
 
-defineExpose({ updating });
+const startUpdating = () => {
+  if (updateTimer.value === null) {
+    updating(Infinity);
+  }
+};
+
+const stopUpdating = () => {
+  if (updateTimer.value !== null) {
+    clearInterval(updateTimer.value);
+    updateTimer.value = null;
+  }
+};
+
+// Watch color change
+watch(() => calculatedBackgroundColor.value, () => {
+  // Allow transition only after the first change
+  if (allowingColorTransition.value === undefined) {
+    allowingColorTransition.value = false;
+  } else if (allowingColorTransition.value === false) {
+    allowingColorTransition.value = true;
+  }
+});
+
+defineExpose({ updating, startUpdating, stopUpdating });
 
 </script>
 
@@ -124,6 +196,14 @@ defineExpose({ updating });
   border-radius: v-bind(borderRadius);
   border: 2px solid #ffffff61;
   overflow: hidden;
+  background-color: v-bind(calculatedBackgroundColor);
+  color: v-bind(calculatedForegroundColor);
+  box-shadow: inset 0 0 v-bind(boxShadowInsetSize) v-bind(calculatedBoxShadowInsetBackgroundColor),
+    0 0 v-bind(boxShadowSize) v-bind(calculatedBoxShadowBackgroundColor);
+
+  &[allowing-color-transition="true"] {
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
 
   &[render-mode="uniform"] {
     z-index: 10000;

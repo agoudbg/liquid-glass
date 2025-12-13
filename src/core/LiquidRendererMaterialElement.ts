@@ -1,4 +1,4 @@
-import { LiquidRendererMaterialElementOptions, LiquidRendererMaterialGlassAttributions } from '../types/LiquidGlass';
+import { AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialGlassAttributions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -7,9 +7,13 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
   public element: HTMLElement;
 
+  public materialId: string;
+
   public options: LiquidRendererMaterialElementOptions;
 
   public glassAttributes!: LiquidRendererMaterialGlassAttributions;
+
+  public automaticBackgroundColorMode: AutomaticBackgroundColorMode = 'light';
 
   public position = { x: 0, y: 0 };
 
@@ -19,7 +23,10 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     super();
     this.manager = manager;
     this.element = element;
-    this.options = options;
+    this.options = {
+      ...options,
+    };
+    this.materialId = this.element.id || `material-${Math.random().toString(36).substr(2, 9)}`;
 
     // Initialize glass attributes with defaults or options
     this.initializeGlassAttributes(options);
@@ -100,6 +107,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
       refractIndex: 1.1,
       refractIntensity: 0.5,
     };
+  }
+
+  public setAutomaticBackgroundColorMode(mode: AutomaticBackgroundColorMode) {
+    this.automaticBackgroundColorMode = mode;
+    this.manager.log('debug', 'Material element automatic background color mode set to:', mode, 'for element:', this.element);
+    this.emit('backgroundColorModeChanged', mode);
   }
 
   /**

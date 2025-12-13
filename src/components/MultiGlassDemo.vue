@@ -32,7 +32,6 @@ const glassConfigs = [
     radiusTL: 30.0,
     relWidth: 0.2,
     relHeight: 0.2,
-    foregroundColor: [0.1, 0.1, 0.2, 0.05] as [number, number, number, number],
     relPosition: { x: 0.25, y: 0.3 },
   },
   {
@@ -47,7 +46,6 @@ const glassConfigs = [
     radiusTL: 10.0,
     relWidth: 0.25,
     relHeight: 0.25,
-    foregroundColor: [0.2, 0.05, 0.1, 0.08] as [number, number, number, number],
     relPosition: { x: 0.75, y: 0.4 },
   },
   {
@@ -58,7 +56,6 @@ const glassConfigs = [
     radius: 50.0,
     relWidth: 0.18,
     relHeight: 0.18,
-    foregroundColor: [0.0, 0.1, 0.1, 0.06] as [number, number, number, number],
     relPosition: { x: 0.5, y: 0.7 },
   },
 ];
@@ -120,7 +117,6 @@ onMounted(() => {
       radiusTL: config.radiusTL,
       width: w,
       height: h,
-      foregroundColor: config.foregroundColor,
     }, { x, y });
   });
 

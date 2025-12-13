@@ -100,7 +100,6 @@ const renderPrecision = ref(1.0);
  * - refractIntensity: multiplier for refraction offset (acts like shader intensity knob).
  * - radiusTR/BR/BL/TL: per-corner radii in pixels to support asymmetric shapes.
  * - width/height: quad size in pixels.
- * - foregroundColor: premultiplied RGBA overlay tint blended with src-over.
  */
 const params = reactive<LiquidGlassConfig>({
   thickness: 30.0,
@@ -113,7 +112,6 @@ const params = reactive<LiquidGlassConfig>({
   radiusTL: 40.0,
   width: 400,
   height: 400,
-  foregroundColor: [0.0, 0.0, 0.0, 0.0],
 });
 
 const position = reactive({ x: 400, y: 300 });

@@ -14,7 +14,6 @@ uniform vec4 uRadius;
 uniform float uThickness;        // Physical thickness in pixels
 uniform float uRefractIndex;     // Index of refraction
 uniform float uRefractIntensity; // Scales refraction offset
-uniform vec4 uForegroundColor;   // Premultiplied overlay
 
 float sdfRect(vec2 p, vec4 r) {
   // p is relative to center; y is up.
@@ -26,11 +25,6 @@ float sdfRect(vec2 p, vec4 r) {
   }
   vec2 q = abs(p) - uSize + rad;
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
-}
-
-vec4 srcOver(vec4 src, vec4 dst) {
-  vec3 outRGB = (src.rgb + dst.rgb * (1.0 - src.a));
-  return vec4(outRGB, 1.0);
 }
 
 void main() {
@@ -62,6 +56,5 @@ void main() {
   vec2 pixelOffset = refract_vec.xy * refract_length * uRefractIntensity;
   uv += pixelOffset / uResolution;
 
-  vec4 bg = texture(uTexture, uv);
-  fragColor = srcOver(uForegroundColor, bg);
+  fragColor = texture(uTexture, uv);
 }

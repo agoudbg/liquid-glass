@@ -3,6 +3,9 @@ import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
 
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
+export type ThemeColor = 'black' | 'ultra_black' | 'white' | 'ultra_white';
+export type ThemeColorMap = Record<string, ThemeColor>;
+
 export type LiquidGlassConfig = {
   thickness: number
   refractIndex: number
@@ -14,7 +17,6 @@ export type LiquidGlassConfig = {
   radiusTL?: number
   width: number
   height: number
-  foregroundColor: [number, number, number, number]
 }
 
 export type GlassMaterialInstance = {
@@ -29,6 +31,15 @@ export type LiquidGlassRenderer = {
   removeMaterial: (id: string) => void
   setMaterialPosition: (id: string, x: number, y: number) => void
   setBackground: (source: TexImageSource) => void
+  /**
+   * Trigger a render pass. If collectThemes is true, returns the inferred theme color per material.
+   * This call does not start or stop the internal render loop.
+   */
+  render: (options?: { collectThemes?: boolean }) => ThemeColorMap | null
+  /**
+   * Compute the theme colors without issuing a draw. Uses the last captured backdrop pixels.
+   */
+  getThemeColors: () => ThemeColorMap
   setRenderScale: (scale: number) => void
   resize: () => void
   dispose: () => void
@@ -55,6 +66,7 @@ export function createLiquidGlassRenderer(
     materials: new Map<string, GlassMaterialInstance>(),
     renderScale: Math.max(0.05, options?.renderScale ?? 1),
     logicalResolution: { width: 1, height: 1 },
+    backgroundPixelData: null as { data: Uint8ClampedArray; width: number; height: number } | null,
   };
 
   function compileShader(source: string, type: number) {
@@ -122,7 +134,6 @@ export function createLiquidGlassRenderer(
       'uThickness',
       'uRefractIndex',
       'uRefractIntensity',
-      'uForegroundColor',
     ];
     uniformNames.forEach((name) => {
       state.uniforms[name] = gl.getUniformLocation(program, name);
@@ -224,14 +235,77 @@ export function createLiquidGlassRenderer(
     gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr);
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
-    gl.uniform4fv(state.uniforms.uForegroundColor, material.config.foregroundColor);
   }
 
-  function render(): void {
-    if (!gl) return;
+  function computeThemeColors(): ThemeColorMap {
+    if (!state.backgroundPixelData) return {};
+
+    const { data, width, height } = state.backgroundPixelData;
+    const dpr = window.devicePixelRatio || 1;
+    const result: ThemeColorMap = {};
+
+    const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
+
+    state.materials.forEach((material, id) => {
+      const halfW = (material.config.width * dpr) / 2;
+      const halfH = (material.config.height * dpr) / 2;
+      const centerX = material.position.x * dpr;
+      const centerY = material.position.y * dpr;
+
+      const startX = clamp(Math.floor(centerX - halfW), 0, width - 1);
+      const endX = clamp(Math.ceil(centerX + halfW), 0, width - 1);
+      const startY = clamp(Math.floor(centerY - halfH), 0, height - 1);
+      const endY = clamp(Math.ceil(centerY + halfH), 0, height - 1);
+
+      const spanX = endX - startX + 1;
+      const spanY = endY - startY + 1;
+      const step = Math.max(1, Math.floor(Math.min(spanX, spanY) / 32));
+
+      let sumLuma = 0;
+      let count = 0;
+
+      for (let y = startY; y <= endY; y += step) {
+        for (let x = startX; x <= endX; x += step) {
+          const idx = (y * width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const luma = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          sumLuma += luma;
+          count += 1;
+        }
+      }
+
+      if (count === 0) {
+        result[id] = 'black';
+        return;
+      }
+
+      const avgLuma = sumLuma / count;
+      let theme: ThemeColor;
+      if (avgLuma <= 32) {
+        theme = 'ultra_black';
+      } else if (avgLuma <= 110) {
+        theme = 'black';
+      } else if (avgLuma >= 224) {
+        theme = 'ultra_white';
+      } else {
+        theme = 'white';
+      }
+
+      result[id] = theme;
+    });
+
+    return result;
+  }
+
+  function render(collectThemes = false, scheduleNext = true): ThemeColorMap | null {
+    if (!gl) return null;
     if (!state.program || !state.vao || !state.hasTexture) {
-      state.animationId = requestAnimationFrame(render);
-      return;
+      if (scheduleNext) {
+        state.animationId = requestAnimationFrame(() => render(false, true));
+      }
+      return null;
     }
 
     // Clear canvas once
@@ -250,14 +324,20 @@ export function createLiquidGlassRenderer(
 
     gl.disable(gl.BLEND);
 
-    state.animationId = requestAnimationFrame(render);
+    const themes = collectThemes ? computeThemeColors() : null;
+
+    if (scheduleNext) {
+      state.animationId = requestAnimationFrame(() => render(false, true));
+    }
+
+    return themes;
   }
 
   const ok = setupProgram();
   if (!ok) return null;
   setupGeometry();
   resize();
-  render();
+  render(false, true);
 
   return {
     addMaterial(id: string, config: LiquidGlassConfig, position: { x: number; y: number }) {
@@ -287,6 +367,35 @@ export function createLiquidGlassRenderer(
       createTexture(0, source);
       state.textureResolution.width = (source as any).width || state.textureResolution.width;
       state.textureResolution.height = (source as any).height || state.textureResolution.height;
+
+      const width = (source as any).width as number | undefined;
+      const height = (source as any).height as number | undefined;
+      if (width && height) {
+        const bgCanvas = document.createElement('canvas');
+        bgCanvas.width = width;
+        bgCanvas.height = height;
+        const ctx = bgCanvas.getContext('2d');
+        if (ctx) {
+          try {
+            ctx.drawImage(source, 0, 0, width, height);
+            const imageData = ctx.getImageData(0, 0, width, height);
+            state.backgroundPixelData = {
+              data: imageData.data,
+              width,
+              height,
+            };
+          } catch (error) {
+            console.warn('LiquidGlassRenderer: failed to sample backdrop pixels', error);
+            state.backgroundPixelData = null;
+          }
+        }
+      }
+    },
+    render(options?: { collectThemes?: boolean }) {
+      return render(options?.collectThemes ?? false, false);
+    },
+    getThemeColors() {
+      return computeThemeColors();
     },
     setRenderScale(scale: number) {
       state.renderScale = Math.max(0.05, scale);
@@ -294,7 +403,10 @@ export function createLiquidGlassRenderer(
     },
     resize,
     dispose() {
-      if (state.animationId) cancelAnimationFrame(state.animationId);
+      if (state.animationId) {
+        cancelAnimationFrame(state.animationId);
+        state.animationId = null;
+      }
       if (state.vao) gl.deleteVertexArray(state.vao);
       gl.useProgram(null);
     },

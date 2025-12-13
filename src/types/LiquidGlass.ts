@@ -34,7 +34,7 @@ export interface LiquidRendererMaterialElementOptions {
   radiusBR?: number;
   radiusBL?: number;
   radiusTL?: number;
-  useAutomaticColor?: boolean;
+  useCustomColor?: boolean;
 }
 
 export interface LiquidRendererMaterialGlassAttributions {
@@ -53,3 +53,5 @@ export interface LiquidRendererBackdropCapturedEvent {
   width: number;
   height: number;
 }
+
+export type AutomaticBackgroundColorMode = 'light' | 'dark' | 'ultra_light' | 'ultra_dark';

@@ -1,4 +1,4 @@
-import { LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
+import { AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { createLiquidGlassRenderer, LiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
@@ -264,11 +264,11 @@ export class LiquidRendererManager extends EventEmitter {
         );
 
         // Debug: Draw a border around the backdrop item
-        if (this.debug) {
-          ctx.strokeStyle = 'yellow';
-          ctx.lineWidth = 2 / dpr;
-          ctx.strokeRect(drawX, drawY, drawW, drawH);
-        }
+        // if (this.debug) {
+        //   ctx.strokeStyle = 'yellow';
+        //   ctx.lineWidth = 2 / dpr;
+        //   ctx.strokeRect(drawX, drawY, drawW, drawH);
+        // }
       }
     });
 
@@ -329,7 +329,7 @@ export class LiquidRendererManager extends EventEmitter {
       const { glassAttributes, position, size } = element;
 
       this.renderer!.addMaterial(
-        element.element.id || `material-${Math.random().toString(36).substr(2, 9)}`,
+        element.materialId,
         {
           thickness: glassAttributes.thickness,
           refractIndex: glassAttributes.refractIndex,
@@ -341,7 +341,6 @@ export class LiquidRendererManager extends EventEmitter {
           radiusTL: glassAttributes.radiusTL,
           width: size.width / (window.devicePixelRatio || 1),
           height: size.height / (window.devicePixelRatio || 1),
-          foregroundColor: [0, 0, 0, 0],
         },
         {
           x: position.x + size.width / 2 / (window.devicePixelRatio || 1),
@@ -366,13 +365,36 @@ export class LiquidRendererManager extends EventEmitter {
     // Set backdrop
     this.renderer.setBackground(backdropCanvasForGL);
 
-    // Render
+    // Render and optionally collect theme colors beneath each material
     this.renderer.resize();
+    const themeColors = this.renderer.render({ collectThemes: true });
+    if (themeColors) {
+      this.log('debug', 'Collected theme colors for materials:', themeColors);
+      const mapThemeToMode = (theme: string): AutomaticBackgroundColorMode => {
+        switch (theme) {
+          case 'ultra_black':
+            return 'ultra_dark';
+          case 'black':
+            return 'dark';
+          case 'ultra_white':
+            return 'ultra_light';
+          case 'white':
+          default:
+            return 'light';
+        }
+      };
+
+      this.registeredMaterialElements.forEach((element) => {
+        const theme = themeColors[element.materialId];
+        if (!theme) return;
+        element.setAutomaticBackgroundColorMode(mapThemeToMode(theme));
+      });
+    }
     this.log('debug', 'Materials renderer updated');
 
     // Defer the emit to the next animation frame so that the WebGL draw has completed.
     requestAnimationFrame(() => {
-      this.emit('materialsRendered');
+      this.emit('materialsRendered', themeColors);
 
       this.isRenderingMaterials = false;
 

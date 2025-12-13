@@ -31,6 +31,12 @@
       </div>
 
       <div class="control-group">
+        <label>Default Corner Radius: {{ params.radius.toFixed(0) }}</label>
+        <small>Fallback radius in pixels; individual corners inherit this value unless overridden.</small>
+        <input type="range" v-model.number="params.radius" min="0" max="200" step="1" />
+      </div>
+
+      <div class="control-group">
         <label>Corner Radius (Top-Right): {{ params.radiusTR.toFixed(0) }}</label>
         <small>Top-right corner radius in pixels.</small>
         <input type="range" v-model.number="params.radiusTR" min="0" max="200" step="1" />
@@ -55,9 +61,15 @@
       </div>
 
       <div class="control-group">
-        <label>Size Scale: {{ params.sizeScale.toFixed(2) }}</label>
-        <small>Controls the glass quad size relative to the canvas.</small>
-        <input type="range" v-model.number="params.sizeScale" min="0.1" max="1.0" step="0.01" />
+        <label>Width Scale: {{ params.width.toFixed(2) }}</label>
+        <small>Horizontal size ratio relative to canvas width.</small>
+        <input type="range" v-model.number="params.width" min="0.1" max="1.5" step="0.01" />
+      </div>
+
+      <div class="control-group">
+        <label>Height Scale: {{ params.height.toFixed(2) }}</label>
+        <small>Vertical size ratio relative to canvas height.</small>
+        <input type="range" v-model.number="params.height" min="0.1" max="1.5" step="0.01" />
       </div>
 
       <div class="control-group">
@@ -87,18 +99,20 @@ const renderPrecision = ref(1.0);
  * - refractIndex: IOR of glass; higher bends light more (typical glass ~1.5).
  * - refractIntensity: multiplier for refraction offset (acts like shader intensity knob).
  * - radiusTR/BR/BL/TL: per-corner radii in pixels to support asymmetric shapes.
- * - sizeScale: normalized scale of the glass quad relative to canvas size (0-1).
+ * - width/height: normalized quad size relative to canvas dimensions (0-1+).
  * - foregroundColor: premultiplied RGBA overlay tint blended with src-over.
  */
 const params = reactive<LiquidGlassConfig>({
   thickness: 30.0,
   refractIndex: 1.5,
   refractIntensity: 1.0,
+  radius: 40.0,
   radiusTR: 40.0,
   radiusBR: 40.0,
   radiusBL: 40.0,
   radiusTL: 40.0,
-  sizeScale: 0.6,
+  width: 0.6,
+  height: 0.6,
   foregroundColor: [0.0, 0.0, 0.0, 0.0],
 });
 
@@ -184,7 +198,7 @@ onUnmounted(() => {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   width: 320px;
-  max-height: calc(90vh - 20px);
+  height: 500px;
   overflow-y: auto;
 }
 

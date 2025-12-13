@@ -13,6 +13,29 @@ export interface LiquidRendererBackdropElementOptions {
   watchPositionChanges?: boolean;
 }
 
+export interface LiquidRendererMaterialElementOptions {
+  thickness?: number;
+  refractIndex?: number;
+  refractIntensity?: number;
+  radius: number;
+  radiusTR?: number;
+  radiusBR?: number;
+  radiusBL?: number;
+  radiusTL?: number;
+  useAutomaticColor?: boolean;
+}
+
+export interface LiquidRendererMaterialGlassAttributions {
+  thickness: number;
+  refractIndex: number;
+  refractIntensity: number;
+  radius: number;
+  radiusTR: number;
+  radiusBR: number;
+  radiusBL: number;
+  radiusTL: number;
+}
+
 export interface LiquidRendererBackdropCapturedEvent {
   canvas: OffscreenCanvas;
   width: number;

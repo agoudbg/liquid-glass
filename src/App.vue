@@ -9,7 +9,7 @@
         <LgBackdropConverter :capture-lib="'html2canvas'">
           <template #default="{ requestBackdropRedraw }">
             <div class="demo-backdrop">
-              <div class="demo-pill"><input value="Input" @change="requestBackdropRedraw()"></div>
+              <div class="demo-pill"><input class="inputs" value="Input" @change="requestBackdropRedraw()"></div>
               <div class="demo-tiles">
                 <div class="demo-tile">Color</div>
                 <div class="demo-tile">Noise</div>
@@ -21,7 +21,7 @@
         </LgBackdropConverter>
 
         <div class="demo-materials">
-          <LiquidGlassMaterial borderRadius="18px" fallbackBlur="14px">
+          <LiquidGlassMaterial :radius="20">
             <div class="demo-card">
               <h3>Glass card</h3>
               <p>Scoped provider demo with html2canvas backdrop.</p>
@@ -129,6 +129,15 @@ html {
   letter-spacing: 0.2px;
 }
 
+.demo-pill .inputs {
+  background: #a24df0;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 18px;
+  width: 800px;
+}
+
 .demo-tiles {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -147,10 +156,13 @@ html {
 
 .demo-materials {
   position: absolute;
+  z-index: 99;
   top: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 200px;
+  height: 140px;
 }
 
 .demo-card {

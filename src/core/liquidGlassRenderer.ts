@@ -7,11 +7,13 @@ export type LiquidGlassConfig = {
   thickness: number
   refractIndex: number
   refractIntensity: number
-  radiusTR: number
-  radiusBR: number
-  radiusBL: number
-  radiusTL: number
-  sizeScale: number
+  radius: number
+  radiusTR?: number
+  radiusBR?: number
+  radiusBL?: number
+  radiusTL?: number
+  width: number
+  height: number
   foregroundColor: [number, number, number, number]
 }
 
@@ -199,16 +201,18 @@ export function createLiquidGlassRenderer(
     const centerY = material.position.y * height;
     gl.uniform2f(state.uniforms.uCenter, centerX, centerY);
 
-    const sizeX = (width * material.config.sizeScale) / 2;
-    const sizeY = (height * material.config.sizeScale) / 2;
+    const sizeX = (width * material.config.width) / 2;
+    const sizeY = (height * material.config.height) / 2;
     gl.uniform2f(state.uniforms.uSize, sizeX, sizeY);
+
+    const baseRadius = material.config.radius;
 
     gl.uniform4f(
       state.uniforms.uRadius,
-      material.config.radiusTR * dpr,
-      material.config.radiusBR * dpr,
-      material.config.radiusBL * dpr,
-      material.config.radiusTL * dpr,
+      (material.config.radiusTR ?? baseRadius) * dpr,
+      (material.config.radiusBR ?? baseRadius) * dpr,
+      (material.config.radiusBL ?? baseRadius) * dpr,
+      (material.config.radiusTL ?? baseRadius) * dpr,
     );
 
     gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr);

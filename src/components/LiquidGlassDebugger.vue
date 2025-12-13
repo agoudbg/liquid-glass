@@ -16,6 +16,15 @@
         <hr />
       </div>
     </div>
+    <h3>Material Elements</h3>
+    <div v-if="materialElements.length > 0">
+      <div v-for="(element, index) in materialElements" :key="index">
+        <p>Material Element {{ index + 1 }}:</p>
+        <p>Position: ({{ element.position.x }}, {{ element.position.y }})</p>
+        <p>Size: {{ element.size.width }} x {{ element.size.height }}</p>
+        <hr />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -24,6 +33,7 @@ import { onMounted, ref, watch } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
+import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import { LiquidRendererBackdropCapturedEvent } from '../types/LiquidGlass';
 
 const props = defineProps<{
@@ -35,6 +45,8 @@ const currentBackdrop = ref<string>('');
 
 const backdropElements = ref<LiquidRendererBackdropElement[]>([]);
 const backdropElementUrls = ref<Record<number, string>>({});
+
+const materialElements = ref<LiquidRendererMaterialElement[]>([]);
 
 const safeConvertToUrl = async (
   canvas?: OffscreenCanvas | HTMLCanvasElement | null,
@@ -86,7 +98,6 @@ onMounted(() => {
 
   manager.setOptions({ debug: true });
 
-  backdropElements.value = manager.registeredBackdropElements;
   manager.on('backdropCaptured', async (event: LiquidRendererBackdropCapturedEvent) => {
     const nextUrl = await safeConvertToUrl(event.canvas);
     if (currentBackdrop.value && currentBackdrop.value !== nextUrl) {
@@ -97,8 +108,14 @@ onMounted(() => {
     backdropInfo.value = event;
   });
 
+  backdropElements.value = manager.registeredBackdropElements;
   manager.on('backdropElementChanged', (elements: LiquidRendererBackdropElement[]) => {
     backdropElements.value = elements;
+  });
+
+  materialElements.value = manager.registeredMaterialElements;
+  manager.on('materialElementChanged', (elements: LiquidRendererMaterialElement[]) => {
+    materialElements.value = elements;
   });
 });
 

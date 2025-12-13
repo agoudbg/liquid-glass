@@ -1,6 +1,7 @@
 import { LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
+import { LiquidRendererMaterialElement } from './LiquidRendererMaterialElement';
 
 export class LiquidRendererManager extends EventEmitter {
   public debug = false;
@@ -9,9 +10,13 @@ export class LiquidRendererManager extends EventEmitter {
 
   public backdropCanvas = new OffscreenCanvas(1, 1);
 
+  public materialsCanvas = new OffscreenCanvas(1, 1);
+
   public renderPrecision = 0; // 0=auto
 
   public registeredBackdropElements: LiquidRendererBackdropElement[] = [];
+
+  public registeredMaterialElements: LiquidRendererMaterialElement[] = [];
 
   public position = { x: 0, y: 0 };
 
@@ -72,6 +77,27 @@ export class LiquidRendererManager extends EventEmitter {
     this.captureBackdrop();
   }
 
+  public registerMaterialElement(element: LiquidRendererMaterialElement) {
+    this.registeredMaterialElements.push(element);
+    this.log('debug', 'Registered material element:', element.element);
+    this.onMaterialElementChange();
+  }
+
+  public unregisterMaterialElement(element: LiquidRendererMaterialElement) {
+    this.registeredMaterialElements = this.registeredMaterialElements.filter(
+      (el) => el !== element,
+    );
+    this.log('debug', 'Unregistered material element:', element.element);
+    this.onMaterialElementChange();
+  }
+
+  public onMaterialElementChange() {
+    this.emit('materialElementChanged', this.registeredMaterialElements);
+
+    // Re-render materials when elements change
+    this.renderMaterials();
+  }
+
   /**
    * Add resize listeners to handle container size changes
    */
@@ -113,6 +139,9 @@ export class LiquidRendererManager extends EventEmitter {
     const rect = this.updateContainerPositionAndSize();
     this.backdropCanvas.width = rect.width * (window.devicePixelRatio || 1);
     this.backdropCanvas.height = rect.height * (window.devicePixelRatio || 1);
+
+    this.materialsCanvas.width = rect.width * (window.devicePixelRatio || 1);
+    this.materialsCanvas.height = rect.height * (window.devicePixelRatio || 1);
 
     this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
 
@@ -197,6 +226,24 @@ export class LiquidRendererManager extends EventEmitter {
     } as LiquidRendererBackdropCapturedEvent);
 
     this.log('debug', 'Backdrop capture complete');
+  }
+
+  public renderMaterials() {
+    this.log('debug', 'Rendering materials for registered material elements');
+
+    // Get backdrop
+    const backdropCtx = this.backdropCanvas.getContext('2d');
+    const materialsCtx = this.materialsCanvas.getContext('2d');
+
+    if (!backdropCtx || !materialsCtx) {
+      this.log('error', 'Failed to get 2D context for backdrop or materials canvas');
+      return;
+    }
+
+    // Clear materials canvas
+    materialsCtx.clearRect(0, 0, this.materialsCanvas.width, this.materialsCanvas.height);
+
+    // Todo: Implement actual liquid glass rendering logic here
   }
 
   /**

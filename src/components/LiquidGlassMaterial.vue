@@ -1,6 +1,7 @@
 <template>
   <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode"
-    :allowing-color-transition="allowingColorTransition">
+    :allowing-color-transition="allowingColorTransition" :disable-interactions="disableInteractions"
+    :only-click-interactions="onlyClickInteractions">
     <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
 </template>
@@ -27,6 +28,8 @@ const props = defineProps<{
   saturation?: number;
   useCustomColor?: boolean;
   backgroundColor?: string;
+  disableInteractions?: boolean;
+  onlyClickInteractions?: boolean;
 }>();
 
 const materialElement = ref<HTMLElement | null>(null);
@@ -97,6 +100,9 @@ const updateBackgroundColor = () => {
 const fallbackBlur = computed(() => `${Math.min(props.blur ?? 6, 6)}px`);
 
 const renderMode = computed(() => manager.renderMode);
+
+// Interactions
+
 onMounted(() => {
   console.log('LgMaterialConverter mounted');
 

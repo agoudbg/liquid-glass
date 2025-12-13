@@ -36,7 +36,52 @@
           <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
         </div>
       </div>
-      <!-- <LiquidGlassDebugger /> -->
+      <LiquidGlassDebugger />
+    </LiquidGlass>
+  </div>
+
+  <div class="page-test">
+    <LiquidGlass class="liquid-glass-container-page" :debug="true" :power-efficient-mode="false">
+      <header>
+        <div class="left">
+          <LiquidGlassMaterial class="button" :radius="20">
+            <button>Home</button>
+          </LiquidGlassMaterial>
+        </div>
+        <div class="title">
+          <LgBackdropConverter :capture-lib="'html-to-image'">
+            <div class="title-text">Liquid Glass</div>
+          </LgBackdropConverter>
+        </div>
+        <div class="right">
+          <LiquidGlassMaterial class="button" :radius="20">
+            <button>Share</button>
+          </LiquidGlassMaterial>
+        </div>
+      </header>
+      <main>
+        <LgBackdropConverter :capture-lib="'html-to-image'">
+          <section class="content-section">
+            <h2>Welcome to the Liquid Glass Demo Page</h2>
+            <p>This is a demonstration of the Liquid Glass effect using Vue.js components.</p>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <p>Scroll down to see more content with the Liquid Glass effect applied.</p>
+            <div class="spacer-large"></div>
+            <p>End of the demo content.</p>
+          </section>
+        </LgBackdropConverter>
+      </main>
+      <footer>
+        <LiquidGlassMaterial class="footer-glass" :radius="0" :blur="10" :saturation="120">
+          <div class="footer-content">
+            <p>© 2024 Liquid Glass Demo. All rights reserved.</p>
+          </div>
+        </LiquidGlassMaterial>
+      </footer>
+      <LiquidGlassDebugger />
     </LiquidGlass>
   </div>
 
@@ -324,5 +369,98 @@ html {
 
 .spacer {
   height: 50px;
+}
+
+.page-test {
+  width: 80vw;
+  height: 1200px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 20px;
+  position: relative;
+  color: #333;
+}
+
+.liquid-glass-container-page {
+  background-color: #f0f0f0;
+}
+
+header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  backdrop-filter: blur(10px);
+  z-index: 9999;
+}
+
+header .left,
+header .right {
+  flex: 0 0 auto;
+}
+
+header .title {
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+header .title-text {
+  font-size: 20px;
+  font-weight: bold;
+  color: #333;
+}
+
+button {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  font-size: 14px;
+  cursor: pointer;
+  color: inherit;
+  z-index: 10002;
+}
+
+.info-card {
+  display: block;
+  margin: 20px 0;
+  width: 100%;
+  max-width: 400px;
+}
+
+.card-content {
+  padding: 16px;
+}
+
+.content-section {
+  padding: 20px;
+}
+
+.spacer-large {
+  height: 400px;
+}
+
+footer {
+  position: sticky;
+  bottom: 0;
+  padding: 10px 20px;
+  background: #ffffffcc;
+  backdrop-filter: blur(10px);
+  text-align: center;
+  box-shadow: 0 -2px 8px #0000001a;
+}
+
+.footer-glass {
+  display: block;
+  width: 100%;
+}
+
+.footer-content {
+  padding: 8px 0;
+  font-size: 14px;
+  color: #555;
 }
 </style>

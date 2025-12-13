@@ -79,11 +79,13 @@ onMounted(() => {
   });
 
   // Watch window blurred to change visibility state
-  window.addEventListener('blur', () => setVisibility(false));
+  if (props.powerEfficientMode) {
+    window.addEventListener('blur', () => setVisibility(false));
 
-  window.addEventListener('focus', () => setVisibility(true));
+    window.addEventListener('focus', () => setVisibility(true));
 
-  window.addEventListener('visibilitychange', () => setVisibility(!document.hidden));
+    window.addEventListener('visibilitychange', () => setVisibility(!document.hidden));
+  }
 });
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);

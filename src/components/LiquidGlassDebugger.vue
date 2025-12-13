@@ -1,6 +1,8 @@
 <template>
   <div class="liquid-glass-debugger">
     <h2>Liquid Glass Debugger</h2>
+    <p>Efficient Mode: {{ manager?.powerEfficientMode }}</p>
+    <p>Fallback Mode: {{ isFallbackMode }}</p>
     <h3>Current Materials Canvas
       <button @click="getMaterialsCanvas()">Refresh</button>
     </h3>
@@ -49,6 +51,8 @@ const props = defineProps<{
 }>();
 
 const manager = ref<LiquidRendererManager | null>(null);
+
+const isFallbackMode = ref<boolean>(false);
 
 const materialsCanvasRef = ref<HTMLCanvasElement | null>(null);
 
@@ -109,6 +113,11 @@ onMounted(() => {
   manager.value = useLiquidContext();
 
   manager.value.setOptions({ debug: true });
+
+  isFallbackMode.value = manager.value.isFallbackMode;
+  manager.value.on('fallbackModeChanged', (fallback: boolean) => {
+    isFallbackMode.value = fallback;
+  });
 
   manager.value.on('backdropCaptured', async (event: LiquidRendererBackdropCapturedEvent) => {
     const nextUrl = await safeConvertToUrl(event.canvas);

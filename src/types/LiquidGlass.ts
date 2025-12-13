@@ -14,6 +14,8 @@ export interface LiquidRendererManagerOptions {
    *   This allows for independent z-index management per material but may have performance implications with many materials.
    */
   renderMode?: RenderMode;
+  /** Enable power efficient mode to reduce resource consumption */
+  powerEfficientMode?: boolean;
 }
 
 export interface LiquidRendererBackdropElementOptions {

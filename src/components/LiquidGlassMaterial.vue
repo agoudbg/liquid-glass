@@ -1,11 +1,13 @@
 <template>
-  <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode">
+  <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode">
     <slot :updating="updating"></slot>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { computed, onMounted, ref } from 'vue';
+import {
+  computed, onMounted, ref,
+} from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
@@ -39,6 +41,12 @@ const borderRadius = computed(() => {
 });
 
 const manager = useLiquidContext();
+
+const isFallbackMode = ref<boolean>(false);
+manager.on('fallbackModeChanged', (fallback: boolean) => {
+  isFallbackMode.value = fallback;
+});
+isFallbackMode.value = manager.isFallbackMode;
 
 const renderMode = computed(() => manager.renderMode);
 onMounted(() => {
@@ -91,11 +99,16 @@ defineExpose({ updating });
   width: 100%;
   height: 100%;
   border-radius: v-bind(borderRadius);
-  border: 2px solid rgba(255, 255, 255, 0.669);
+  border: 2px solid #ffffff61;
   overflow: hidden;
 
   &[render-mode="uniform"] {
     z-index: 10000;
+  }
+
+  &[is-fallback-mode="true"] {
+    background-color: #dcdcdc96;
+    backdrop-filter: blur(10px);
   }
 }
 </style>

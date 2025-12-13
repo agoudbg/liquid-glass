@@ -31,6 +31,12 @@ export class LiquidRendererManager extends EventEmitter {
 
   public hasPendingMaterialsRenderRequest = false;
 
+  public glassNotSupported = false;
+
+  public powerEfficientMode = false;
+
+  public isFallbackMode = false;
+
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
@@ -57,6 +63,8 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.renderMode = options.renderMode ?? 'uniform';
 
+    this.powerEfficientMode = options.powerEfficientMode ?? false;
+
     this.log('debug', 'LiquidRendererManager initialized');
   }
 
@@ -68,10 +76,26 @@ export class LiquidRendererManager extends EventEmitter {
       this.debug = options.debug;
       this.log('debug', `Debug mode set to: ${this.debug}`);
     }
+
     if (options.container && options.container !== this.container) {
       this.container = options.container;
       this.log('debug', 'Container updated, adding resize listeners.');
       this.addResizeListeners();
+    }
+
+    if (options.renderPrecision !== undefined) {
+      this.renderPrecision = options.renderPrecision;
+      this.log('debug', `Render precision set to: ${this.renderPrecision}`);
+    }
+
+    if (options.renderMode !== undefined) {
+      this.renderMode = options.renderMode;
+      this.log('debug', `Render mode set to: ${this.renderMode}`);
+    }
+
+    if (options.powerEfficientMode !== undefined) {
+      this.powerEfficientMode = options.powerEfficientMode;
+      this.log('debug', `Power efficient mode set to: ${this.powerEfficientMode}`);
     }
   }
 
@@ -189,6 +213,7 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     this.isRenderingBackdrop = true;
+    this.updateFallbackMode();
 
     this.log('debug', 'Capturing backdrop for container');
 
@@ -265,6 +290,7 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', 'Backdrop capture complete');
 
     this.isRenderingBackdrop = false;
+    this.updateFallbackMode();
 
     // If there was a pending request, trigger another capture
     if (this.hasPendingBackdropRenderRequest) {
@@ -295,9 +321,12 @@ export class LiquidRendererManager extends EventEmitter {
 
     // Create renderer on the persistent materialsCanvas
     this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
+      renderScale: this.getRenderPrecision(),
     });
     if (!this.renderer) {
       this.log('error', 'Failed to create LiquidGlassRenderer');
+      this.glassNotSupported = true;
+      this.updateFallbackMode();
       this.isRenderingMaterials = false;
       return;
     }
@@ -367,6 +396,26 @@ export class LiquidRendererManager extends EventEmitter {
       this.renderer.dispose();
       this.renderer = null;
     }
+  }
+
+  public getRenderPrecision() {
+    return this.renderPrecision === 0 ? 1 : this.renderPrecision;
+  }
+
+  public updateFallbackMode() {
+    this.log('debug', 'Updating fallback mode. Glass supported:', !this.glassNotSupported, 'Power efficient mode:', this.powerEfficientMode, 'Is rendering backdrop:', this.isRenderingBackdrop);
+    if (this.glassNotSupported) {
+      this.isFallbackMode = true;
+      this.log('debug', 'Glass not supported, enabling fallback mode.');
+    } else if (this.isRenderingBackdrop && this.powerEfficientMode) {
+      this.isFallbackMode = true;
+    } else {
+      this.isFallbackMode = false;
+    }
+
+    this.log('debug', 'Fallback mode set to:', this.isFallbackMode);
+
+    this.emit('fallbackModeChanged', this.isFallbackMode);
   }
 
   /**

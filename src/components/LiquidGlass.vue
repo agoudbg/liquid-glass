@@ -1,6 +1,7 @@
 <template>
   <div class="liquid-glass-container" ref="container">
-    <canvas v-if="manager?.renderMode === 'uniform'" class="liquid-glass-uniform-canvas" ref="uniformCanvas"></canvas>
+    <canvas v-if="manager?.renderMode === 'uniform' && !isFallbackMode" class="liquid-glass-uniform-canvas"
+      ref="uniformCanvas"></canvas>
     <slot></slot>
   </div>
 </template>
@@ -18,6 +19,7 @@ const props = defineProps<{
   backgroundImage?: string;
   renderPrecision?: number;
   renderMode?: 'uniform' | 'dedicated';
+  powerEfficientMode?: boolean;
 }>();
 
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
@@ -26,6 +28,13 @@ const uniformCanvas = ref<HTMLCanvasElement | null>(null);
 const manager: LiquidRendererManager = new LiquidRendererManager({ debug: props.debug ?? false });
 
 provideLiquidContext(manager);
+
+const isFallbackMode = ref<boolean>(false);
+manager.on('fallbackModeChanged', (fallback: boolean) => {
+  isFallbackMode.value = fallback;
+});
+
+isFallbackMode.value = manager.isFallbackMode;
 
 const container = ref<HTMLElement | null>(null);
 
@@ -43,6 +52,7 @@ onMounted(() => {
       debug: props.debug ?? false,
       renderPrecision: props.renderPrecision ?? 0,
       renderMode: props.renderMode ?? 'uniform',
+      powerEfficientMode: props.powerEfficientMode ?? false,
     },
   );
 

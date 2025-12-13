@@ -53,7 +53,7 @@ export function createLiquidGlassRenderer(
     textureResolution: { width: 1, height: 1 },
     hasTexture: false,
     materials: new Map<string, GlassMaterialInstance>(),
-    renderScale: Math.max(0.25, options?.renderScale ?? 1),
+    renderScale: Math.max(0.05, options?.renderScale ?? 1),
     logicalResolution: { width: 1, height: 1 },
   };
 
@@ -289,7 +289,7 @@ export function createLiquidGlassRenderer(
       state.textureResolution.height = (source as any).height || state.textureResolution.height;
     },
     setRenderScale(scale: number) {
-      state.renderScale = Math.max(0.25, scale);
+      state.renderScale = Math.max(0.05, scale);
       resize();
     },
     resize,

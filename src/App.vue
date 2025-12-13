@@ -1,12 +1,12 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="true" :render-precision="0.15">
+    <LiquidGlass class="liquid-glass-container" :debug="true" :power-efficient-mode="true">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html2canvas'">
           <template #default="{ requestBackdropRedraw }">
             <div class="demo-backdrop">
-              <div class="demo-pill"><input class="inputs" value="Input" @change="requestBackdropRedraw()"></div>
+              <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
               <div class="demo-tiles">
                 <div class="demo-tile">Color</div>
                 <div class="demo-tile">Noise</div>

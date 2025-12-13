@@ -1,5 +1,6 @@
 import { LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
+import { createLiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
 import { LiquidRendererMaterialElement } from './LiquidRendererMaterialElement';
 
@@ -10,7 +11,7 @@ export class LiquidRendererManager extends EventEmitter {
 
   public backdropCanvas = new OffscreenCanvas(1, 1);
 
-  public materialsCanvas = new OffscreenCanvas(1, 1);
+  public materialsCanvas = document.createElement('canvas');
 
   public renderPrecision = 0; // 0=auto
 
@@ -225,6 +226,8 @@ export class LiquidRendererManager extends EventEmitter {
       height: this.backdropCanvas.height,
     } as LiquidRendererBackdropCapturedEvent);
 
+    this.renderMaterials();
+
     this.log('debug', 'Backdrop capture complete');
   }
 
@@ -233,17 +236,86 @@ export class LiquidRendererManager extends EventEmitter {
 
     // Get backdrop
     const backdropCtx = this.backdropCanvas.getContext('2d');
-    const materialsCtx = this.materialsCanvas.getContext('2d');
+    // const materialsCtx = this.materialsCanvas.getContext('2d');
 
-    if (!backdropCtx || !materialsCtx) {
+    // Create a new context for materials rendering
+    const materialsCanvas = document.createElement('canvas');
+    materialsCanvas.width = this.materialsCanvas.width;
+    materialsCanvas.height = this.materialsCanvas.height;
+
+    if (!backdropCtx /* || !materialsCtx */) {
       this.log('error', 'Failed to get 2D context for backdrop or materials canvas');
       return;
     }
 
     // Clear materials canvas
-    materialsCtx.clearRect(0, 0, this.materialsCanvas.width, this.materialsCanvas.height);
+    // materialsCtx!.clearRect(0, 0, this.materialsCanvas.width, this.materialsCanvas.height);
 
-    // Todo: Implement actual liquid glass rendering logic here
+    // Convert OffscreenCanvas to HTMLCanvasElement for WebGL processing
+    const backdropCanvasForGL = document.createElement('canvas');
+    backdropCanvasForGL.width = this.backdropCanvas.width;
+    backdropCanvasForGL.height = this.backdropCanvas.height;
+    const backdropCtxForGL = backdropCanvasForGL.getContext('2d');
+    if (backdropCtxForGL) {
+      backdropCtxForGL.drawImage(this.backdropCanvas, 0, 0);
+    } else {
+      this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
+      return;
+    }
+
+    // Create renderer
+    const renderer = createLiquidGlassRenderer(materialsCanvas);
+    if (!renderer) {
+      this.log('error', 'Failed to create LiquidGlassRenderer');
+      return;
+    }
+
+    // Add materials
+    this.registeredMaterialElements.forEach((element) => {
+      const { glassAttributes, position, size } = element;
+
+      renderer.addMaterial(
+        element.element.id || `material-${Math.random().toString(36).substr(2, 9)}`,
+        {
+          thickness: glassAttributes.thickness,
+          refractIndex: glassAttributes.refractIndex,
+          refractIntensity: glassAttributes.refractIntensity,
+          radius: glassAttributes.radius,
+          radiusTR: glassAttributes.radiusTR,
+          radiusBR: glassAttributes.radiusBR,
+          radiusBL: glassAttributes.radiusBL,
+          radiusTL: glassAttributes.radiusTL,
+          width: size.width,
+          height: size.height,
+          foregroundColor: [255, 255, 255, 255], // Placeholder; could be dynamic
+        },
+        {
+          x: position.x / this.size.width,
+          y: position.y / this.size.height,
+        },
+      );
+    });
+
+    // Set backdrop
+    renderer.setBackground(backdropCanvasForGL);
+
+    // Render
+    renderer.resize();
+    this.log('debug', 'Materials rendered onto materials canvas');
+
+    // Clean up
+    renderer.dispose();
+
+    // Update the manager's materials canvas
+    const finalCtx = this.materialsCanvas.getContext('2d');
+    if (finalCtx) {
+      finalCtx.clearRect(0, 0, this.materialsCanvas.width, this.materialsCanvas.height);
+      finalCtx.drawImage(materialsCanvas, 0, 0, this.materialsCanvas.width, this.materialsCanvas.height);
+    }
+
+    this.log('debug', 'Materials canvas updated in manager');
+
+    this.materialsCanvas = materialsCanvas;
   }
 
   /**

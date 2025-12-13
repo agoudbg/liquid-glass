@@ -1,6 +1,11 @@
 <template>
   <div class="liquid-glass-debugger">
     <h2>Liquid Glass Debugger</h2>
+    <h3>Current Materials Canvas
+      <button @click="getMaterialsCanvas()">Refresh</button>
+    </h3>
+    <canvas ref="materialsCanvasRef" :width="backdropInfo?.width || 0" :height="backdropInfo?.height || 0"
+      style="width: 100%; background: #eee;"></canvas>
     <h3>Current Backdrop Canvas</h3>
     <img :src="currentBackdrop" alt="Backdrop Canvas" width="100%" />
     <p>Width: {{ backdropInfo?.width }}</p>
@@ -33,12 +38,17 @@ import { onMounted, ref, watch } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
+import { LiquidRendererManager } from '../core/LiquidRendererManager';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import { LiquidRendererBackdropCapturedEvent } from '../types/LiquidGlass';
 
 const props = defineProps<{
   initiallyOpen?: boolean;
 }>();
+
+const manager = ref<LiquidRendererManager | null>(null);
+
+const materialsCanvasRef = ref<HTMLCanvasElement | null>(null);
 
 const backdropInfo = ref<LiquidRendererBackdropCapturedEvent | null>(null);
 const currentBackdrop = ref<string>('');
@@ -94,11 +104,11 @@ const cleanupRemovedElementUrls = (nextLength: number) => {
 };
 
 onMounted(() => {
-  const manager = useLiquidContext();
+  manager.value = useLiquidContext();
 
-  manager.setOptions({ debug: true });
+  manager.value.setOptions({ debug: true });
 
-  manager.on('backdropCaptured', async (event: LiquidRendererBackdropCapturedEvent) => {
+  manager.value.on('backdropCaptured', async (event: LiquidRendererBackdropCapturedEvent) => {
     const nextUrl = await safeConvertToUrl(event.canvas);
     if (currentBackdrop.value && currentBackdrop.value !== nextUrl) {
       URL.revokeObjectURL(currentBackdrop.value);
@@ -108,18 +118,28 @@ onMounted(() => {
     backdropInfo.value = event;
   });
 
-  backdropElements.value = manager.registeredBackdropElements;
-  manager.on('backdropElementChanged', (elements: LiquidRendererBackdropElement[]) => {
+  backdropElements.value = manager.value.registeredBackdropElements;
+  manager.value.on('backdropElementChanged', (elements: LiquidRendererBackdropElement[]) => {
     backdropElements.value = elements;
   });
 
-  materialElements.value = manager.registeredMaterialElements;
-  manager.on('materialElementChanged', (elements: LiquidRendererMaterialElement[]) => {
+  materialElements.value = manager.value.registeredMaterialElements;
+  manager.value.on('materialElementChanged', (elements: LiquidRendererMaterialElement[]) => {
     materialElements.value = elements;
   });
 });
 
 const getBackdropElementCanvas = (i: number) => backdropElementUrls.value[i] ?? '';
+
+const getMaterialsCanvas = () => {
+  if (!materialsCanvasRef.value) return;
+  const { materialsCanvas } = manager.value!;
+  const ctx = materialsCanvasRef.value.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
+    ctx.drawImage(materialsCanvas, 0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
+  }
+};
 
 watch(
   backdropElements,

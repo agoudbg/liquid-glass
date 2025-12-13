@@ -26,7 +26,7 @@
           </LiquidGlassMaterial>
         </div>
       </div>
-      <LiquidGlassDebugger initiallyOpen />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 
@@ -65,10 +65,8 @@ const updateDemoMaterial0Position = () => {
   demoMaterial0Position.value = (demoMaterial0Position.value + 1) % 4;
 
   // Trigger re-rendering
-  setInterval(() => {
-    console.log('App.vue: triggering reRender on demoMaterial0');
-    demoMaterial0.value?.updating(600);
-  }, 10);
+  console.log('App.vue: triggering reRender on demoMaterial0');
+  demoMaterial0.value?.updating(600);
 };
 </script>
 

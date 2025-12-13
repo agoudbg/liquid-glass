@@ -8,7 +8,7 @@
 
 <script lang="ts" setup>
 
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 
 import { provideLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
@@ -30,9 +30,10 @@ const manager: LiquidRendererManager = new LiquidRendererManager({ debug: props.
 provideLiquidContext(manager);
 
 const isFallbackMode = ref<boolean>(false);
-manager.on('fallbackModeChanged', (fallback: boolean) => {
+const onFallbackModeChanged = (fallback: boolean) => {
   isFallbackMode.value = fallback;
-});
+};
+manager.on('fallbackModeChanged', onFallbackModeChanged);
 
 isFallbackMode.value = manager.isFallbackMode;
 
@@ -72,6 +73,13 @@ onMounted(() => {
       }
     }
   });
+});
+
+onUnmounted(() => {
+  manager.off('fallbackModeChanged', onFallbackModeChanged);
+  if (materialManager.value) {
+    materialManager.value.destroy();
+  }
 });
 
 </script>

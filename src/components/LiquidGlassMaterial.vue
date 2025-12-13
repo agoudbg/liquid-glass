@@ -6,7 +6,7 @@
 
 <script lang="ts" setup>
 import {
-  computed, onMounted, ref,
+  computed, onMounted, onUnmounted, ref,
 } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
@@ -43,9 +43,10 @@ const borderRadius = computed(() => {
 const manager = useLiquidContext();
 
 const isFallbackMode = ref<boolean>(false);
-manager.on('fallbackModeChanged', (fallback: boolean) => {
+const onFallbackModeChanged = (fallback: boolean) => {
   isFallbackMode.value = fallback;
-});
+};
+manager.on('fallbackModeChanged', onFallbackModeChanged);
 isFallbackMode.value = manager.isFallbackMode;
 
 const renderMode = computed(() => manager.renderMode);
@@ -69,20 +70,42 @@ onMounted(() => {
   }
 });
 
+const updateTimer = ref<number | null>(null);
+
+onUnmounted(() => {
+  manager.off('fallbackModeChanged', onFallbackModeChanged);
+  if (materialManager.value) {
+    materialManager.value.destroy();
+  }
+  if (updateTimer.value !== null) {
+    clearInterval(updateTimer.value);
+    updateTimer.value = null;
+  }
+});
+
 // Function to trigger re-rendering of this material
 const updating = (duration: number) => {
   if (materialManager.value) {
-    const interval = 50;
+    // Clear existing timer to prevent accumulation
+    if (updateTimer.value !== null) {
+      clearInterval(updateTimer.value);
+      updateTimer.value = null;
+    }
+
+    const interval = 10;
     const times = Math.floor(duration / interval) + 1;
     let count = 0;
-    let isUpdating = false;
-    const timer = setInterval(() => {
-      if (!isUpdating) {
-        isUpdating = true;
-        materialManager.value?.sendReRenderRequest();
-        isUpdating = false;
-        if (count++ >= times) {
-          clearInterval(timer);
+
+    // Immediate update
+    materialManager.value.updatePositionAndSize();
+
+    updateTimer.value = window.setInterval(() => {
+      materialManager.value?.updatePositionAndSize();
+
+      if (count++ >= times) {
+        if (updateTimer.value !== null) {
+          clearInterval(updateTimer.value);
+          updateTimer.value = null;
         }
       }
     }, interval);

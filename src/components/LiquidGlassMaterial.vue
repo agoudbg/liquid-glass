@@ -94,6 +94,8 @@ const updateBackgroundColor = () => {
   }
 };
 
+const fallbackBlur = computed(() => `${Math.min(props.blur ?? 6, 6)}px`);
+
 const renderMode = computed(() => manager.renderMode);
 onMounted(() => {
   console.log('LgMaterialConverter mounted');
@@ -117,6 +119,11 @@ onMounted(() => {
       updateBackgroundColor();
     });
   }
+});
+
+watch(isFallbackMode, () => {
+  // Force update of background color when fallback mode changes
+  allowingColorTransition.value = undefined;
 });
 
 const updateTimer = ref<number | null>(null);
@@ -201,8 +208,10 @@ defineExpose({ updating, startUpdating, stopUpdating });
   box-shadow: inset 0 0 v-bind(boxShadowInsetSize) v-bind(calculatedBoxShadowInsetBackgroundColor),
     0 0 v-bind(boxShadowSize) v-bind(calculatedBoxShadowBackgroundColor);
 
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
+
   &[allowing-color-transition="true"] {
-    transition: background-color 0.5s ease, color 0.5s ease;
+    transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
   }
 
   &[render-mode="uniform"] {
@@ -210,8 +219,8 @@ defineExpose({ updating, startUpdating, stopUpdating });
   }
 
   &[is-fallback-mode="true"] {
-    background-color: #dcdcdc96;
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
+    -webkit-backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
   }
 }
 </style>

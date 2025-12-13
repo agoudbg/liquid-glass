@@ -41,6 +41,8 @@ export class LiquidRendererManager extends EventEmitter {
 
   public size = { width: 0, height: 0 };
 
+  public visible: boolean = true;
+
   constructor(options: LiquidRendererManagerOptions) {
     super();
     // Initialize with options if needed
@@ -419,7 +421,7 @@ export class LiquidRendererManager extends EventEmitter {
 
   public updateFallbackMode() {
     this.log('debug', 'Updating fallback mode. Glass supported:', !this.glassNotSupported, 'Power efficient mode:', this.powerEfficientMode, 'Is rendering backdrop:', this.isRenderingBackdrop);
-    if (this.glassNotSupported) {
+    if (this.glassNotSupported || !this.visible) {
       this.isFallbackMode = true;
       this.log('debug', 'Glass not supported, enabling fallback mode.');
     } else if (this.isRenderingBackdrop && this.powerEfficientMode) {
@@ -431,6 +433,11 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', 'Fallback mode set to:', this.isFallbackMode);
 
     this.emit('fallbackModeChanged', this.isFallbackMode);
+  }
+
+  public setVisibility(visible: boolean) {
+    this.visible = visible;
+    this.updateFallbackMode();
   }
 
   /**

@@ -1,7 +1,7 @@
 <template>
   <div class="liquid-glass-container" ref="container">
-    <canvas v-if="manager?.renderMode === 'uniform' && !isFallbackMode" class="liquid-glass-uniform-canvas"
-      ref="uniformCanvas"></canvas>
+    <canvas v-if="manager?.renderMode === 'uniform'" class="liquid-glass-uniform-canvas"
+      :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
     <slot></slot>
   </div>
 </template>
@@ -39,6 +39,10 @@ isFallbackMode.value = manager.isFallbackMode;
 
 const container = ref<HTMLElement | null>(null);
 
+const setVisibility = (visible: boolean) => {
+  manager.setVisibility(visible);
+};
+
 onMounted(() => {
   // Ensure the container is set
   if (!container.value) {
@@ -73,13 +77,16 @@ onMounted(() => {
       }
     }
   });
-});
 
+  // Watch window blurred to change visibility state
+  window.addEventListener('blur', () => setVisibility(false));
+
+  window.addEventListener('focus', () => setVisibility(true));
+
+  window.addEventListener('visibilitychange', () => setVisibility(!document.hidden));
+});
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
-  if (materialManager.value) {
-    materialManager.value.destroy();
-  }
 });
 
 </script>
@@ -100,5 +107,11 @@ onUnmounted(() => {
   height: 100%;
   z-index: 9999;
   pointer-events: none;
+  transition: visibility 0.2s ease, opacity 0.2s ease;
+}
+
+.liquid-glass-uniform-canvas[is-fallback-mode="true"] {
+  visibility: hidden;
+  opacity: 0;
 }
 </style>

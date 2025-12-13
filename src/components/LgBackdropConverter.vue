@@ -1,6 +1,6 @@
 <template>
   <div class="liquid-glass-backdrop-converter" ref="backdropElement">
-    <slot></slot>
+    <slot :request-backdrop-redraw="requestBackdropRedraw"></slot>
   </div>
 </template>
 
@@ -82,6 +82,11 @@ onMounted(() => {
     });
   }
 });
+
+// Allow slotted content to manually trigger a fresh capture
+const requestBackdropRedraw = () => {
+  drawBackdrop();
+};
 </script>
 
 <style scoped>

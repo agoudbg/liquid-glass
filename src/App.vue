@@ -7,15 +7,17 @@
     <LiquidGlass class="liquid-glass-container" :debug="true">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html2canvas'">
-          <div class="demo-backdrop">
-            <div class="demo-pill"><input value="Frosted tag"></div>
-            <div class="demo-tiles">
-              <div class="demo-tile">Color</div>
-              <div class="demo-tile">Noise</div>
-              <div class="demo-tile">Texture</div>
-              <div class="demo-tile">Shape</div>
+          <template #default="{ requestBackdropRedraw }">
+            <div class="demo-backdrop">
+              <div class="demo-pill"><input value="Input" @change="requestBackdropRedraw()"></div>
+              <div class="demo-tiles">
+                <div class="demo-tile">Color</div>
+                <div class="demo-tile">Noise</div>
+                <div class="demo-tile">Texture</div>
+                <div class="demo-tile">Shape</div>
+              </div>
             </div>
-          </div>
+          </template>
         </LgBackdropConverter>
 
         <div class="demo-materials">

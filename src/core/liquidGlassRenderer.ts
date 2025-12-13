@@ -175,8 +175,14 @@ export function createLiquidGlassRenderer(
   function resize(): void {
     if (!gl) return;
     const dpr = window.devicePixelRatio || 1;
-    const displayWidth = canvas.clientWidth;
-    const displayHeight = canvas.clientHeight;
+    let displayWidth = canvas.clientWidth;
+    let displayHeight = canvas.clientHeight;
+
+    if (displayWidth === 0 && displayHeight === 0) {
+      displayWidth = canvas.width / dpr;
+      displayHeight = canvas.height / dpr;
+    }
+
     state.logicalResolution.width = displayWidth * dpr;
     state.logicalResolution.height = displayHeight * dpr;
 

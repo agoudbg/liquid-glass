@@ -77,12 +77,14 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     // Since position or size may have changed, re-calculate recommended attributes
     this.initializeGlassAttributes(this.options);
 
+    console.log('LiquidRendererMaterialElement: updatePositionAndSize called, position:', this.position, 'size:', this.size, 'attributes:', this.glassAttributes);
+
     this.sendReRenderRequest();
   }
 
   public sendReRenderRequest() {
     this.manager.log('debug', 'Requesting re-render for material element:', this.element);
-    this.emit('reRenderRequested');
+    this.manager.onMaterialElementChange();
   }
 
   /**

@@ -17,6 +17,8 @@ export class LiquidRendererManager extends EventEmitter {
 
   public renderPrecision = 0; // 0=auto
 
+  public renderMode: 'uniform' | 'dedicated' = 'uniform';
+
   public registeredBackdropElements: LiquidRendererBackdropElement[] = [];
 
   public registeredMaterialElements: LiquidRendererMaterialElement[] = [];
@@ -42,6 +44,12 @@ export class LiquidRendererManager extends EventEmitter {
       // This will not run resize listeners until container is set
       this.log('warn', 'No container provided for LiquidRendererManager; resize listeners not added.');
     }
+
+    this.renderPrecision = options.renderPrecision ?? 0;
+
+    this.renderMode = options.renderMode ?? 'uniform';
+
+    this.log('debug', 'LiquidRendererManager initialized');
   }
 
   /**
@@ -243,7 +251,8 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     // Create renderer on the persistent materialsCanvas
-    this.renderer = createLiquidGlassRenderer(this.materialsCanvas);
+    this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
+    });
     if (!this.renderer) {
       this.log('error', 'Failed to create LiquidGlassRenderer');
       return;
@@ -264,13 +273,13 @@ export class LiquidRendererManager extends EventEmitter {
           radiusBR: glassAttributes.radiusBR,
           radiusBL: glassAttributes.radiusBL,
           radiusTL: glassAttributes.radiusTL,
-          width: size.width / 2,
-          height: size.height / 2,
+          width: size.width / (window.devicePixelRatio || 1),
+          height: size.height / (window.devicePixelRatio || 1),
           foregroundColor: [0, 0, 0, 0],
         },
         {
-          x: position.x + size.width / 4,
-          y: position.y + size.height / 4,
+          x: position.x + size.width / 2 / (window.devicePixelRatio || 1),
+          y: position.y + size.height / 2 / (window.devicePixelRatio || 1),
         },
       );
     });
@@ -293,6 +302,9 @@ export class LiquidRendererManager extends EventEmitter {
     // Render
     this.renderer.resize();
     this.log('debug', 'Materials renderer updated');
+
+    // Send render complete event
+    this.emit('materialsRendered');
   }
 
   public dispose() {

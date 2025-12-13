@@ -1,10 +1,7 @@
 <template>
-  <div class="liquid-glass-container">
-  </div>
-
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="true">
+    <LiquidGlass class="liquid-glass-container" :debug="true" :render-precision="0.15">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html2canvas'">
           <template #default="{ requestBackdropRedraw }">
@@ -21,16 +18,15 @@
         </LgBackdropConverter>
 
         <div class="demo-materials" :position="demoMaterial0Position">
-          <LiquidGlassMaterial :radius="20">
+          <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
             <div class="demo-card">
               <h3>Glass card</h3>
-              <button
-                @click="demoMaterial0Position = demoMaterial0Position > 4 ? 0 : demoMaterial0Position + 1">Click</button>
+              <button @click="updateDemoMaterial0Position()">Click</button>
             </div>
           </LiquidGlassMaterial>
         </div>
       </div>
-      <LiquidGlassDebugger initiallyOpen />
+      <!-- <LiquidGlassDebugger initiallyOpen /> -->
     </LiquidGlass>
   </div>
 
@@ -63,7 +59,17 @@ import {
 } from './index';
 
 const demoMaterial0Position = ref<number>(0);
+const demoMaterial0 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
 
+const updateDemoMaterial0Position = () => {
+  demoMaterial0Position.value = (demoMaterial0Position.value + 1) % 4;
+
+  // Trigger re-rendering
+  setInterval(() => {
+    console.log('App.vue: triggering reRender on demoMaterial0');
+    demoMaterial0.value?.updating(600);
+  }, 10);
+};
 </script>
 
 <style>
@@ -113,6 +119,7 @@ html {
 }
 
 .demo-backdrop {
+  width: 70%;
   height: 100%;
   border-radius: 12px;
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
@@ -122,11 +129,13 @@ html {
   flex-direction: column;
   gap: 16px;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  /* background-image: url(./assets/pietro-de-grandi-T7K4aEPoGGk-unsplash.jpg); */
 }
 
 .demo-pill {
   display: inline-flex;
   align-items: center;
+  width: 70%;
   padding: 6px 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
@@ -161,7 +170,6 @@ html {
 
 .demo-materials {
   position: absolute;
-  z-index: 99;
   top: 50px;
   display: flex;
   align-items: center;
@@ -197,7 +205,6 @@ html {
   min-height: 220px;
   border-radius: 18px;
   padding: 20px;
-  background: rgba(255, 255, 255, 0.12);
   color: #0b0e1a;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }

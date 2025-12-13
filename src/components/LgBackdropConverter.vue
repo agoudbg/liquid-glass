@@ -87,6 +87,7 @@ onMounted(() => {
 const requestBackdropRedraw = () => {
   drawBackdrop();
 };
+defineExpose({ requestBackdropRedraw });
 </script>
 
 <style scoped>

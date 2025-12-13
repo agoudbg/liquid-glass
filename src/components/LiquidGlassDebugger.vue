@@ -6,6 +6,7 @@
     </h3>
     <canvas ref="materialsCanvasRef" :width="backdropInfo?.width || 0" :height="backdropInfo?.height || 0"
       style="width: 100%; background: #eee;"></canvas>
+
     <h3>Current Backdrop Canvas</h3>
     <img :src="currentBackdrop" alt="Backdrop Canvas" width="100%" />
     <p>Width: {{ backdropInfo?.width }}</p>
@@ -21,6 +22,7 @@
         <hr />
       </div>
     </div>
+
     <h3>Material Elements</h3>
     <div v-if="materialElements.length > 0">
       <div v-for="(element, index) in materialElements" :key="index">

@@ -217,41 +217,27 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.log('debug', 'Capturing backdrop for container');
 
-    // Clear the canvas
     const ctx = this.backdropCanvas.getContext('2d');
     if (!ctx) {
       this.log('error', 'Failed to get 2D context for backdrop canvas');
       return;
     }
+
     ctx.clearRect(0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
 
-    // Get the container's background configuration
+    const dpr = window.devicePixelRatio;
+
+    ctx.save();
+
+    ctx.scale(dpr, dpr);
+
     const style = getComputedStyle(this.container);
     const { backgroundColor, backgroundImage } = style;
 
-    // Fill background color
     if (backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent') {
       ctx.fillStyle = backgroundColor;
-      ctx.fillRect(0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
+      ctx.fillRect(0, 0, this.container.clientWidth, this.container.clientHeight);
       this.log('debug', `Filled backdrop with background color: ${backgroundColor}`);
-    }
-
-    // Draw background image if exists
-    if (backgroundImage && backgroundImage !== 'none') {
-      const imageUrlMatch = backgroundImage.match(/url\(["']?(.+?)["']?\)/);
-      if (imageUrlMatch) {
-        const imageUrl = imageUrlMatch[1];
-        const img = new Image();
-        img.crossOrigin = 'Anonymous'; // Handle CORS if needed
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
-          this.log('debug', `Drew backdrop image from URL: ${imageUrl}`);
-        };
-        img.onerror = () => {
-          this.log('error', `Failed to load backdrop image from URL: ${imageUrl}`);
-        };
-        img.src = imageUrl;
-      }
     }
 
     // Draw registered elements onto the backdrop canvas
@@ -263,24 +249,32 @@ export class LiquidRendererManager extends EventEmitter {
         return;
       }
 
-      this.log('debug', `Drew backdrop element onto canvas at (${position.x}, ${position.y})`);
-
-      // OffscreenCanvas is already a valid CanvasImageSource; draw directly to avoid ImageBitmap allocation failures
       if (size.width > 0 && size.height > 0) {
+        const drawX = Math.round(position.x);
+        const drawY = Math.round(position.y);
+        const drawW = Math.round(size.width / (window.devicePixelRatio || 1));
+        const drawH = Math.round(size.height / (window.devicePixelRatio || 1));
+
         ctx.drawImage(
           canvas,
-          position.x,
-          position.y,
-          size.width,
-          size.height,
+          drawX,
+          drawY,
+          drawW,
+          drawH,
         );
-      } else {
-        this.log('warn', 'Backdrop element has zero size, skipped drawing:', element.element);
+
+        // Debug: Draw a border around the backdrop item
+        if (this.debug) {
+          ctx.strokeStyle = 'yellow';
+          ctx.lineWidth = 2 / dpr;
+          ctx.strokeRect(drawX, drawY, drawW, drawH);
+        }
       }
     });
 
-    // Emit event that backdrop capture is complete
+    ctx.restore();
 
+    // Emit event that backdrop capture is complete...
     this.emit('backdropCaptured', {
       canvas: this.backdropCanvas,
       width: this.backdropCanvas.width,
@@ -292,7 +286,6 @@ export class LiquidRendererManager extends EventEmitter {
     this.isRenderingBackdrop = false;
     this.updateFallbackMode();
 
-    // If there was a pending request, trigger another capture
     if (this.hasPendingBackdropRenderRequest) {
       this.hasPendingBackdropRenderRequest = false;
       this.captureBackdrop();

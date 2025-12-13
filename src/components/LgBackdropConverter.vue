@@ -30,7 +30,10 @@ const drawBackdrop = async () => {
   if (props.captureLib === 'html-to-image') {
     // Use html-to-image to capture the backdrop
     const { toCanvas } = await import('html-to-image');
-    const canvas = await toCanvas(element);
+    const canvas = await toCanvas(element, {
+      // pixelRatio: window.devicePixelRatio || 1,
+      pixelRatio: 0.95,
+    });
     console.log('LgBackdropConverter: captured canvas with html-to-image', {
       width: canvas.width,
       height: canvas.height,
@@ -44,7 +47,10 @@ const drawBackdrop = async () => {
   } else if (props.captureLib === 'html2canvas') {
     // Use html2canvas to capture the backdrop
     const html2canvas = (await import('html2canvas')).default;
-    const canvas = await html2canvas(element);
+    const canvas = await html2canvas(element, {
+      // scale: window.devicePixelRatio || 1,
+      scale: 0.75,
+    });
     console.log('LgBackdropConverter: captured canvas with html2canvas', {
       width: canvas.width,
       height: canvas.height,

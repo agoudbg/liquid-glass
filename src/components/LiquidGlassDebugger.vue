@@ -1,8 +1,32 @@
 <template>
+  <div class="liquid-glass-debugger-layer" v-if="showBackdropDebugLayer">
+    <img :src="currentBackdrop" class="current-backdrop">
+    <div class="backdrop-labels labels" v-if="showBackdropDebugLabels">
+      <div v-for="(element, index) in backdropElements" :key="index" class="backdrop-label label-base"
+        :style="getLabelStyle(element as LiquidRendererBackdropElement, 'backdrop')">
+        Backdrop {{ index + 1 }}
+      </div>
+    </div>
+    <div class="material-labels labels" v-if="showBackdropDebugLabels">
+      <div v-for="(element, index) in materialElements" :key="index" class="material-label label-base"
+        :style="getLabelStyle(element as LiquidRendererMaterialElement, 'material')">
+        Material {{ index + 1 }}
+      </div>
+    </div>
+  </div>
   <div class="liquid-glass-debugger">
     <h2>Liquid Glass Debugger</h2>
     <p>Efficient Mode: {{ manager?.powerEfficientMode }}</p>
     <p>Fallback Mode: {{ isFallbackMode }}</p>
+    <p>Render Mode: {{ manager?.renderMode }}</p>
+    <label>
+      <input type="checkbox" v-model="showBackdropDebugLayer" />
+      Show Backdrop Debug Layer
+    </label>
+    <label v-if="showBackdropDebugLayer">
+      <input type="checkbox" v-model="showBackdropDebugLabels" />
+      Show Backdrop Debug Labels
+    </label>
     <h3>Current Materials Canvas
       <button @click="getMaterialsCanvas()">Refresh</button>
     </h3>
@@ -64,6 +88,31 @@ const backdropElementUrls = ref<Record<number, string>>({});
 
 const materialElements = ref<LiquidRendererMaterialElement[]>([]);
 
+const showBackdropDebugLayer = ref<boolean>(props.initiallyOpen ?? false);
+const showBackdropDebugLabels = ref<boolean>(true);
+
+const LABEL_COLORS: Record<'backdrop' | 'material', string> = {
+  backdrop: 'red',
+  material: 'blue',
+};
+
+const getLabelStyle = (
+  element: LiquidRendererBackdropElement | LiquidRendererMaterialElement,
+  type: 'backdrop' | 'material',
+) => {
+  const color = LABEL_COLORS[type];
+
+  // Use a CSS variable for color so the visual differences are minimal and centralized
+  return {
+    top: `${element.position.y}px`,
+    left: `${element.position.x}px`,
+    width: `${element.size.width / (window.devicePixelRatio || 1) - 4}px`,
+    height: `${element.size.height / (window.devicePixelRatio || 1) - 4}px`,
+    // CSS variable consumed by .label-base
+    '--label-color': color,
+  } as Record<string, string>;
+};
+
 const safeConvertToUrl = async (
   canvas?: OffscreenCanvas | HTMLCanvasElement | null,
 ): Promise<string> => {
@@ -103,6 +152,7 @@ const cleanupRemovedElementUrls = (nextLength: number) => {
     if (idx >= nextLength) {
       const prev = backdropElementUrls.value[idx];
       if (prev) URL.revokeObjectURL(prev);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [idx]: _, ...rest } = backdropElementUrls.value;
       backdropElementUrls.value = rest;
     }
@@ -185,5 +235,30 @@ watch(
 
 img {
   background: #eee;
+}
+
+.liquid-glass-debugger-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10086;
+  pointer-events: none;
+}
+
+.liquid-glass-debugger-layer .current-backdrop {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+
+.label-base {
+  position: absolute;
+  font-size: 12px;
+  pointer-events: none;
+  color: var(--label-color);
+  border: 2px solid var(--label-color);
 }
 </style>

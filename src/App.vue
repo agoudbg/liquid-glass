@@ -3,7 +3,7 @@
   <div class="single-glass-container">
     <LiquidGlass class="liquid-glass-container" :debug="true" :power-efficient-mode="true">
       <div class="single-glass-layout">
-        <LgBackdropConverter :capture-lib="'html2canvas'">
+        <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
             <div class="demo-backdrop">
               <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
@@ -26,7 +26,7 @@
           </LiquidGlassMaterial>
         </div>
       </div>
-      <!-- <LiquidGlassDebugger /> -->
+      <LiquidGlassDebugger />
     </LiquidGlass>
   </div>
 

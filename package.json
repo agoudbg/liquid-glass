@@ -18,8 +18,10 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "type-check": "vue-tsc --noEmit",
+        "build:demo": "vite build --config vite.demo.config.ts",
         "preview": "vite preview",
+        "preview:demo": "vite preview --config vite.demo.config.ts",
+        "type-check": "vue-tsc --noEmit",
         "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix"
     },
     "peerDependencies": {

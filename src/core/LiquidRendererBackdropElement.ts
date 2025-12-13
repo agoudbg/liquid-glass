@@ -11,6 +11,10 @@ export class LiquidRendererBackdropElement extends EventEmitter {
 
   public canvas?: OffscreenCanvas;
 
+  public isReCapturing = false;
+
+  public hasPendingCaptureRequest = false;
+
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
@@ -89,7 +93,15 @@ export class LiquidRendererBackdropElement extends EventEmitter {
    * and respond with its own requestManagerBackdropCapture call.
    */
   public sendReCaptureRequest() {
-    this.manager.log('debug', 'Sending re-capture request for backdrop element:', this.element);
+    if (this.isReCapturing) {
+      this.hasPendingCaptureRequest = true;
+      this.manager.log('debug', 'Backdrop element is already recapturing, marking pending request:', this.element);
+      return;
+    }
+
+    this.isReCapturing = true;
+
+    this.manager.log('debug', 'No pending. Sending re-capture request for backdrop element:', this.element);
     this.emit('requestBackdropCapture');
   }
 
@@ -102,7 +114,15 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     // Save canvas
     this.canvas = canvas;
 
-    this.manager.onBackdropElementChange();
+    this.isReCapturing = false;
+
+    // If there was a pending request, trigger another capture
+    if (this.hasPendingCaptureRequest) {
+      this.hasPendingCaptureRequest = false;
+      this.sendReCaptureRequest();
+    } else {
+      this.manager.onBackdropElementChange();
+    }
   }
 
   /**

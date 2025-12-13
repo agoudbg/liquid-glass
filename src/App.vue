@@ -26,7 +26,7 @@
           </LiquidGlassMaterial>
         </div>
       </div>
-      <!-- <LiquidGlassDebugger initiallyOpen /> -->
+      <LiquidGlassDebugger initiallyOpen />
     </LiquidGlass>
   </div>
 
@@ -119,7 +119,7 @@ html {
 }
 
 .demo-backdrop {
-  width: 70%;
+  width: 70vw;
   height: 100%;
   border-radius: 12px;
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
@@ -180,7 +180,7 @@ html {
 
   &[position="0"] {
     left: 40px;
-    top: 50px;
+    top: 20px;
   }
 
   &[position="1"] {

@@ -23,6 +23,14 @@ export class LiquidRendererManager extends EventEmitter {
 
   public registeredMaterialElements: LiquidRendererMaterialElement[] = [];
 
+  public isRenderingBackdrop = false;
+
+  public hasPendingBackdropRenderRequest = false;
+
+  public isRenderingMaterials = false;
+
+  public hasPendingMaterialsRenderRequest = false;
+
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
@@ -85,6 +93,16 @@ export class LiquidRendererManager extends EventEmitter {
     this.emit('backdropElementChanged', this.registeredBackdropElements);
 
     // Re-capture the backdrop when elements change
+    // Check pending requests
+    const pendingRequests = this.registeredBackdropElements.some(
+      (el) => el.isReCapturing || el.hasPendingCaptureRequest,
+    );
+    if (pendingRequests) {
+      this.log('debug', 'Backdrop capture deferred due to pending requests from backdrop elements.');
+      return;
+    }
+
+    this.log('debug', 'No pending. Backdrop elements changed, capturing backdrop.');
     this.captureBackdrop();
   }
 
@@ -164,6 +182,14 @@ export class LiquidRendererManager extends EventEmitter {
    * Capture the backdrop of the container element with all registered elements
    */
   private captureBackdrop() {
+    if (this.isRenderingBackdrop) {
+      this.hasPendingBackdropRenderRequest = true;
+      this.log('debug', 'Backdrop capture already in progress, marking pending request.');
+      return;
+    }
+
+    this.isRenderingBackdrop = true;
+
     this.log('debug', 'Capturing backdrop for container');
 
     // Clear the canvas
@@ -236,12 +262,29 @@ export class LiquidRendererManager extends EventEmitter {
       height: this.backdropCanvas.height,
     } as LiquidRendererBackdropCapturedEvent);
 
-    this.renderMaterials();
-
     this.log('debug', 'Backdrop capture complete');
+
+    this.isRenderingBackdrop = false;
+
+    // If there was a pending request, trigger another capture
+    if (this.hasPendingBackdropRenderRequest) {
+      this.hasPendingBackdropRenderRequest = false;
+      this.captureBackdrop();
+      return;
+    }
+
+    this.renderMaterials();
   }
 
   public renderMaterials() {
+    if (this.isRenderingMaterials) {
+      this.hasPendingMaterialsRenderRequest = true;
+      this.log('debug', 'Materials rendering already in progress, marking pending request.');
+      return;
+    }
+
+    this.isRenderingMaterials = true;
+
     this.log('debug', 'Rendering materials for registered material elements');
 
     // Dispose existing renderer to recreate with new materials
@@ -255,6 +298,7 @@ export class LiquidRendererManager extends EventEmitter {
     });
     if (!this.renderer) {
       this.log('error', 'Failed to create LiquidGlassRenderer');
+      this.isRenderingMaterials = false;
       return;
     }
 
@@ -293,6 +337,7 @@ export class LiquidRendererManager extends EventEmitter {
       backdropCtxForGL.drawImage(this.backdropCanvas, 0, 0);
     } else {
       this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
+      this.isRenderingMaterials = false;
       return;
     }
 
@@ -303,8 +348,18 @@ export class LiquidRendererManager extends EventEmitter {
     this.renderer.resize();
     this.log('debug', 'Materials renderer updated');
 
-    // Send render complete event
-    this.emit('materialsRendered');
+    // Defer the emit to the next animation frame so that the WebGL draw has completed.
+    requestAnimationFrame(() => {
+      this.emit('materialsRendered');
+
+      this.isRenderingMaterials = false;
+
+      // If there was a pending request, trigger another render
+      if (this.hasPendingMaterialsRenderRequest) {
+        this.hasPendingMaterialsRenderRequest = false;
+        this.renderMaterials();
+      }
+    });
   }
 
   public dispose() {

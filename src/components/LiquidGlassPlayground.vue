@@ -6,6 +6,12 @@
       <h3>Liquid Glass</h3>
 
       <div class="control-group">
+        <label>Render Precision: {{ renderPrecision.toFixed(2) }}</label>
+        <small>Scales the internal render resolution; higher values improve sharpness at higher GPU cost.</small>
+        <input type="range" v-model.number="renderPrecision" min="0.5" max="2.5" step="0.05" />
+      </div>
+
+      <div class="control-group">
         <label>Thickness: {{ params.thickness.toFixed(1) }}</label>
         <small>Physical thickness in pixels; higher values produce smoother normals and deeper
           refraction.</small>
@@ -73,6 +79,7 @@ import { createLiquidGlassRenderer, type LiquidGlassConfig, type LiquidGlassRend
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let renderer: LiquidGlassRenderer | null = null;
 const MATERIAL_ID = 'playground-glass';
+const renderPrecision = ref(1.0);
 
 /**
  * Interactive parameters for the Liquid Glass demo.
@@ -132,10 +139,11 @@ function handleResize() {
 }
 
 watch(params, (next) => renderer?.updateMaterial(MATERIAL_ID, { ...next }), { deep: true });
+watch(renderPrecision, (scale) => renderer?.setRenderScale(scale));
 
 onMounted(() => {
   if (!canvasRef.value) return;
-  renderer = createLiquidGlassRenderer(canvasRef.value);
+  renderer = createLiquidGlassRenderer(canvasRef.value, { renderScale: renderPrecision.value });
   if (!renderer) return;
   renderer.addMaterial(MATERIAL_ID, { ...params }, position);
   loadBackground(bgImageSrc);

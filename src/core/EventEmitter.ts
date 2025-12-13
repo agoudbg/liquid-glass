@@ -30,7 +30,7 @@ export class EventEmitter {
   }
 
   // 发布事件
-  emit(event: string, ...args: OffscreenCanvas[]) {
+  emit(event: string, ...args: any[]) {
     const listeners = this._events[event];
 
     if (listeners) {

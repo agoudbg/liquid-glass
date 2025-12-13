@@ -27,11 +27,15 @@ export type LiquidGlassRenderer = {
   removeMaterial: (id: string) => void
   setMaterialPosition: (id: string, x: number, y: number) => void
   setBackground: (source: TexImageSource) => void
+  setRenderScale: (scale: number) => void
   resize: () => void
   dispose: () => void
 }
 
-export function createLiquidGlassRenderer(canvas: HTMLCanvasElement): LiquidGlassRenderer | null {
+export function createLiquidGlassRenderer(
+  canvas: HTMLCanvasElement,
+  options?: { renderScale?: number },
+): LiquidGlassRenderer | null {
   const gl = canvas.getContext('webgl2');
   if (!gl) {
     console.error('WebGL2 not supported');
@@ -47,6 +51,8 @@ export function createLiquidGlassRenderer(canvas: HTMLCanvasElement): LiquidGlas
     textureResolution: { width: 1, height: 1 },
     hasTexture: false,
     materials: new Map<string, GlassMaterialInstance>(),
+    renderScale: Math.max(0.25, options?.renderScale ?? 1),
+    logicalResolution: { width: 1, height: 1 },
   };
 
   function compileShader(source: string, type: number) {
@@ -169,16 +175,22 @@ export function createLiquidGlassRenderer(canvas: HTMLCanvasElement): LiquidGlas
     const dpr = window.devicePixelRatio || 1;
     const displayWidth = canvas.clientWidth;
     const displayHeight = canvas.clientHeight;
-    canvas.width = displayWidth * dpr;
-    canvas.height = displayHeight * dpr;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    state.logicalResolution.width = displayWidth * dpr;
+    state.logicalResolution.height = displayHeight * dpr;
+
+    const scaledWidth = Math.max(1, Math.round(state.logicalResolution.width * state.renderScale));
+    const scaledHeight = Math.max(1, Math.round(state.logicalResolution.height * state.renderScale));
+
+    canvas.width = scaledWidth;
+    canvas.height = scaledHeight;
+    gl.viewport(0, 0, scaledWidth, scaledHeight);
   }
 
   function updateUniforms(material: GlassMaterialInstance): void {
     if (!gl) return;
     if (!state.program) return;
-    const { width } = canvas;
-    const { height } = canvas;
+    const { width } = state.logicalResolution;
+    const { height } = state.logicalResolution;
     const dpr = window.devicePixelRatio || 1;
 
     gl.uniform2f(state.uniforms.uResolution, width, height);
@@ -265,6 +277,10 @@ export function createLiquidGlassRenderer(canvas: HTMLCanvasElement): LiquidGlas
       createTexture(0, source);
       state.textureResolution.width = (source as any).width || state.textureResolution.width;
       state.textureResolution.height = (source as any).height || state.textureResolution.height;
+    },
+    setRenderScale(scale: number) {
+      state.renderScale = Math.max(0.25, scale);
+      resize();
     },
     resize,
     dispose() {

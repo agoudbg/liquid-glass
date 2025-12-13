@@ -1,5 +1,6 @@
-import { LiquidRendererManagerOptions } from '../types/LiquidGlass';
+import { LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
+import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
 
 export class LiquidRendererManager extends EventEmitter {
   public debug = false;
@@ -7,6 +8,14 @@ export class LiquidRendererManager extends EventEmitter {
   public container: HTMLElement;
 
   public backdropCanvas = new OffscreenCanvas(1, 1);
+
+  public renderPrecision = 0; // 0=auto
+
+  public registeredBackdropElements: LiquidRendererBackdropElement[] = [];
+
+  public position = { x: 0, y: 0 };
+
+  public size = { width: 0, height: 0 };
 
   constructor(options: LiquidRendererManagerOptions) {
     super();
@@ -42,6 +51,27 @@ export class LiquidRendererManager extends EventEmitter {
     }
   }
 
+  public registerBackdropElement(element: LiquidRendererBackdropElement) {
+    this.registeredBackdropElements.push(element);
+    this.log('debug', 'Registered backdrop element:', element.element);
+    this.onBackdropElementChange();
+  }
+
+  public unregisterBackdropElement(element: LiquidRendererBackdropElement) {
+    this.registeredBackdropElements = this.registeredBackdropElements.filter(
+      (el) => el !== element,
+    );
+    this.log('debug', 'Unregistered backdrop element:', element.element);
+    this.onBackdropElementChange();
+  }
+
+  public onBackdropElementChange() {
+    this.emit('backdropElementChanged', this.registeredBackdropElements);
+
+    // Re-capture the backdrop when elements change
+    this.captureBackdrop();
+  }
+
   /**
    * Add resize listeners to handle container size changes
    */
@@ -49,25 +79,38 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', 'Adding resize listeners');
 
     const resizeObserver = new ResizeObserver(() => {
-      this.onContainerResize();
+      this.onContainerChange();
     });
     resizeObserver.observe(this.container);
 
     window.addEventListener('resize', () => {
-      this.onContainerResize();
+      this.onContainerChange();
     });
 
     // Initial resize
-    this.onContainerResize();
+    this.onContainerChange();
   }
 
   /**
-   * Handle container resize events
+   * Update container position and size
    */
-  private onContainerResize() {
+  private updateContainerPositionAndSize() {
+    const rect = this.container.getBoundingClientRect();
+    this.position.x = rect.left + window.scrollX;
+    this.position.y = rect.top + window.scrollY;
+    this.size.width = rect.width;
+    this.size.height = rect.height;
+
+    return rect;
+  }
+
+  /**
+   * Handle container change events
+   */
+  private onContainerChange() {
     this.log('debug', 'Container resized');
 
-    const rect = this.container.getBoundingClientRect();
+    const rect = this.updateContainerPositionAndSize();
     this.backdropCanvas.width = rect.width * (window.devicePixelRatio || 1);
     this.backdropCanvas.height = rect.height * (window.devicePixelRatio || 1);
 
@@ -120,9 +163,38 @@ export class LiquidRendererManager extends EventEmitter {
       }
     }
 
-    // Todo: Add logic to draw registered elements onto the backdrop canvas
+    // Draw registered elements onto the backdrop canvas
+    this.registeredBackdropElements.forEach((element) => {
+      const { position, size, canvas } = element;
 
-    this.emit('backdropCaptured', this.backdropCanvas);
+      if (!canvas) {
+        this.log('warn', 'Backdrop element has no canvas to draw:', element.element);
+        return;
+      }
+
+      this.log('debug', `Drew backdrop element onto canvas at (${position.x}, ${position.y})`);
+
+      // OffscreenCanvas is already a valid CanvasImageSource; draw directly to avoid ImageBitmap allocation failures
+      if (size.width > 0 && size.height > 0) {
+        ctx.drawImage(
+          canvas,
+          position.x,
+          position.y,
+          size.width,
+          size.height,
+        );
+      } else {
+        this.log('warn', 'Backdrop element has zero size, skipped drawing:', element.element);
+      }
+    });
+
+    // Emit event that backdrop capture is complete
+
+    this.emit('backdropCaptured', {
+      canvas: this.backdropCanvas,
+      width: this.backdropCanvas.width,
+      height: this.backdropCanvas.height,
+    } as LiquidRendererBackdropCapturedEvent);
 
     this.log('debug', 'Backdrop capture complete');
   }
@@ -130,21 +202,23 @@ export class LiquidRendererManager extends EventEmitter {
   /**
    * Log messages based on the debug flag
    */
-  private log(level: 'info' | 'warn' | 'error' | 'debug', message: string, ...args: any[]) {
+  public log(level: 'info' | 'warn' | 'error' | 'debug', message: string, ...args: any[]) {
     if (level === 'debug' && !this.debug) return;
+
+    const prefix = '[LiquidRendererManager] ';
 
     switch (level) {
       case 'info':
-        console.info(`[LiquidRendererManager]: ${message}`, ...args);
+        console.info(`${prefix}${message}`, ...args);
         break;
       case 'warn':
-        console.warn(`[LiquidRendererManager]: ${message}`, ...args);
+        console.warn(`${prefix}${message}`, ...args);
         break;
       case 'error':
-        console.error(`[LiquidRendererManager]: ${message}`, ...args);
+        console.error(`${prefix}${message}`, ...args);
         break;
       case 'debug':
-        console.debug(`[LiquidRendererManager]: ${message}`, ...args);
+        console.debug(`${prefix}${message}`, ...args);
         break;
       default:
     }

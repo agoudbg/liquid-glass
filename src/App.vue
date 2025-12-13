@@ -4,9 +4,9 @@
 
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container">
+    <LiquidGlass class="liquid-glass-container" :debug="true">
       <div class="single-glass-layout">
-        <LgBackdropConverter :capture-lib="'html-to-image'">
+        <LgBackdropConverter :capture-lib="'html2canvas'">
           <div class="demo-backdrop">
             <div class="demo-pill"><input value="Frosted tag"></div>
             <div class="demo-tiles">
@@ -111,7 +111,6 @@ html {
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
     radial-gradient(circle at 80% 30%, #a24df0 0%, rgba(162, 77, 240, 0) 38%),
     linear-gradient(135deg, #0f1427 0%, #131931 60%, #0f1427 100%);
-  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;

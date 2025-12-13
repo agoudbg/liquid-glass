@@ -2,34 +2,119 @@
   <div class="liquid-glass-debugger">
     <h2>Liquid Glass Debugger</h2>
     <h3>Current Backdrop Canvas</h3>
-    <img :src="currentBackdrop" alt="Backdrop Canvas" />
+    <img :src="currentBackdrop" alt="Backdrop Canvas" width="100%" />
+    <p>Width: {{ backdropInfo?.width }}</p>
+    <p>Height: {{ backdropInfo?.height }}</p>
+
+    <h3>Backdrop Elements</h3>
+    <div v-if="backdropInfo">
+      <div v-for="(element, index) in backdropElements" :key="index">
+        <p>Element {{ index + 1 }}:</p>
+        <img :src="getBackdropElementCanvas(index)" alt="Backdrop Element" width="100%" />
+        <p>Position: ({{ element.position.x }}, {{ element.position.y }})</p>
+        <p>Size: {{ element.size.width }} x {{ element.size.height }}</p>
+        <hr />
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
+import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
+import { LiquidRendererBackdropCapturedEvent } from '../types/LiquidGlass';
 
 const props = defineProps<{
   initiallyOpen?: boolean;
 }>();
 
+const backdropInfo = ref<LiquidRendererBackdropCapturedEvent | null>(null);
 const currentBackdrop = ref<string>('');
+
+const backdropElements = ref<LiquidRendererBackdropElement[]>([]);
+const backdropElementUrls = ref<Record<number, string>>({});
+
+const safeConvertToUrl = async (
+  canvas?: OffscreenCanvas | HTMLCanvasElement | null,
+): Promise<string> => {
+  if (!canvas || typeof (canvas as OffscreenCanvas).convertToBlob !== 'function') return '';
+
+  try {
+    // Ensure a rendering context exists; OffscreenCanvas requires one for convertToBlob.
+    if ('getContext' in canvas && typeof canvas.getContext === 'function') {
+      canvas.getContext('2d');
+    }
+
+    const blob = await (canvas as OffscreenCanvas).convertToBlob();
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.warn('LiquidGlassDebugger: failed to convert canvas', error);
+    return '';
+  }
+};
+
+const setBackdropElementUrl = async (index: number, canvas?: OffscreenCanvas | HTMLCanvasElement | null) => {
+  const url = await safeConvertToUrl(canvas);
+
+  if (url === backdropElementUrls.value[index]) return;
+
+  const prev = backdropElementUrls.value[index];
+  if (prev) URL.revokeObjectURL(prev);
+
+  backdropElementUrls.value = {
+    ...backdropElementUrls.value,
+    [index]: url,
+  };
+};
+
+const cleanupRemovedElementUrls = (nextLength: number) => {
+  Object.keys(backdropElementUrls.value).forEach((key) => {
+    const idx = Number(key);
+    if (idx >= nextLength) {
+      const prev = backdropElementUrls.value[idx];
+      if (prev) URL.revokeObjectURL(prev);
+      const { [idx]: _, ...rest } = backdropElementUrls.value;
+      backdropElementUrls.value = rest;
+    }
+  });
+};
 
 onMounted(() => {
   const manager = useLiquidContext();
 
   manager.setOptions({ debug: true });
 
-  manager.on('backdropCaptured', (canvas: OffscreenCanvas) => {
-    // Convert OffscreenCanvas to Blob and then to Object URL for display
-    canvas.convertToBlob().then((blob) => {
-      const url = URL.createObjectURL(blob);
-      currentBackdrop.value = url;
-    });
+  backdropElements.value = manager.registeredBackdropElements;
+  manager.on('backdropCaptured', async (event: LiquidRendererBackdropCapturedEvent) => {
+    const nextUrl = await safeConvertToUrl(event.canvas);
+    if (currentBackdrop.value && currentBackdrop.value !== nextUrl) {
+      URL.revokeObjectURL(currentBackdrop.value);
+    }
+    currentBackdrop.value = nextUrl;
+
+    backdropInfo.value = event;
+  });
+
+  manager.on('backdropElementChanged', (elements: LiquidRendererBackdropElement[]) => {
+    backdropElements.value = elements;
   });
 });
+
+const getBackdropElementCanvas = (i: number) => backdropElementUrls.value[i] ?? '';
+
+watch(
+  backdropElements,
+  (elements) => {
+    elements.forEach((element, index) => {
+      setBackdropElementUrl(index, element.canvas);
+    });
+
+    cleanupRemovedElementUrls(elements.length);
+  },
+  { immediate: true },
+);
 
 </script>
 
@@ -47,5 +132,10 @@ onMounted(() => {
   border-radius: 8px;
   padding: 16px;
   box-shadow: 0 2px 8px #0000001a;
+  font-size: smaller;
+}
+
+img {
+  background: #eee;
 }
 </style>

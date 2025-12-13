@@ -20,11 +20,12 @@
           </template>
         </LgBackdropConverter>
 
-        <div class="demo-materials">
+        <div class="demo-materials" :position="demoMaterial0Position">
           <LiquidGlassMaterial :radius="20">
             <div class="demo-card">
               <h3>Glass card</h3>
-              <p>Scoped provider demo with html2canvas backdrop.</p>
+              <button
+                @click="demoMaterial0Position = demoMaterial0Position > 4 ? 0 : demoMaterial0Position + 1">Click</button>
             </div>
           </LiquidGlassMaterial>
         </div>
@@ -48,6 +49,8 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
+
 import LiquidGlassPlayground from './components/LiquidGlassPlayground.vue';
 import MultiGlassDemo from './components/MultiGlassDemo.vue';
 import {
@@ -58,6 +61,8 @@ import {
   LiquidGlassDebugger,
   LiquidGlassMaterial,
 } from './index';
+
+const demoMaterial0Position = ref<number>(0);
 
 </script>
 
@@ -163,6 +168,27 @@ html {
   justify-content: center;
   width: 200px;
   height: 140px;
+  transition: all 0.5s;
+
+  &[position="0"] {
+    left: 40px;
+    top: 50px;
+  }
+
+  &[position="1"] {
+    left: 140px;
+    top: 80px;
+  }
+
+  &[position="2"] {
+    left: 100px;
+    top: 150px;
+  }
+
+  &[position="3"] {
+    left: 30px;
+    top: 120px;
+  }
 }
 
 .demo-card {

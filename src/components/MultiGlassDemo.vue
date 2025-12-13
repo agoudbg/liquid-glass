@@ -18,7 +18,7 @@ import { createLiquidGlassRenderer, type LiquidGlassRenderer } from '../core/liq
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let renderer: LiquidGlassRenderer | null = null;
 
-// Glass configurations for multiple instances
+// Glass configurations for multiple instances (using relative values for responsiveness)
 const glassConfigs = [
   {
     id: 'glass-1',
@@ -30,10 +30,10 @@ const glassConfigs = [
     radiusBR: 30.0,
     radiusBL: 30.0,
     radiusTL: 30.0,
-    width: 0.2,
-    height: 0.2,
+    relWidth: 0.2,
+    relHeight: 0.2,
     foregroundColor: [0.1, 0.1, 0.2, 0.05] as [number, number, number, number],
-    position: { x: 0.25, y: 0.3 },
+    relPosition: { x: 0.25, y: 0.3 },
   },
   {
     id: 'glass-2',
@@ -45,10 +45,10 @@ const glassConfigs = [
     radiusBR: 10.0,
     radiusBL: 60.0,
     radiusTL: 10.0,
-    width: 0.25,
-    height: 0.25,
+    relWidth: 0.25,
+    relHeight: 0.25,
     foregroundColor: [0.2, 0.05, 0.1, 0.08] as [number, number, number, number],
-    position: { x: 0.75, y: 0.4 },
+    relPosition: { x: 0.75, y: 0.4 },
   },
   {
     id: 'glass-3',
@@ -56,10 +56,10 @@ const glassConfigs = [
     refractIndex: 1.45,
     refractIntensity: 0.6,
     radius: 50.0,
-    width: 0.18,
-    height: 0.18,
+    relWidth: 0.18,
+    relHeight: 0.18,
     foregroundColor: [0.0, 0.1, 0.1, 0.06] as [number, number, number, number],
-    position: { x: 0.5, y: 0.7 },
+    relPosition: { x: 0.5, y: 0.7 },
   },
 ];
 
@@ -70,8 +70,28 @@ function loadBackground(src: string) {
   img.src = src;
 }
 
+function updateLayout() {
+  if (!renderer || !canvasRef.value) return;
+  const { width, height } = canvasRef.value.getBoundingClientRect();
+
+  glassConfigs.forEach((config) => {
+    const w = width * config.relWidth;
+    const h = height * config.relHeight;
+    const x = width * config.relPosition.x;
+    const y = height * config.relPosition.y;
+
+    renderer!.updateMaterial(config.id, {
+      width: w,
+      height: h,
+    });
+    renderer!.setMaterialPosition(config.id, x, y);
+  });
+
+  renderer.resize();
+}
+
 function handleResize() {
-  renderer?.resize();
+  updateLayout();
 }
 
 onMounted(() => {
@@ -80,8 +100,15 @@ onMounted(() => {
   renderer = createLiquidGlassRenderer(canvasRef.value);
   if (!renderer) return;
 
+  const { width, height } = canvasRef.value.getBoundingClientRect();
+
   // Add all glass materials
   glassConfigs.forEach((config) => {
+    const w = width * config.relWidth;
+    const h = height * config.relHeight;
+    const x = width * config.relPosition.x;
+    const y = height * config.relPosition.y;
+
     renderer!.addMaterial(config.id, {
       thickness: config.thickness,
       refractIndex: config.refractIndex,
@@ -91,10 +118,10 @@ onMounted(() => {
       radiusBR: config.radiusBR,
       radiusBL: config.radiusBL,
       radiusTL: config.radiusTL,
-      width: config.width,
-      height: config.height,
+      width: w,
+      height: h,
       foregroundColor: config.foregroundColor,
-    }, config.position);
+    }, { x, y });
   });
 
   loadBackground(bgImageSrc);

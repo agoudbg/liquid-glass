@@ -20,7 +20,7 @@ export type LiquidGlassConfig = {
 export type GlassMaterialInstance = {
   id: string
   config: LiquidGlassConfig
-  position: { x: number; y: number } // Normalized 0-1 position
+  position: { x: number; y: number } // Absolute pixel position (CSS pixels, Top-Left origin)
 }
 
 export type LiquidGlassRenderer = {
@@ -203,12 +203,12 @@ export function createLiquidGlassRenderer(
 
     gl.uniform2f(state.uniforms.uResolution, width, height);
 
-    const centerX = material.position.x * width;
-    const centerY = material.position.y * height;
+    const centerX = material.position.x * dpr;
+    const centerY = height - (material.position.y * dpr);
     gl.uniform2f(state.uniforms.uCenter, centerX, centerY);
 
-    const sizeX = (width * material.config.width) / 2;
-    const sizeY = (height * material.config.height) / 2;
+    const sizeX = (material.config.width * dpr) / 2;
+    const sizeY = (material.config.height * dpr) / 2;
     gl.uniform2f(state.uniforms.uSize, sizeX, sizeY);
 
     const baseRadius = material.config.radius;

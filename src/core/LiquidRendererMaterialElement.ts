@@ -60,13 +60,6 @@ export class LiquidRendererMaterialElement extends EventEmitter {
       this.updatePositionAndSize();
     });
     resizeObserver.observe(this.element);
-
-    // Position change detection can be complex; this is a placeholder
-    this.element.addEventListener('scroll', () => {
-      this.manager.log('debug', 'Material element position may have changed due to scroll:', this.element);
-      // Handle position change logic
-      this.updatePositionAndSize();
-    });
   }
 
   public updatePositionAndSize() {

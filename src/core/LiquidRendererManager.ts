@@ -264,13 +264,13 @@ export class LiquidRendererManager extends EventEmitter {
           radiusBR: glassAttributes.radiusBR,
           radiusBL: glassAttributes.radiusBL,
           radiusTL: glassAttributes.radiusTL,
-          width: size.width / this.size.width,
-          height: size.height / this.size.height,
-          foregroundColor: [0, 0, 0, 0], // Transparent by default
+          width: size.width / 2,
+          height: size.height / 2,
+          foregroundColor: [0, 0, 0, 0],
         },
         {
-          x: position.x / this.size.width,
-          y: position.y / this.size.height,
+          x: position.x + size.width / 4,
+          y: position.y + size.height / 4,
         },
       );
     });

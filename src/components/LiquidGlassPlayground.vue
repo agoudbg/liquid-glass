@@ -61,15 +61,15 @@
       </div>
 
       <div class="control-group">
-        <label>Width Scale: {{ params.width.toFixed(2) }}</label>
-        <small>Horizontal size ratio relative to canvas width.</small>
-        <input type="range" v-model.number="params.width" min="0.1" max="1.5" step="0.01" />
+        <label>Width (px): {{ params.width.toFixed(0) }}</label>
+        <small>Horizontal size in pixels.</small>
+        <input type="range" v-model.number="params.width" min="50" max="1000" step="10" />
       </div>
 
       <div class="control-group">
-        <label>Height Scale: {{ params.height.toFixed(2) }}</label>
-        <small>Vertical size ratio relative to canvas height.</small>
-        <input type="range" v-model.number="params.height" min="0.1" max="1.5" step="0.01" />
+        <label>Height (px): {{ params.height.toFixed(0) }}</label>
+        <small>Vertical size in pixels.</small>
+        <input type="range" v-model.number="params.height" min="50" max="1000" step="10" />
       </div>
 
       <div class="control-group">
@@ -99,7 +99,7 @@ const renderPrecision = ref(1.0);
  * - refractIndex: IOR of glass; higher bends light more (typical glass ~1.5).
  * - refractIntensity: multiplier for refraction offset (acts like shader intensity knob).
  * - radiusTR/BR/BL/TL: per-corner radii in pixels to support asymmetric shapes.
- * - width/height: normalized quad size relative to canvas dimensions (0-1+).
+ * - width/height: quad size in pixels.
  * - foregroundColor: premultiplied RGBA overlay tint blended with src-over.
  */
 const params = reactive<LiquidGlassConfig>({
@@ -111,12 +111,12 @@ const params = reactive<LiquidGlassConfig>({
   radiusBR: 40.0,
   radiusBL: 40.0,
   radiusTL: 40.0,
-  width: 0.6,
-  height: 0.6,
+  width: 400,
+  height: 400,
   foregroundColor: [0.0, 0.0, 0.0, 0.0],
 });
 
-const position = reactive({ x: 0.5, y: 0.5 });
+const position = reactive({ x: 400, y: 300 });
 
 function handleMouseMove(event: MouseEvent) {
   if (!canvasRef.value) return;
@@ -124,8 +124,8 @@ function handleMouseMove(event: MouseEvent) {
   const x = event.clientX - rect.left;
   const y = event.clientY - rect.top;
 
-  position.x = x / rect.width;
-  position.y = 1.0 - y / rect.height;
+  position.x = x;
+  position.y = y;
   renderer?.setMaterialPosition(MATERIAL_ID, position.x, position.y);
 }
 

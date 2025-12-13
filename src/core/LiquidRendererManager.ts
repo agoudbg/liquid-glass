@@ -1,257 +1,152 @@
-import {
-  BackdropSourceType,
-  ClickEvent,
-  DebugSnapshot,
-  MaterialConfig,
-  MaterialSnapshot,
-  RegisteredSourceSnapshot,
-  ScrollAreaSnapshot,
-  ScrollOffset,
-  TextureMapItem,
-} from '../types/liquid';
-import TextureBuilderWorker from '../workers/TextureBuilderWorker?worker';
+import { LiquidRendererManagerOptions } from '../types/LiquidGlass';
+import { EventEmitter } from './EventEmitter';
 
-export class LiquidRendererManager {
-  private worker: Worker;
+export class LiquidRendererManager extends EventEmitter {
+  public debug = false;
 
-  private canvas: HTMLCanvasElement | null = null;
+  public container: HTMLElement;
 
-  private gl: WebGLRenderingContext | null = null;
+  public backdropCanvas = new OffscreenCanvas(1, 1);
 
-  private isSupported: boolean = false;
+  constructor(options: LiquidRendererManagerOptions) {
+    super();
+    // Initialize with options if needed
+    this.debug = options.debug ?? false;
 
-  private scrollOffset: ScrollOffset = { x: 0, y: 0 };
+    this.log('debug', 'Initializing LiquidRendererManager with options:', options);
 
-  private debugEnabled = false;
-
-  private sources = new Map<string, RegisteredSourceSnapshot>();
-
-  private materials = new Map<string, { id: string; element: HTMLElement; config: MaterialConfig }>();
-
-  private scrollAreas = new Map<string, ScrollAreaSnapshot & { element: HTMLElement }>();
-
-  private baseFill: string | undefined;
-
-  private compositeCanvas: HTMLCanvasElement | null = null;
-
-  private compositeBitmap: ImageBitmap | undefined;
-
-  private compositeBitmapUpdatedAt: number | undefined;
-
-  constructor(opts?: { debug?: boolean }) {
-    this.worker = new TextureBuilderWorker();
-    this.debugEnabled = Boolean(opts?.debug);
-    this.initWorker();
-  }
-
-  private initWorker() {
-    this.worker.onmessage = (e) => {
-      // Handle worker messages (e.g. texture updated)
-      this.logDebug('Worker message:', e.data);
-    };
-  }
-
-  private logDebug(...args: unknown[]) {
-    if (this.debugEnabled) {
-      // eslint-disable-next-line no-console
-      console.debug('[LiquidRendererManager]', ...args);
+    // Add resize listener and observer for container
+    if (options.container) {
+      this.container = options.container;
+      this.addResizeListeners();
+    } else {
+      // Fallback to document body if no container provided
+      this.container = document.body;
+      // This will not run resize listeners until container is set
+      this.log('warn', 'No container provided for LiquidRendererManager; resize listeners not added.');
     }
   }
 
-  public initRenderer(canvas: HTMLCanvasElement) {
-    this.canvas = canvas;
-    // Initialize WebGL context here
-    this.gl = canvas.getContext('webgl');
-    if (this.gl) {
-      this.isSupported = true;
+  /**
+   * Update manager options
+   */
+  public setOptions(options: Partial<LiquidRendererManagerOptions>) {
+    if (options.debug !== undefined) {
+      this.debug = options.debug;
+      this.log('debug', `Debug mode set to: ${this.debug}`);
+    }
+    if (options.container && options.container !== this.container) {
+      this.container = options.container;
+      this.log('debug', 'Container updated, adding resize listeners.');
+      this.addResizeListeners();
     }
   }
 
-  public setDebugEnabled(enabled: boolean) {
-    this.debugEnabled = enabled;
-  }
+  /**
+   * Add resize listeners to handle container size changes
+   */
+  private addResizeListeners() {
+    this.log('debug', 'Adding resize listeners');
 
-  public setBaseFill(fill?: string) {
-    this.baseFill = fill;
-    void this.composeBackdrop();
-  }
+    const resizeObserver = new ResizeObserver(() => {
+      this.onContainerResize();
+    });
+    resizeObserver.observe(this.container);
 
-  public updateTextureMap(item: TextureMapItem) {
-    const { previewBitmap, ...transferItem } = item;
-
-    const rect = {
-      x: item.x,
-      y: item.y,
-      width: item.width,
-      height: item.height,
-    };
-
-    this.sources.set(item.id, {
-      id: item.id,
-      type: item.sourceType,
-      rect,
-      zIndex: item.zIndex,
-      updatedAt: Date.now(),
-      previewBitmap,
-      debugLabel: item.debugLabel,
+    window.addEventListener('resize', () => {
+      this.onContainerResize();
     });
 
-    this.logDebug('updateTexture', { id: item.id, rect, type: item.sourceType });
-
-    // Send texture data to worker. Note: ImageBitmap is transferable
-    this.worker.postMessage({ type: 'UPDATE_TEXTURE', item: transferItem }, [transferItem.imageBitmap]);
-
-    void this.composeBackdrop();
+    // Initial resize
+    this.onContainerResize();
   }
 
-  public updateScroll(offset: ScrollOffset) {
-    this.scrollOffset = { ...offset };
-    this.worker.postMessage({ type: 'UPDATE_SCROLL', offset: this.scrollOffset });
-    this.logDebug('updateScroll', this.scrollOffset);
+  /**
+   * Handle container resize events
+   */
+  private onContainerResize() {
+    this.log('debug', 'Container resized');
 
-    void this.composeBackdrop();
+    const rect = this.container.getBoundingClientRect();
+    this.backdropCanvas.width = rect.width * (window.devicePixelRatio || 1);
+    this.backdropCanvas.height = rect.height * (window.devicePixelRatio || 1);
+
+    this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
+
+    // Capture the backdrop after resizing
+    this.captureBackdrop();
   }
 
-  public updateScrollArea(id: string, offset: ScrollOffset) {
-    const entry = this.scrollAreas.get(id);
-    if (entry) {
-      entry.offset = { ...offset };
+  /**
+   * Capture the backdrop of the container element with all registered elements
+   */
+  private captureBackdrop() {
+    this.log('debug', 'Capturing backdrop for container');
+
+    // Clear the canvas
+    const ctx = this.backdropCanvas.getContext('2d');
+    if (!ctx) {
+      this.log('error', 'Failed to get 2D context for backdrop canvas');
+      return;
     }
-    this.updateScroll(offset);
-  }
+    ctx.clearRect(0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
 
-  public registerMaterial(element: HTMLElement, config: MaterialConfig) {
-    if (!this.gl || !element) return;
-    const id = element.dataset.lgMaterialId || crypto.randomUUID();
-    element.dataset.lgMaterialId = id;
+    // Get the container's background configuration
+    const style = getComputedStyle(this.container);
+    const { backgroundColor, backgroundImage } = style;
 
-    this.materials.set(id, { id, element, config: { ...config } });
-    this.logDebug('registerMaterial', { id, config });
-  }
-
-  public unregisterMaterial(element: HTMLElement) {
-    const id = element.dataset.lgMaterialId;
-    if (!id) return;
-    this.materials.delete(id);
-    this.logDebug('unregisterMaterial', id);
-  }
-
-  public registerSource(id: string, type: BackdropSourceType, debugLabel?: string) {
-    this.sources.set(id, {
-      id,
-      type,
-      rect: {
-        x: 0, y: 0, width: 0, height: 0,
-      },
-      zIndex: 0,
-      updatedAt: Date.now(),
-      debugLabel,
-    });
-    this.logDebug('registerSource', { id, type, debugLabel });
-  }
-
-  public unregisterSource(id: string) {
-    this.sources.delete(id);
-    this.logDebug('unregisterSource', id);
-  }
-
-  public registerScrollArea(id: string, element: HTMLElement) {
-    this.scrollAreas.set(id, { id, element, offset: { x: 0, y: 0 } });
-    this.logDebug('registerScrollArea', { id });
-  }
-
-  public unregisterScrollArea(id: string) {
-    this.scrollAreas.delete(id);
-    this.logDebug('unregisterScrollArea', { id });
-  }
-
-  public triggerRipple(event: ClickEvent) {
-    if (!this.gl) return;
-    console.debug('Trigger ripple', event);
-  }
-
-  public async getDebugSnapshot(): Promise<DebugSnapshot> {
-    const materials: MaterialSnapshot[] = [];
-    this.materials.forEach((value) => {
-      const rect = value.element.getBoundingClientRect();
-      materials.push({
-        id: value.id,
-        config: value.config,
-        rect: {
-          x: rect.left,
-          y: rect.top,
-          width: rect.width,
-          height: rect.height,
-        },
-      });
-    });
-
-    const scrollAreas: ScrollAreaSnapshot[] = [];
-    this.scrollAreas.forEach((area) => {
-      scrollAreas.push({ id: area.id, offset: { ...area.offset } });
-    });
-
-    return {
-      debugEnabled: this.debugEnabled,
-      sources: Array.from(this.sources.values()),
-      materials,
-      scrollAreas,
-      scrollOffset: { ...this.scrollOffset },
-      rendererBitmap: this.compositeBitmap,
-      rendererSize: this.compositeCanvas
-        ? { width: this.compositeCanvas.width, height: this.compositeCanvas.height }
-        : undefined,
-      rendererUpdatedAt: this.compositeBitmapUpdatedAt,
-    };
-  }
-
-  public destroy() {
-    this.worker.terminate();
-  }
-
-  private async composeBackdrop() {
-    if (!this.canvas) return;
-    const targetWidth = this.canvas.width;
-    const targetHeight = this.canvas.height;
-
-    if (!this.compositeCanvas) {
-      this.compositeCanvas = document.createElement('canvas');
+    // Fill background color
+    if (backgroundColor && backgroundColor !== 'rgba(0, 0, 0, 0)' && backgroundColor !== 'transparent') {
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
+      this.log('debug', `Filled backdrop with background color: ${backgroundColor}`);
     }
 
-    if (this.compositeCanvas.width !== targetWidth || this.compositeCanvas.height !== targetHeight) {
-      this.compositeCanvas.width = targetWidth;
-      this.compositeCanvas.height = targetHeight;
+    // Draw background image if exists
+    if (backgroundImage && backgroundImage !== 'none') {
+      const imageUrlMatch = backgroundImage.match(/url\(["']?(.+?)["']?\)/);
+      if (imageUrlMatch) {
+        const imageUrl = imageUrlMatch[1];
+        const img = new Image();
+        img.crossOrigin = 'Anonymous'; // Handle CORS if needed
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
+          this.log('debug', `Drew backdrop image from URL: ${imageUrl}`);
+        };
+        img.onerror = () => {
+          this.log('error', `Failed to load backdrop image from URL: ${imageUrl}`);
+        };
+        img.src = imageUrl;
+      }
     }
 
-    const ctx = this.compositeCanvas.getContext('2d');
-    if (!ctx) return;
+    // Todo: Add logic to draw registered elements onto the backdrop canvas
 
-    ctx.clearRect(0, 0, targetWidth, targetHeight);
-    if (this.baseFill) {
-      ctx.fillStyle = this.baseFill;
-      ctx.fillRect(0, 0, targetWidth, targetHeight);
-    }
+    this.emit('backdropCaptured', this.backdropCanvas);
 
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = rect.width ? this.canvas.width / rect.width : 1;
+    this.log('debug', 'Backdrop capture complete');
+  }
 
-    const orderedSources = Array.from(this.sources.values()).sort((a, b) => a.zIndex - b.zIndex);
-    for (const src of orderedSources) {
-      if (!src.previewBitmap) continue;
-      ctx.drawImage(
-        src.previewBitmap,
-        src.rect.x * dpr,
-        src.rect.y * dpr,
-        src.rect.width * dpr,
-        src.rect.height * dpr,
-      );
-    }
+  /**
+   * Log messages based on the debug flag
+   */
+  private log(level: 'info' | 'warn' | 'error' | 'debug', message: string, ...args: any[]) {
+    if (level === 'debug' && !this.debug) return;
 
-    try {
-      this.compositeBitmap = await createImageBitmap(this.compositeCanvas);
-      this.compositeBitmapUpdatedAt = Date.now();
-    } catch (err) {
-      this.logDebug('composeBackdrop bitmap failed', err);
+    switch (level) {
+      case 'info':
+        console.info(`[LiquidRendererManager]: ${message}`, ...args);
+        break;
+      case 'warn':
+        console.warn(`[LiquidRendererManager]: ${message}`, ...args);
+        break;
+      case 'error':
+        console.error(`[LiquidRendererManager]: ${message}`, ...args);
+        break;
+      case 'debug':
+        console.debug(`[LiquidRendererManager]: ${message}`, ...args);
+        break;
+      default:
     }
   }
 }

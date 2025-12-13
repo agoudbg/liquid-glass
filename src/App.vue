@@ -4,7 +4,7 @@
 
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass debug baseFill="#404c79">
+    <LiquidGlass class="liquid-glass-container">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <div class="demo-backdrop">
@@ -78,7 +78,7 @@ html {
   border: 1px solid #ccc;
   border-radius: 12px;
   overflow: hidden;
-  margin: 20px;
+  margin: 100vh 20px 0;
   position: relative;
 }
 
@@ -90,13 +90,11 @@ html {
   overflow: hidden;
   margin: 20px;
   position: relative;
-  background: #404c79;
   color: #e8ecf8;
 }
 
-.single-glass-container h2 {
-  margin: 12px 16px 0;
-  font-weight: 600;
+.liquid-glass-container {
+  background-color: #2d7cf1;
 }
 
 .single-glass-layout {

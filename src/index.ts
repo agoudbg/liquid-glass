@@ -14,4 +14,4 @@ export {
   LiquidGlassMaterial,
 };
 
-export * from './types/liquid';
+export * from './types/LiquidGlass';

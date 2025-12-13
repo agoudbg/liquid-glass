@@ -1,86 +1,54 @@
 <template>
-  <div class="liquid-glass" ref="container">
-    <canvas ref="canvas" class="liquid-glass__canvas"></canvas>
-    <div class="liquid-glass__content">
-      <slot></slot>
-    </div>
+  <div class="liquid-glass-container" ref="container">
+    <slot></slot>
   </div>
 </template>
 
-<script setup lang="ts">
-import {
-  onBeforeUnmount, onMounted, ref, watch,
-} from 'vue';
+<script lang="ts" setup>
+
+import { onMounted, ref } from 'vue';
 
 import { provideLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
 
-const props = defineProps<{ debug?: boolean; baseFill?: string }>();
+const props = defineProps<{
+  debug?: boolean;
+  backgroundColor?: string;
+  backgroundImage?: string;
+}>();
 
-const container = ref<HTMLElement | null>(null);
-const canvas = ref<HTMLCanvasElement | null>(null);
-const resizeObserver = ref<ResizeObserver | null>(null);
-const manager = new LiquidRendererManager({ debug: props.debug });
+// Initialize the LiquidRendererManager
+const manager: LiquidRendererManager = new LiquidRendererManager({ debug: props.debug ?? false });
 
 provideLiquidContext(manager);
 
-const resizeCanvas = () => {
-  if (!container.value || !canvas.value) return;
-  const rect = container.value.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-
-  canvas.value.width = rect.width * dpr;
-  canvas.value.height = rect.height * dpr;
-  canvas.value.style.width = `${rect.width}px`;
-  canvas.value.style.height = `${rect.height}px`;
-};
+const container = ref<HTMLElement | null>(null);
 
 onMounted(() => {
-  if (canvas.value) {
-    manager.initRenderer(canvas.value);
+  // Ensure the container is set
+  if (!container.value) {
+    console.error('LiquidGlass component requires a container element.');
   }
 
-  manager.setBaseFill(props.baseFill || undefined);
+  // Create a LiquidRendererManager instance
+  manager.setOptions(
+    // Current element as container
+    {
+      container: container.value ?? undefined,
+      debug: props.debug ?? false,
+    },
+  );
 
-  resizeCanvas();
-
-  resizeObserver.value = new ResizeObserver(() => resizeCanvas());
-  if (container.value) {
-    resizeObserver.value.observe(container.value);
-  }
+  // Provide the LiquidContext to child components
 });
 
-watch(() => props.debug, (val) => {
-  manager.setDebugEnabled(Boolean(val));
-});
-
-onBeforeUnmount(() => {
-  resizeObserver.value?.disconnect();
-  manager.destroy();
-});
 </script>
 
 <style scoped>
-.liquid-glass {
+.liquid-glass-container {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
-}
-
-.liquid-glass__canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.liquid-glass__content {
-  position: relative;
-  z-index: 2;
-  width: 100%;
-  height: 100%;
 }
 </style>

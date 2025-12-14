@@ -17,6 +17,8 @@ const props = defineProps<{
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 
+const captureLib = props.captureLib || 'html-to-image';
+
 const defaultPixelRatio = 1;
 
 // Draw the backdrop using the selected library
@@ -29,7 +31,7 @@ const drawBackdrop = async () => {
 
   console.log('LgBackdropConverter: capturing backdrop for element:', element);
 
-  if (props.captureLib === 'html-to-image') {
+  if (captureLib === 'html-to-image') {
     // Use html-to-image to capture the backdrop
     const { toCanvas } = await import('html-to-image');
     const canvas = await toCanvas(element, {
@@ -44,9 +46,9 @@ const drawBackdrop = async () => {
     const ctx = offscreenCanvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(canvas, 0, 0);
-      backdropManager.value.requestManagerBackdropCapture(offscreenCanvas, element.offsetLeft, element.offsetTop);
+      backdropManager.value.requestManagerBackdropCapture(offscreenCanvas);
     }
-  } else if (props.captureLib === 'html2canvas') {
+  } else if (captureLib === 'html2canvas') {
     // Use html2canvas to capture the backdrop
     const html2canvas = (await import('html2canvas')).default;
     const canvas = await html2canvas(element, {
@@ -62,7 +64,7 @@ const drawBackdrop = async () => {
     if (ctx) {
       ctx.drawImage(canvas, 0, 0);
       console.log('LgBackdropConverter: captured canvas with html2canvas, sending to manager');
-      backdropManager.value.requestManagerBackdropCapture(offscreenCanvas, element.offsetLeft, element.offsetTop);
+      backdropManager.value.requestManagerBackdropCapture(offscreenCanvas);
     }
   }
 };

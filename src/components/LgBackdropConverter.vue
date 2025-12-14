@@ -17,6 +17,8 @@ const props = defineProps<{
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 
+const defaultPixelRatio = 1;
+
 // Draw the backdrop using the selected library
 const drawBackdrop = async () => {
   console.log('LgBackdropConverter: drawBackdrop called');
@@ -32,7 +34,7 @@ const drawBackdrop = async () => {
     const { toCanvas } = await import('html-to-image');
     const canvas = await toCanvas(element, {
       // pixelRatio: window.devicePixelRatio || 1,
-      pixelRatio: 0.95,
+      pixelRatio: defaultPixelRatio,
     });
     console.log('LgBackdropConverter: captured canvas with html-to-image', {
       width: canvas.width,
@@ -49,7 +51,7 @@ const drawBackdrop = async () => {
     const html2canvas = (await import('html2canvas')).default;
     const canvas = await html2canvas(element, {
       // scale: window.devicePixelRatio || 1,
-      scale: 0.75,
+      scale: defaultPixelRatio,
     });
     console.log('LgBackdropConverter: captured canvas with html2canvas', {
       width: canvas.width,

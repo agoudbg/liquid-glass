@@ -308,6 +308,11 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.log('debug', 'Rendering materials for registered material elements');
 
+    // Ensure the materials canvas reflects the latest container size before we apply renderScale.
+    const dpr = window.devicePixelRatio || 1;
+    this.materialsCanvas.width = this.size.width * dpr;
+    this.materialsCanvas.height = this.size.height * dpr;
+
     // Dispose existing renderer to recreate with new materials
     if (this.renderer) {
       this.renderer.dispose();

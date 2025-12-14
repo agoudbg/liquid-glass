@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="true" :power-efficient-mode="true">
+    <LiquidGlass class="liquid-glass-container" :power-efficient-mode="true" :render-precision="0.8">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -36,11 +36,11 @@
           <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
         </div>
       </div>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 
-  <div class="page-test">
+  <!-- <div class="page-test">
     <LiquidGlass class="liquid-glass-container-page" :debug="true" :power-efficient-mode="false">
       <header>
         <div class="left">
@@ -83,7 +83,7 @@
       </footer>
       <LiquidGlassDebugger />
     </LiquidGlass>
-  </div>
+  </div> -->
 
   <div class="playground-container">
     <h2>Playground</h2>

@@ -186,16 +186,24 @@ export function createLiquidGlassRenderer(
   function resize(): void {
     if (!gl) return;
     const dpr = window.devicePixelRatio || 1;
-    let displayWidth = canvas.clientWidth;
-    let displayHeight = canvas.clientHeight;
+    // Prefer the true logical (unscaled) resolution from the captured backdrop.
+    // When the canvas is off‑DOM, clientWidth/clientHeight is 0, which previously
+    // caused us to repeatedly shrink/expand on every resize() call when renderScale
+    // was not 1. Use the texture resolution (backdrop size) as the source of truth,
+    // and fall back to current canvas dimensions divided by renderScale.
+    const logicalWidth = (state.textureResolution.width > 1
+      ? state.textureResolution.width
+      : 0)
+      || canvas.clientWidth * dpr
+      || (canvas.width / Math.max(state.renderScale, 0.0001));
+    const logicalHeight = (state.textureResolution.height > 1
+      ? state.textureResolution.height
+      : 0)
+      || canvas.clientHeight * dpr
+      || (canvas.height / Math.max(state.renderScale, 0.0001));
 
-    if (displayWidth === 0 && displayHeight === 0) {
-      displayWidth = canvas.width / dpr;
-      displayHeight = canvas.height / dpr;
-    }
-
-    state.logicalResolution.width = displayWidth * dpr;
-    state.logicalResolution.height = displayHeight * dpr;
+    state.logicalResolution.width = logicalWidth;
+    state.logicalResolution.height = logicalHeight;
 
     const scaledWidth = Math.max(1, Math.round(state.logicalResolution.width * state.renderScale));
     const scaledHeight = Math.max(1, Math.round(state.logicalResolution.height * state.renderScale));

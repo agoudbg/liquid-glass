@@ -52,6 +52,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
       ...this.options.refractIndex && { refractIndex: this.options.refractIndex },
       ...this.options.thickness && { thickness: this.options.thickness },
       ...this.options.refractIntensity && { refractIntensity: this.options.refractIntensity },
+      ...this.options.blur && { blur: this.options.blur },
     };
   }
 
@@ -106,6 +107,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
       thickness: 10,
       refractIndex: 1.1,
       refractIntensity: 0.5,
+      blur: 0,
     };
   }
 

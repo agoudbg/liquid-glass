@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :power-efficient-mode="true" :render-precision="0.8">
+    <LiquidGlass class="liquid-glass-container" :power-efficient-mode="true" :render-precision="0.3">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -27,7 +27,7 @@
         </div>
 
         <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-          <LiquidGlassMaterial :radius="20" :radiusBR="30" ref="demoMaterial1">
+          <LiquidGlassMaterial :radius="20" :radiusBR="50" :blur="3" :thickness="20" ref="demoMaterial1">
             <div class="demo-card">
               <h3>Drag or Resize</h3>
             </div>

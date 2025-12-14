@@ -105,6 +105,7 @@ const params = reactive<LiquidGlassConfig>({
   thickness: 30.0,
   refractIndex: 1.5,
   refractIntensity: 1.0,
+  blur: 0.0,
   radius: 40.0,
   radiusTR: 40.0,
   radiusBR: 40.0,

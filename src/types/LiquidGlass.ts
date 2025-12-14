@@ -29,6 +29,7 @@ export interface LiquidRendererMaterialElementOptions {
   thickness?: number;
   refractIndex?: number;
   refractIntensity?: number;
+  blur?: number;
   radius: number;
   radiusTR?: number;
   radiusBR?: number;
@@ -41,6 +42,7 @@ export interface LiquidRendererMaterialGlassAttributions {
   thickness: number;
   refractIndex: number;
   refractIntensity: number;
+  blur: number;
   radius: number;
   radiusTR: number;
   radiusBR: number;

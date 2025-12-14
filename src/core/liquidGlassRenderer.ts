@@ -10,6 +10,7 @@ export type LiquidGlassConfig = {
   thickness: number
   refractIndex: number
   refractIntensity: number
+  blur: number
   radius: number
   radiusTR?: number
   radiusBR?: number
@@ -104,11 +105,12 @@ export function createLiquidGlassRenderer(
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+    gl.generateMipmap(gl.TEXTURE_2D);
     state.hasTexture = true;
   }
 
@@ -134,6 +136,7 @@ export function createLiquidGlassRenderer(
       'uThickness',
       'uRefractIndex',
       'uRefractIntensity',
+      'uBlur',
     ];
     uniformNames.forEach((name) => {
       state.uniforms[name] = gl.getUniformLocation(program, name);
@@ -243,6 +246,7 @@ export function createLiquidGlassRenderer(
     gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr);
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
+    gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
   }
 
   function computeThemeColors(): ThemeColorMap {

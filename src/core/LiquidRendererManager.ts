@@ -341,6 +341,7 @@ export class LiquidRendererManager extends EventEmitter {
           thickness: glassAttributes.thickness,
           refractIndex: glassAttributes.refractIndex,
           refractIntensity: glassAttributes.refractIntensity,
+          blur: glassAttributes.blur,
           radius: glassAttributes.radius,
           radiusTR: glassAttributes.radiusTR,
           radiusBR: glassAttributes.radiusBR,

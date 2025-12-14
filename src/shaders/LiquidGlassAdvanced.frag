@@ -14,6 +14,7 @@ uniform vec4 uRadius;
 uniform float uThickness;        // Physical thickness in pixels
 uniform float uRefractIndex;     // Index of refraction
 uniform float uRefractIntensity; // Scales refraction offset
+uniform float uBlur;             // LOD bias for mipmap-based blur
 
 float sdfRect(vec2 p, vec4 r) {
   // p is relative to center; y is up.
@@ -56,5 +57,5 @@ void main() {
   vec2 pixelOffset = refract_vec.xy * refract_length * uRefractIntensity;
   uv += pixelOffset / uResolution;
 
-  fragColor = texture(uTexture, uv);
+  fragColor = textureLod(uTexture, uv, uBlur);
 }

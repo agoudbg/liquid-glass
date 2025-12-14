@@ -113,6 +113,7 @@ onMounted(() => {
       thickness: props.thickness,
       refractIndex: props.refractIndex,
       refractIntensity: props.refractIntensity,
+      blur: props.blur,
       radius: props.radius,
       radiusTR: props.radiusTR,
       radiusBR: props.radiusBR,

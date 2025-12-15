@@ -1,5 +1,7 @@
 export type RenderMode = 'uniform' | 'dedicated';
 
+export type CustomDrawCallback = (ctx: OffscreenCanvasRenderingContext2D, w: number, h: number) => void;
+
 export interface LiquidRendererManagerOptions {
   /** Container can be undefined if the LiquidRendererManager is initialized before the container element is available */
   container?: HTMLElement;
@@ -18,11 +20,16 @@ export interface LiquidRendererManagerOptions {
   powerEfficientMode?: boolean;
 }
 
+export type LiquidRendererBackdropElementType = 'canvas' | 'html' | 'scroll_box' | undefined;
+
 export interface LiquidRendererBackdropElementOptions {
   zIndex?: number;
+  type: LiquidRendererBackdropElementType;
   watchResize?: boolean;
   watchNodeChanges?: boolean;
   watchPositionChanges?: boolean;
+  /** User canvas callback */
+  userCanvasCallback?: CustomDrawCallback;
 }
 
 export interface LiquidRendererMaterialElementOptions {

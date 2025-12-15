@@ -12,6 +12,7 @@ import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropEle
 
 const props = defineProps<{
   captureLib: 'html-to-image' | 'html2canvas';
+  zIndex?: number;
 }>();
 
 const backdropElement = ref<HTMLElement | null>(null);
@@ -77,6 +78,8 @@ onMounted(() => {
   if (backdropElement.value) {
     console.log('LgBackdropConverter: registering backdrop element with manager');
     backdropManager.value = new LiquidRendererBackdropElement(manager, backdropElement.value, {
+      type: 'html',
+      zIndex: props.zIndex,
       watchResize: true,
       watchNodeChanges: true,
       watchPositionChanges: true,

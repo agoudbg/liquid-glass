@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug=true :render-precision="0.7">
+    <LiquidGlass class="liquid-glass-container" :debug=true :render-precision="0.3">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -16,6 +16,10 @@
             </div>
           </template>
         </LgBackdropConverter>
+
+        <div class="canvas-container">
+          <LgBackdropCanvas :draw="drawBlueRect" />
+        </div>
 
         <div class="demo-material" :position="demoMaterial0Position">
           <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
@@ -36,7 +40,7 @@
           <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
         </div>
       </div>
-      <!-- <LiquidGlassDebugger /> -->
+      <LiquidGlassDebugger />
     </LiquidGlass>
   </div>
 
@@ -107,6 +111,7 @@ import {
 import LiquidGlassPlayground from './components/LiquidGlassPlayground.vue';
 import MultiGlassDemo from './components/MultiGlassDemo.vue';
 import {
+  CustomDrawCallback,
   LgBackdropCanvas,
   LgBackdropConverter,
   LgBackdropScrollArea,
@@ -187,6 +192,20 @@ const handlePointerUp = () => {
   demoMaterial1.value?.stopUpdating();
 };
 
+const drawBlueRect: CustomDrawCallback = (ctx, w, h) => {
+  // 绘制一个半透明的蓝色矩形，占据 Canvas 中间部分
+  ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+  const rectW = w * 0.4;
+  const rectH = h * 0.4;
+  ctx.fillRect(w * 0.3, h * 0.3, rectW, rectH);
+
+  // 绘制一些文字
+  ctx.font = '24px sans-serif';
+  ctx.fillStyle = 'white';
+  ctx.textAlign = 'center';
+  ctx.fillText('Custom Draw Layer', w / 2, h / 2);
+};
+
 onMounted(() => {
   window.addEventListener('pointermove', handlePointerMove);
   window.addEventListener('pointerup', handlePointerUp);
@@ -234,6 +253,10 @@ html {
 
 .liquid-glass-container {
   background-color: #2d7cf1;
+  /* background-image: url(./assets/pietro-de-grandi-T7K4aEPoGGk-unsplash.jpg); */
+  background-size: contain;
+  background-position: center left;
+  background-repeat: no-repeat;
 }
 
 .single-glass-layout {
@@ -292,6 +315,16 @@ html {
   font-weight: 600;
   letter-spacing: 0.1px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+}
+
+.canvas-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 200px;
+  height: 150px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .demo-material {

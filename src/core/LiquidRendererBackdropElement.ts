@@ -1,4 +1,4 @@
-import { LiquidRendererBackdropElementOptions } from '../types/LiquidGlass';
+import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -6,6 +6,8 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   public manager: LiquidRendererManager;
 
   public element: HTMLElement;
+
+  public type: LiquidRendererBackdropElementType;
 
   public options?: LiquidRendererBackdropElementOptions;
 
@@ -29,6 +31,13 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.options = options;
 
     this.canvas = new OffscreenCanvas(1, 1);
+
+    this.type = options?.type;
+
+    if (this.type === 'canvas') {
+      // Draw user content to canvas
+      // this.drawUserContentToCanvas(options?.userCanvasCallback);
+    }
 
     // Register this element with the manager
     this.manager.registerBackdropElement(this);
@@ -129,6 +138,36 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     } else {
       this.manager.onBackdropElementChange();
     }
+  }
+
+  public async drawUserContentToCanvas(userCanvasCallback?: CustomDrawCallback): Promise<{ canvas: OffscreenCanvas; width: number; height: number; }> {
+    this.manager.log('debug', 'Drawing user content to canvas for backdrop element:', this.element);
+    if (this.type !== 'canvas' || !this.canvas || !userCanvasCallback) throw new Error('Backdrop element is not of type canvas or missing userCanvasCallback');
+
+    this.updatePositionAndSize({ suppressReRender: true });
+
+    this.canvas.width = this.size.width;
+    this.canvas.height = this.size.height;
+
+    const ctx = this.canvas.getContext('2d');
+    if (!ctx) throw new Error('Failed to get 2D context from OffscreenCanvas');
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, this.size.width, this.size.height);
+
+    // Call the user-provided callback to draw content
+    userCanvasCallback(ctx, this.size.width, this.size.height);
+
+    this.manager.log('debug', 'User content drawn to canvas for backdrop element:', this.element);
+
+    // Mark that content has been captured
+    this.requestManagerBackdropCapture(this.canvas);
+
+    return {
+      canvas: this.canvas,
+      width: this.canvas.width,
+      height: this.canvas.height,
+    };
   }
 
   /**

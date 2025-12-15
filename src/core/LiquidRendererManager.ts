@@ -1,3 +1,5 @@
+import { toCanvas } from 'html-to-image';
+
 import { AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { createLiquidGlassRenderer, LiquidGlassRenderer } from './liquidGlassRenderer';
@@ -207,7 +209,7 @@ export class LiquidRendererManager extends EventEmitter {
   /**
    * Handle container change events
    */
-  private onContainerChange() {
+  private async onContainerChange() {
     this.log('debug', 'Container resized');
 
     const rect = this.updateContainerPositionAndSize();
@@ -220,13 +222,13 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
 
     // Capture the backdrop after resizing
-    this.captureBackdrop();
+    await this.captureBackdrop();
   }
 
   /**
    * Capture the backdrop of the container element with all registered elements
    */
-  private captureBackdrop() {
+  private async captureBackdrop() {
     if (this.isRenderingBackdrop) {
       this.hasPendingBackdropRenderRequest = true;
       this.log('debug', 'Backdrop capture already in progress, marking pending request.');
@@ -267,8 +269,39 @@ export class LiquidRendererManager extends EventEmitter {
       this.log('debug', `Filled backdrop with background color: ${backgroundColor}`);
     }
 
+    if (backgroundImage && backgroundImage !== 'none') {
+      // Since backgroundImage is complex, use html-to-image to capture it
+      // Create a element with the same size and background but no children
+      const bgDiv = document.createElement('div');
+      bgDiv.style.width = `${this.container.clientWidth}px`;
+      bgDiv.style.height = `${this.container.clientHeight}px`;
+      bgDiv.style.backgroundColor = backgroundColor;
+      bgDiv.style.backgroundImage = backgroundImage;
+      bgDiv.style.backgroundSize = style.backgroundSize;
+      bgDiv.style.backgroundPosition = style.backgroundPosition;
+      bgDiv.style.backgroundRepeat = style.backgroundRepeat;
+
+      // Add to body temporarily
+      document.body.appendChild(bgDiv);
+
+      await toCanvas(bgDiv).then((bgCanvas) => {
+        ctx.drawImage(bgCanvas, 0, 0, this.container.clientWidth, this.container.clientHeight);
+        this.log('debug', `Drawn backdrop with background image: ${backgroundImage}`);
+        document.body.removeChild(bgDiv);
+      }).catch((error) => {
+        this.log('error', 'Failed to capture background image for backdrop:', error);
+      });
+    }
+
     // Draw registered elements onto the backdrop canvas
-    this.registeredBackdropElements.forEach((element) => {
+    // Sort draw order by zIndex
+    const sortedElements = this.registeredBackdropElements.slice().sort((a, b) => {
+      const zIndexA = a.options?.zIndex ?? 0;
+      const zIndexB = b.options?.zIndex ?? 0;
+      return zIndexA - zIndexB;
+    });
+
+    sortedElements.forEach((element) => {
       const { position, size, canvas } = element;
 
       if (!canvas) {
@@ -356,28 +389,11 @@ export class LiquidRendererManager extends EventEmitter {
       renderPrecision,
     });
 
-    // Ensure the materials canvas reflects the latest container size before we apply renderScale.
-
-    // seems no use
-    // const dpr = window.devicePixelRatio || 1;
-    // this.materialsCanvas.width = this.size.width * 0.26;
-    // this.materialsCanvas.height = this.size.height * 0.26;
-
-    // Dispose existing renderer to recreate with new materials
-    // if (this.renderer) {
-    //   this.renderer.dispose();
-    //   this.renderer = null;
-    // }
-
     // Create renderer on the persistent materialsCanvas
     if (!this.renderer) {
       this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
         renderScale: renderPrecision,
       });
-      // Note: resize() is called internally by createLiquidGlassRenderer.
-      // We do NOT call resize() again here because canvas.width has already
-      // been modified by the internal resize(), and calling it again would
-      // use the modified value as logicalResolution, causing a shrinking loop.
       this.log('debug', 'Created new LiquidGlassRenderer instance');
     }
 

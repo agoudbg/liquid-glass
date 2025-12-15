@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="true" :render-precision="0.3">
+    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.2">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -186,6 +186,7 @@ const onDemoMaterial1ResizeStart = (event: PointerEvent) => {
   demoMaterial1Helper.resizeStartY = event.clientY;
   demoMaterial1Helper.resizeStartWidth = demoMaterial1Helper.width;
   demoMaterial1Helper.resizeStartHeight = demoMaterial1Helper.height;
+  demoMaterial1.value?.startUpdating();
 };
 
 const handlePointerMove = (event: PointerEvent) => {

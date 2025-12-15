@@ -3,7 +3,7 @@
     :allowing-color-transition="allowingColorTransition" :disable-interactions="disableInteractions"
     :only-click-interactions="onlyClickInteractions" :style="materialStyle" @pointerdown="onPointerDown"
     @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerLeave">
-    <div class="liquid-glass-highlight" v-show="highlightVisible" :style="highlightStyle"></div>
+    <div class="liquid-glass-highlight" :style="highlightStyle"></div>
     <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
 </template>
@@ -17,6 +17,23 @@ import {
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
+
+type InteractionConfig = {
+  baseScale: number;
+  activeScale: number;
+  translateFactor: number;
+  stretchFactor: number;
+  stretchLimit: number;
+  damping: number;
+  reboundDamping: number;
+  releaseDamping: number;
+  releaseReboundDamping: number;
+  reboundThreshold: number;
+  highlightSize: number;
+  highlightOpacity: number;
+  highlightHDRFactor: number;
+  followLag: number;
+};
 
 const props = defineProps<{
   thickness?: number;
@@ -36,36 +53,21 @@ const props = defineProps<{
   interaction?: Partial<InteractionConfig>;
 }>();
 
-type InteractionConfig = {
-  baseScale: number;
-  activeScale: number;
-  translateFactor: number;
-  stretchFactor: number;
-  stretchLimit: number;
-  damping: number;
-  releaseDamping: number;
-  reboundDamping: number;
-  reboundThreshold: number;
-  highlightSize: number;
-  highlightOpacity: number;
-  highlightHDRFactor: number;
-  followLag: number;
-};
-
 const defaultInteraction: InteractionConfig = {
   baseScale: 1,
   activeScale: 1.01,
   translateFactor: 0.08,
-  stretchFactor: 0.0015,
-  stretchLimit: 0.05,
-  damping: 0.16,
-  releaseDamping: 0.12,
-  reboundDamping: 0.1,
-  reboundThreshold: 1.5,
+  stretchFactor: 0.0003,
+  stretchLimit: 1,
+  damping: 0.3,
+  reboundDamping: 0.2,
+  releaseDamping: 0.4,
+  releaseReboundDamping: 0.4,
+  reboundThreshold: 0.2,
   highlightSize: 200,
-  highlightOpacity: 0.35,
+  highlightOpacity: 0.5,
   highlightHDRFactor: 1.2,
-  followLag: 0.15,
+  followLag: 1,
 };
 
 const interaction = computed<InteractionConfig>(() => ({
@@ -174,14 +176,22 @@ watch(isFallbackMode, () => {
 
 const updateTimer = ref<number | null>(null);
 
+const triggerRebound = ref<boolean | undefined>(undefined);
+
 const interactionState = ref({
   pointerId: undefined as number | undefined,
   isPointerDown: false,
   interacting: false,
+  originX: null as number | null,
+  originY: null as number | null,
   currentX: 0,
   currentY: 0,
+  prevX: 0,
+  prevY: 0,
   targetX: 0,
   targetY: 0,
+  reboundTargetX: 0,
+  reboundTargetY: 0,
   currentScaleX: 1,
   currentScaleY: 1,
   targetScaleX: 1,
@@ -205,16 +215,22 @@ const highlightVisible = computed(() => interactionState.value.highlightVisible 
 const highlightStyle = computed(() => {
   const cfg = interaction.value;
   const size = `${cfg.highlightSize}px`;
-  const opacity = cfg.highlightOpacity;
+  const opacity = highlightVisible.value ? cfg.highlightOpacity : 0;
   const hdr = cfg.highlightHDRFactor;
   const x = interactionState.value.highlightX * 100;
   const y = interactionState.value.highlightY * 100;
   return {
     width: size,
     height: size,
-    opacity: highlightVisible.value ? opacity : 0,
-    transform: `translate(-50%, -50%) translate(${x}%, ${y}%)`,
-    background: `radial-gradient(circle at 50% 50%, rgba(255,255,255, ${opacity * hdr}) 0%, rgba(255,255,255, 0) 65%)`,
+    opacity,
+    left: `${x}%`,
+    top: `${y}%`,
+    transform: 'translate(-50%, -50%)',
+    background: `radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, ${opacity * hdr}) 0%,
+      rgba(255, 255, 255, ${opacity * hdr * 0.95}) 15%,
+      rgba(255, 255, 255, ${opacity * hdr * 0.03}) 65%,
+      rgba(255, 255, 255, 0) 100%)`,
     filter: `brightness(${hdr}) saturate(1.1)`,
   } as Record<string, string | number>;
 });
@@ -232,8 +248,17 @@ const setInteractionTargets = (deltaX: number, deltaY: number, active: boolean) 
 
   interactionState.value.targetX = deltaX * cfg.translateFactor;
   interactionState.value.targetY = deltaY * cfg.translateFactor;
-  interactionState.value.targetScaleX = targetScaleBase + stretchX;
-  interactionState.value.targetScaleY = targetScaleBase + stretchY;
+  let targetScaleX = targetScaleBase + stretchX;
+  let targetScaleY = targetScaleBase + stretchY;
+
+  if (targetScaleX * targetScaleY > cfg.activeScale * cfg.activeScale) {
+    const scaleFactor = Math.sqrt((targetScaleX * targetScaleY));
+    targetScaleX /= scaleFactor;
+    targetScaleY /= scaleFactor;
+  }
+
+  interactionState.value.targetScaleX = targetScaleX;
+  interactionState.value.targetScaleY = targetScaleY;
 };
 
 const resetInteractionTargets = () => {
@@ -258,18 +283,74 @@ const stepAnimation = () => {
   const cfg = interaction.value;
   const damping = state.interacting ? cfg.damping : cfg.releaseDamping;
 
+  const prevX = state.currentX;
+  const prevY = state.currentY;
+  const prevScaleX = state.currentScaleX;
+  const prevScaleY = state.currentScaleY;
+
   state.currentX += (state.targetX - state.currentX) * damping;
   state.currentY += (state.targetY - state.currentY) * damping;
   state.currentScaleX += (state.targetScaleX - state.currentScaleX) * damping;
   state.currentScaleY += (state.targetScaleY - state.currentScaleY) * damping;
 
+  let velocityX = state.currentX - prevX;
+  let velocityY = state.currentY - prevY;
+  let velocityScaleX = state.currentScaleX - prevScaleX;
+  let velocityScaleY = state.currentScaleY - prevScaleY;
+
+  // Returning
   if (!state.interacting) {
-    const smallMove = Math.abs(state.targetX) < cfg.reboundThreshold && Math.abs(state.targetY) < cfg.reboundThreshold;
-    if (smallMove) {
-      state.targetX -= state.currentX * cfg.reboundDamping;
-      state.targetY -= state.currentY * cfg.reboundDamping;
+    if (triggerRebound.value === undefined) {
+      triggerRebound.value = Math.abs(state.targetX) < cfg.reboundThreshold && Math.abs(state.targetY) < cfg.reboundThreshold;
+    }
+
+    if (triggerRebound.value) {
+      state.targetX -= state.currentX * cfg.releaseReboundDamping;
+      state.targetY -= state.currentY * cfg.releaseReboundDamping;
+    }
+  } else {
+    if (triggerRebound.value === undefined
+      // && Math.abs(state.currentX - state.targetX) < 1
+      // && Math.abs(state.currentY - state.targetY) < 1
+      // && Math.abs(velocityX) < 0.001
+      // && Math.abs(velocityY) < 0.001
+      && Math.abs(state.currentX - state.reboundTargetX) > 0.5
+      && Math.abs(state.currentY - state.reboundTargetY) > 0.5
+    ) {
+      triggerRebound.value = true;
+
+      console.log('Rebound', {
+        currentX: state.currentX,
+        currentY: state.currentY,
+        originX: state.originX,
+        originY: state.originY,
+        targetX: state.targetX,
+        targetY: state.targetY,
+      });
+
+      console.log('Setting triggerRebound to true');
+    }
+
+    if (triggerRebound.value) {
+      state.targetX /= 2;
+      state.targetY /= 2;
+
+      state.reboundTargetX = state.targetX;
+      state.reboundTargetY = state.targetY;
+
+      triggerRebound.value = false;
+
+      console.log('New target after rebound:', {
+        targetX: state.targetX,
+        targetY: state.targetY,
+      });
     }
   }
+
+  velocityX = state.currentX - prevX;
+  velocityY = state.currentY - prevY;
+  velocityScaleX = state.currentScaleX - prevScaleX;
+  velocityScaleY = state.currentScaleY - prevScaleY;
 
   emitTransformToManager({
     scaleX: state.currentScaleX,
@@ -278,14 +359,44 @@ const stepAnimation = () => {
     translateY: state.currentY,
   });
 
-  const nearTarget = Math.abs(state.targetX - state.currentX) < 0.01
-    && Math.abs(state.targetY - state.currentY) < 0.01
-    && Math.abs(state.targetScaleX - state.currentScaleX) < 0.001
-    && Math.abs(state.targetScaleY - state.currentScaleY) < 0.001;
+  const atRest = !state.interacting
+    ? Math.abs(state.targetX) < 0.01
+    && Math.abs(state.targetY) < 0.01
+    && Math.abs(state.currentX) < 0.01
+    && Math.abs(state.currentY) < 0.01
+    && Math.abs(state.currentScaleX - cfg.baseScale) < 0.001
+    && Math.abs(state.currentScaleY - cfg.baseScale) < 0.001
+    && Math.abs(velocityX) < 0.001
+    && Math.abs(velocityY) < 0.001
+    && Math.abs(velocityScaleX) < 0.0005
+    && Math.abs(velocityScaleY) < 0.0005
+    : (
+      (Math.abs(state.targetX) < 0.01
+        && Math.abs(state.targetY) < 0.01
+        && Math.abs(state.currentX) < 0.01
+        && Math.abs(state.currentY) < 0.01)
+      || (
+        triggerRebound.value === false
+        && Math.abs(state.currentX - state.reboundTargetX) < 0.5
+        && Math.abs(state.currentY - state.reboundTargetY) < 0.5));
 
-  if (!state.interacting && nearTarget) {
-    animationFrameId.value = null;
-    return;
+  if (atRest) {
+    console.log('Animation at rest #rebound:', triggerRebound.value, 'interacting:', state.interacting);
+    if (!state.interacting) {
+      if (triggerRebound.value) {
+        triggerRebound.value = false;
+      } else {
+        animationFrameId.value = null;
+        // eslint-disable-next-line no-use-before-define
+        stopAnimation();
+
+        return;
+      }
+    } else if (triggerRebound.value) {
+      triggerRebound.value = false;
+    } else {
+      triggerRebound.value = undefined;
+    }
   }
 
   animationFrameId.value = window.requestAnimationFrame(stepAnimation);
@@ -301,6 +412,10 @@ const stopAnimation = () => {
   if (animationFrameId.value !== null) {
     window.cancelAnimationFrame(animationFrameId.value);
     animationFrameId.value = null;
+
+    // Reset interaction state
+    interactionState.value.reboundTargetX = 0;
+    interactionState.value.reboundTargetY = 0;
   }
 };
 
@@ -313,10 +428,10 @@ const readPointer = (event: PointerEvent) => {
   const rect = materialElement.value.getBoundingClientRect();
   const nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
   const ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  const dx = event.clientX - centerX;
-  const dy = event.clientY - centerY;
+  const originX = interactionState.value.originX ?? event.clientX;
+  const originY = interactionState.value.originY ?? event.clientY;
+  const dx = event.clientX - originX;
+  const dy = event.clientY - originY;
   return {
     nx, ny, dx, dy,
   };
@@ -328,6 +443,8 @@ const onPointerDown = (event: PointerEvent) => {
   interactionState.value.isPointerDown = true;
   interactionState.value.interacting = true;
   interactionState.value.highlightVisible = true;
+  interactionState.value.originX = event.clientX;
+  interactionState.value.originY = event.clientY;
 
   materialElement.value?.setPointerCapture(event.pointerId);
 
@@ -342,6 +459,11 @@ const onPointerDown = (event: PointerEvent) => {
 const onPointerMove = (event: PointerEvent) => {
   if (props.disableInteractions) return;
   if (event.pointerType === 'mouse' && props.onlyClickInteractions && !interactionState.value.isPointerDown) return;
+
+  if (interactionState.value.originX === null || interactionState.value.originY === null) {
+    interactionState.value.originX = event.clientX;
+    interactionState.value.originY = event.clientY;
+  }
 
   const shouldActivate = interactionState.value.isPointerDown || (event.pointerType === 'mouse' && !props.onlyClickInteractions);
   interactionState.value.interacting = shouldActivate;
@@ -367,9 +489,15 @@ const onPointerLeave = () => {
   if (props.disableInteractions) return;
   interactionState.value.isPointerDown = false;
   interactionState.value.highlightVisible = false;
+  interactionState.value.originX = null;
+  interactionState.value.originY = null;
   resetInteractionTargets();
   ensureAnimation();
 };
+
+watch(() => interactionState.value.interacting, () => {
+  triggerRebound.value = undefined;
+});
 
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
@@ -459,6 +587,7 @@ defineExpose({ updating, startUpdating, stopUpdating });
   color: v-bind(calculatedForegroundColor);
   box-shadow: inset 0 0 v-bind(boxShadowInsetSize) v-bind(calculatedBoxShadowInsetBackgroundColor),
     0 0 v-bind(boxShadowSize) v-bind(calculatedBoxShadowBackgroundColor);
+  will-change: transform;
 
   transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
 
@@ -484,6 +613,6 @@ defineExpose({ updating, startUpdating, stopUpdating });
   border-radius: 50%;
   mix-blend-mode: screen;
   will-change: transform, opacity;
-  transition: opacity 60ms ease;
+  transition: opacity 0.1s;
 }
 </style>

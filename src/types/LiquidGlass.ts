@@ -57,6 +57,13 @@ export interface LiquidRendererMaterialGlassAttributions {
   radiusTL: number;
 }
 
+export interface LiquidRendererMaterialElementTransform {
+  scaleX: number;
+  scaleY: number;
+  translateX: number;
+  translateY: number;
+}
+
 export interface LiquidRendererBackdropCapturedEvent {
   canvas: OffscreenCanvas;
   width: number;

@@ -425,6 +425,7 @@ export class LiquidRendererManager extends EventEmitter {
     // Add materials
     this.registeredMaterialElements.forEach((element) => {
       const { glassAttributes, position, size } = element;
+      const { transform } = element;
 
       // Remove current material if exists
       this.renderer!.removeMaterial(element.materialId);
@@ -448,6 +449,7 @@ export class LiquidRendererManager extends EventEmitter {
           x: position.x + size.width / 2 / (window.devicePixelRatio || 1),
           y: position.y + size.height / 2 / (window.devicePixelRatio || 1),
         },
+        transform,
       );
     });
 

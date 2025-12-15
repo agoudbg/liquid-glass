@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug=true :render-precision="0.3">
+    <LiquidGlass class="liquid-glass-container" :debug="true" :render-precision="0.3">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -40,8 +40,15 @@
           <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
         </div>
       </div>
-      <LiquidGlassDebugger />
+      <LiquidGlassDebugger v-if="showDebug" />
     </LiquidGlass>
+  </div>
+
+  <div class="settings">
+    <label>
+      <input type="checkbox" v-model="showDebug" />
+      Show Debugger
+    </label>
   </div>
 
   <!-- <div class="page-test">
@@ -106,6 +113,7 @@
 <script setup lang="ts">
 import {
   computed, onBeforeUnmount, onMounted, reactive, ref,
+  watch,
 } from 'vue';
 
 import LiquidGlassPlayground from './components/LiquidGlassPlayground.vue';
@@ -119,6 +127,12 @@ import {
   LiquidGlassDebugger,
   LiquidGlassMaterial,
 } from './index';
+
+const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
+
+watch(showDebug, (newVal) => {
+  localStorage.setItem('liquid-glass-debugger-open', newVal ? 'true' : 'false');
+});
 
 const demoMaterial0Position = ref<number>(0);
 const demoMaterial0 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
@@ -321,7 +335,7 @@ html {
   position: absolute;
   top: 20px;
   right: 20px;
-  width: 200px;
+  width: min(20vw, 200px);
   height: 150px;
   border-radius: 12px;
   overflow: hidden;

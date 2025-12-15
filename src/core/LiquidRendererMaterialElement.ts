@@ -1,4 +1,6 @@
-import { AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialGlassAttributions } from '../types/LiquidGlass';
+import {
+  AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialElementTransform, LiquidRendererMaterialGlassAttributions,
+} from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -18,6 +20,13 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
+
+  public transform: LiquidRendererMaterialElementTransform = {
+    scaleX: 1,
+    scaleY: 1,
+    translateX: 0,
+    translateY: 0,
+  };
 
   constructor(manager: LiquidRendererManager, element: HTMLElement, options: LiquidRendererMaterialElementOptions) {
     super();
@@ -117,6 +126,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     this.automaticBackgroundColorMode = mode;
     this.manager.log('debug', 'Material element automatic background color mode set to:', mode, 'for element:', this.element);
     this.emit('backgroundColorModeChanged', mode);
+  }
+
+  public setTransform(transform: LiquidRendererMaterialElementTransform) {
+    this.transform = transform;
+    this.manager.log('debug', 'Material element transform set to:', transform, 'for element:', this.element);
+    this.sendReRenderRequest();
   }
 
   /**

@@ -36,9 +36,14 @@ const register = async (callback: CustomDrawCallback) => {
     type: 'canvas',
     userCanvasCallback: callback,
     zIndex: props.zIndex,
+    watchPositionChanges: true,
+    watchResize: true,
   });
 
   drawCanvas(callback);
+  backdropManager.value.on('requestBackdropCapture', () => {
+    drawCanvas(callback);
+  });
 };
 
 const unregister = () => {
@@ -71,6 +76,8 @@ img {
   width: 100%;
   height: 100%;
   display: block;
+  user-select: none;
+  pointer-events: none;
 }
 
 img[rendered="false"] {

@@ -1,5 +1,6 @@
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
 import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
+import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
@@ -24,13 +25,20 @@ export type GlassMaterialInstance = {
   id: string
   config: LiquidGlassConfig
   position: { x: number; y: number } // Absolute pixel position (CSS pixels, Top-Left origin)
+  transform: LiquidRendererMaterialElementTransform
 }
 
 export type LiquidGlassRenderer = {
-  addMaterial: (id: string, config: LiquidGlassConfig, position: { x: number; y: number }) => void
+  addMaterial: (
+    id: string,
+    config: LiquidGlassConfig,
+    position: { x: number; y: number },
+    transform?: LiquidRendererMaterialElementTransform,
+  ) => void
   updateMaterial: (id: string, config: Partial<LiquidGlassConfig>) => void
   removeMaterial: (id: string) => void
   setMaterialPosition: (id: string, x: number, y: number) => void
+  setMaterialTransform: (id: string, transform: LiquidRendererMaterialElementTransform) => void
   setBackground: (source: TexImageSource) => void
   /**
    * Trigger a render pass. If collectThemes is true, returns the inferred theme color per material.
@@ -68,6 +76,13 @@ export function createLiquidGlassRenderer(
     renderScale: Math.max(0.05, options?.renderScale ?? 1),
     logicalResolution: { width: 1, height: 1 },
     backgroundPixelData: null as { data: Uint8ClampedArray; width: number; height: number } | null,
+  };
+
+  const identityTransform: LiquidRendererMaterialElementTransform = {
+    scaleX: 1,
+    scaleY: 1,
+    translateX: 0,
+    translateY: 0,
   };
 
   function compileShader(source: string, type: number) {
@@ -225,27 +240,30 @@ export function createLiquidGlassRenderer(
     const { height } = state.logicalResolution;
     const dpr = window.devicePixelRatio || 1;
 
+    const transform = material.transform ?? identityTransform;
+
     gl.uniform2f(state.uniforms.uResolution, width, height);
 
-    const centerX = material.position.x * dpr;
-    const centerY = height - (material.position.y * dpr);
+    const centerX = (material.position.x + transform.translateX) * dpr;
+    const centerY = height - ((material.position.y + transform.translateY) * dpr);
     gl.uniform2f(state.uniforms.uCenter, centerX, centerY);
 
-    const sizeX = (material.config.width * dpr) / 2;
-    const sizeY = (material.config.height * dpr) / 2;
+    const sizeX = (material.config.width * dpr * transform.scaleX) / 2;
+    const sizeY = (material.config.height * dpr * transform.scaleY) / 2;
     gl.uniform2f(state.uniforms.uSize, sizeX, sizeY);
 
     const baseRadius = material.config.radius;
+    const radiusScale = Math.min(transform.scaleX, transform.scaleY);
 
     gl.uniform4f(
       state.uniforms.uRadius,
-      (material.config.radiusTR ?? baseRadius) * dpr,
-      (material.config.radiusBR ?? baseRadius) * dpr,
-      (material.config.radiusBL ?? baseRadius) * dpr,
-      (material.config.radiusTL ?? baseRadius) * dpr,
+      (material.config.radiusTR ?? baseRadius) * dpr * radiusScale,
+      (material.config.radiusBR ?? baseRadius) * dpr * radiusScale,
+      (material.config.radiusBL ?? baseRadius) * dpr * radiusScale,
+      (material.config.radiusTL ?? baseRadius) * dpr * radiusScale,
     );
 
-    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr);
+    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr * radiusScale);
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
     gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
@@ -261,10 +279,11 @@ export function createLiquidGlassRenderer(
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
     state.materials.forEach((material, id) => {
-      const halfW = (material.config.width * dpr) / 2;
-      const halfH = (material.config.height * dpr) / 2;
-      const centerX = material.position.x * dpr;
-      const centerY = material.position.y * dpr;
+      const transform = material.transform ?? identityTransform;
+      const halfW = (material.config.width * dpr * transform.scaleX) / 2;
+      const halfH = (material.config.height * dpr * transform.scaleY) / 2;
+      const centerX = (material.position.x + transform.translateX) * dpr;
+      const centerY = (material.position.y + transform.translateY) * dpr;
 
       const startX = clamp(Math.floor(centerX - halfW), 0, width - 1);
       const endX = clamp(Math.ceil(centerX + halfW), 0, width - 1);
@@ -354,11 +373,17 @@ export function createLiquidGlassRenderer(
   render(false, true);
 
   return {
-    addMaterial(id: string, config: LiquidGlassConfig, position: { x: number; y: number }) {
+    addMaterial(
+      id: string,
+      config: LiquidGlassConfig,
+      position: { x: number; y: number },
+      transform: LiquidRendererMaterialElementTransform = identityTransform,
+    ) {
       state.materials.set(id, {
         id,
         config: { ...config },
         position: { ...position },
+        transform: { ...transform },
       });
     },
     updateMaterial(id: string, configPartial: Partial<LiquidGlassConfig>) {
@@ -375,6 +400,15 @@ export function createLiquidGlassRenderer(
       if (material) {
         material.position.x = x;
         material.position.y = y;
+        if (!material.transform) {
+          material.transform = { ...identityTransform };
+        }
+      }
+    },
+    setMaterialTransform(id: string, transform: LiquidRendererMaterialElementTransform) {
+      const material = state.materials.get(id);
+      if (material) {
+        material.transform = { ...transform };
       }
     },
     setBackground(source: TexImageSource) {

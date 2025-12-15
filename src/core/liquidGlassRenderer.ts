@@ -210,8 +210,8 @@ export function createLiquidGlassRenderer(
     state.logicalResolution.width = logicalWidth;
     state.logicalResolution.height = logicalHeight;
 
-    const scaledWidth = Math.max(1, Math.round(state.logicalResolution.width * state.renderScale));
-    const scaledHeight = Math.max(1, Math.round(state.logicalResolution.height * state.renderScale));
+    const scaledWidth = Math.max(1, Math.round(state.logicalResolution.width));
+    const scaledHeight = Math.max(1, Math.round(state.logicalResolution.height));
 
     canvas.width = scaledWidth;
     canvas.height = scaledHeight;

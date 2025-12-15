@@ -357,9 +357,11 @@ export class LiquidRendererManager extends EventEmitter {
     });
 
     // Ensure the materials canvas reflects the latest container size before we apply renderScale.
-    const dpr = window.devicePixelRatio || 1;
-    this.materialsCanvas.width = this.size.width * dpr;
-    this.materialsCanvas.height = this.size.height * dpr;
+
+    // seems no use
+    // const dpr = window.devicePixelRatio || 1;
+    // this.materialsCanvas.width = this.size.width * 0.26;
+    // this.materialsCanvas.height = this.size.height * 0.26;
 
     // Dispose existing renderer to recreate with new materials
     // if (this.renderer) {

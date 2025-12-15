@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug=true :render-precision="1.5">
+    <LiquidGlass class="liquid-glass-container" :debug=true :render-precision="0.7">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
@@ -85,7 +85,7 @@
     </LiquidGlass>
   </div> -->
 
-  <div class="playground-container">
+  <!-- <div class="playground-container">
     <h2>Playground</h2>
     <LiquidGlassPlayground />
   </div>
@@ -95,7 +95,7 @@
   <div class="multi-glass-container">
     <h2>Multi-Glass Demo</h2>
     <MultiGlassDemo />
-  </div>
+  </div> -->
 
 </template>
 

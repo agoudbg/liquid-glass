@@ -82,6 +82,25 @@ export class LiquidRendererManager extends EventEmitter {
     if (options.container && options.container !== this.container) {
       this.container = options.container;
       this.log('debug', 'Container updated, adding resize listeners.');
+
+      // Update container position first, BEFORE triggering any re-renders.
+      // This ensures that when materials re-calculate their positions,
+      // manager.position is already set correctly.
+      this.updateContainerPositionAndSize();
+
+      // After container position is updated, re-calculate all element positions.
+      // This is necessary because elements may have been registered before the container
+      // was set, and their positions were calculated relative to (0, 0).
+      // We suppress re-render because addResizeListeners() will trigger onContainerChange()
+      // which will capture backdrop and render materials properly.
+      this.registeredBackdropElements.forEach((el) => {
+        el.updatePositionAndSize({ suppressReRender: true });
+      });
+      this.registeredMaterialElements.forEach((el) => {
+        el.updatePositionAndSize({ suppressReRender: true });
+      });
+
+      // Now add resize listeners, which will trigger onContainerChange() and render.
       this.addResizeListeners();
     }
 
@@ -214,6 +233,12 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
+    // Skip capturing if container size is not yet set (container not ready)
+    if (this.size.width <= 0 || this.size.height <= 0) {
+      this.log('debug', 'Skipping backdrop capture - container size not ready:', this.size);
+      return;
+    }
+
     this.isRenderingBackdrop = true;
     this.updateFallbackMode();
 
@@ -304,6 +329,20 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
+    // Skip rendering if container size is not yet set (container not ready)
+    if (this.size.width <= 0 || this.size.height <= 0) {
+      this.log('debug', 'Skipping materials render - container size not ready:', this.size);
+      return;
+    }
+
+    // Skip rendering if not all backdrop elements have their canvas ready
+    // This prevents rendering with an incomplete backdrop before html-to-image finishes
+    const allBackdropsReady = this.registeredBackdropElements.every((el) => el.hasContent);
+    if (this.registeredBackdropElements.length > 0 && !allBackdropsReady) {
+      this.log('debug', 'Skipping materials render - not all backdrop elements have captured their content');
+      return;
+    }
+
     this.isRenderingMaterials = true;
 
     const renderPrecision = this.getRenderPrecision();
@@ -333,7 +372,10 @@ export class LiquidRendererManager extends EventEmitter {
       this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
         renderScale: renderPrecision,
       });
-      this.renderer!.resize();
+      // Note: resize() is called internally by createLiquidGlassRenderer.
+      // We do NOT call resize() again here because canvas.width has already
+      // been modified by the internal resize(), and calling it again would
+      // use the modified value as logicalResolution, causing a shrinking loop.
       this.log('debug', 'Created new LiquidGlassRenderer instance');
     }
 

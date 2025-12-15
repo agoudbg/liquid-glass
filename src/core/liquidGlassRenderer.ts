@@ -1,6 +1,5 @@
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
 import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
-import { LogHelper } from '../utils/log';
 
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
@@ -191,20 +190,22 @@ export function createLiquidGlassRenderer(
     if (!gl) return;
     const dpr = window.devicePixelRatio || 1;
     // Prefer the true logical (unscaled) resolution from the captured backdrop.
-    // When the canvas is off‑DOM, clientWidth/clientHeight is 0, which previously
-    // caused us to repeatedly shrink/expand on every resize() call when renderScale
-    // was not 1. Use the texture resolution (backdrop size) as the source of truth,
-    // and fall back to current canvas dimensions divided by renderScale.
+    // textureResolution is set when setBackground() is called and represents
+    // the backdrop's physical pixel dimensions.
+    // If textureResolution is not yet set, use canvas.width directly as the
+    // logical resolution. The caller (renderMaterials) sets canvas dimensions
+    // to physical pixel size (size * dpr) before creating the renderer, so
+    // canvas.width represents the intended logical resolution, not a scaled value.
     const logicalWidth = (state.textureResolution.width > 1
       ? state.textureResolution.width
       : 0)
       || canvas.clientWidth * dpr
-      || (canvas.width / Math.max(state.renderScale, 0.0001));
+      || canvas.width;
     const logicalHeight = (state.textureResolution.height > 1
       ? state.textureResolution.height
       : 0)
       || canvas.clientHeight * dpr
-      || (canvas.height / Math.max(state.renderScale, 0.0001));
+      || canvas.height;
 
     state.logicalResolution.width = logicalWidth;
     state.logicalResolution.height = logicalHeight;

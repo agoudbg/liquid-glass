@@ -33,7 +33,7 @@
     <canvas ref="materialsCanvasRef" :width="backdropInfo?.width || 0" :height="backdropInfo?.height || 0"
       style="width: 100%; background: #eee;"></canvas>
 
-    <h3>Current Backdrop Canvas</h3>
+    <!-- <h3>Current Backdrop Canvas</h3>
     <img :src="currentBackdrop" alt="Backdrop Canvas" width="100%" />
     <p>Width: {{ backdropInfo?.width }}</p>
     <p>Height: {{ backdropInfo?.height }}</p>
@@ -57,7 +57,7 @@
         <p>Size: {{ element.size.width }} x {{ element.size.height }}</p>
         <hr />
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 
@@ -187,6 +187,11 @@ onMounted(() => {
   materialElements.value = manager.value.registeredMaterialElements;
   manager.value.on('materialElementChanged', (elements: LiquidRendererMaterialElement[]) => {
     materialElements.value = elements;
+  });
+
+  manager.value.on('materialsRendered', () => {
+    console.log('LiquidGlassDebugger: materialsRendered event received');
+    getMaterialsCanvas();
   });
 });
 

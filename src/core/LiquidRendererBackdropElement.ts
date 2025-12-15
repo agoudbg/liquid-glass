@@ -15,6 +15,9 @@ export class LiquidRendererBackdropElement extends EventEmitter {
 
   public hasPendingCaptureRequest = false;
 
+  /** Whether the backdrop element has captured its content at least once */
+  public hasContent = false;
+
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
@@ -71,7 +74,7 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     }
   }
 
-  public updatePositionAndSize() {
+  public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
     const rect = this.element.getBoundingClientRect();
     const x = rect.left + window.scrollX;
     const y = rect.top + window.scrollY;
@@ -84,7 +87,9 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.size.height = rect.height * (window.devicePixelRatio || 1);
 
     // Since position or size may have changed, request a re-capture
-    this.sendReCaptureRequest();
+    if (!options?.suppressReRender) {
+      this.sendReCaptureRequest();
+    }
   }
 
   /**
@@ -111,8 +116,9 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   public requestManagerBackdropCapture(canvas: OffscreenCanvas) {
     this.manager.log('debug', 'Requesting backdrop capture for element:', this.element);
 
-    // Save canvas
+    // Save canvas and mark that content has been captured
     this.canvas = canvas;
+    this.hasContent = true;
 
     this.isReCapturing = false;
 

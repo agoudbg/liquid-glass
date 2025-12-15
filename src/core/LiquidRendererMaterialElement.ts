@@ -70,7 +70,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     resizeObserver.observe(this.element);
   }
 
-  public updatePositionAndSize() {
+  public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
     const rect = this.element.getBoundingClientRect();
     const x = rect.left + window.scrollX;
     const y = rect.top + window.scrollY;
@@ -87,7 +87,9 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
     console.log('LiquidRendererMaterialElement: updatePositionAndSize called, position:', this.position, 'size:', this.size, 'attributes:', this.glassAttributes);
 
-    this.sendReRenderRequest();
+    if (!options?.suppressReRender) {
+      this.sendReRenderRequest();
+    }
   }
 
   public sendReRenderRequest() {

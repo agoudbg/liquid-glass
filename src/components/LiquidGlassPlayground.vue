@@ -76,6 +76,11 @@
         <label>Background Image</label>
         <input type="file" accept="image/*" @change="handleFileUpload" />
       </div>
+
+      <div class="control-group">
+        <label>Re-create Renderer</label>
+        <button @click="recreateRenderer">Re-create</button>
+      </div>
     </div>
   </div>
 </template>
@@ -169,6 +174,16 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   window.removeEventListener('mousemove', handleMouseMove);
 });
+
+function recreateRenderer() {
+  if (!canvasRef.value) return;
+  renderer?.dispose();
+  renderer = createLiquidGlassRenderer(canvasRef.value, { renderScale: renderPrecision.value });
+  if (!renderer) return;
+  renderer.addMaterial(MATERIAL_ID, { ...params }, position);
+  loadBackground(bgImageSrc);
+  console.log('Re-created renderer');
+}
 </script>
 
 <style scoped>

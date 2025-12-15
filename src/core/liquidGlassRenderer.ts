@@ -1,5 +1,6 @@
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
 import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
+import { LogHelper } from '../utils/log';
 
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 

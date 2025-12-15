@@ -15,8 +15,6 @@ import { LiquidRendererManager } from '../core/LiquidRendererManager';
 
 const props = defineProps<{
   debug?: boolean;
-  backgroundColor?: string;
-  backgroundImage?: string;
   renderPrecision?: number;
   renderMode?: 'uniform' | 'dedicated';
   powerEfficientMode?: boolean;
@@ -25,7 +23,12 @@ const props = defineProps<{
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
 
 // Initialize the LiquidRendererManager
-const manager: LiquidRendererManager = new LiquidRendererManager({ debug: props.debug ?? false });
+const manager: LiquidRendererManager = new LiquidRendererManager({
+  debug: props.debug ?? false,
+  renderPrecision: props.renderPrecision ?? 0,
+  renderMode: props.renderMode ?? 'uniform',
+  powerEfficientMode: props.powerEfficientMode ?? false,
+});
 
 provideLiquidContext(manager);
 

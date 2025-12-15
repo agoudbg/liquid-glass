@@ -306,7 +306,16 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.isRenderingMaterials = true;
 
-    this.log('debug', 'Rendering materials for registered material elements');
+    const renderPrecision = this.getRenderPrecision();
+
+    this.log('debug', 'Rendering materials for registered material elements', {
+      size: this.size,
+      position: this.position,
+      registeredMaterials: this.registeredMaterialElements.map((el) => ({
+        id: el.materialId, element: el.element, size: el.size, position: el.position,
+      })),
+      renderPrecision,
+    });
 
     // Ensure the materials canvas reflects the latest container size before we apply renderScale.
     const dpr = window.devicePixelRatio || 1;
@@ -314,15 +323,20 @@ export class LiquidRendererManager extends EventEmitter {
     this.materialsCanvas.height = this.size.height * dpr;
 
     // Dispose existing renderer to recreate with new materials
-    if (this.renderer) {
-      this.renderer.dispose();
-      this.renderer = null;
-    }
+    // if (this.renderer) {
+    //   this.renderer.dispose();
+    //   this.renderer = null;
+    // }
 
     // Create renderer on the persistent materialsCanvas
-    this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
-      renderScale: this.getRenderPrecision(),
-    });
+    if (!this.renderer) {
+      this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
+        renderScale: renderPrecision,
+      });
+      this.renderer!.resize();
+      this.log('debug', 'Created new LiquidGlassRenderer instance');
+    }
+
     if (!this.renderer) {
       this.log('error', 'Failed to create LiquidGlassRenderer');
       this.glassNotSupported = true;
@@ -331,9 +345,29 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
+    // Convert OffscreenCanvas to HTMLCanvasElement for WebGL processing
+    const backdropCanvasForGL = document.createElement('canvas');
+    backdropCanvasForGL.width = this.backdropCanvas.width;
+    backdropCanvasForGL.height = this.backdropCanvas.height;
+    const backdropCtxForGL = backdropCanvasForGL.getContext('2d');
+    if (backdropCtxForGL) {
+      backdropCtxForGL.drawImage(this.backdropCanvas, 0, 0);
+    } else {
+      this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
+      this.isRenderingMaterials = false;
+      return;
+    }
+
+    // Set backdrop
+    this.renderer.setBackground(backdropCanvasForGL);
+    this.renderer!.resize();
+
     // Add materials
     this.registeredMaterialElements.forEach((element) => {
       const { glassAttributes, position, size } = element;
+
+      // Remove current material if exists
+      this.renderer!.removeMaterial(element.materialId);
 
       this.renderer!.addMaterial(
         element.materialId,
@@ -357,24 +391,7 @@ export class LiquidRendererManager extends EventEmitter {
       );
     });
 
-    // Convert OffscreenCanvas to HTMLCanvasElement for WebGL processing
-    const backdropCanvasForGL = document.createElement('canvas');
-    backdropCanvasForGL.width = this.backdropCanvas.width;
-    backdropCanvasForGL.height = this.backdropCanvas.height;
-    const backdropCtxForGL = backdropCanvasForGL.getContext('2d');
-    if (backdropCtxForGL) {
-      backdropCtxForGL.drawImage(this.backdropCanvas, 0, 0);
-    } else {
-      this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
-      this.isRenderingMaterials = false;
-      return;
-    }
-
-    // Set backdrop
-    this.renderer.setBackground(backdropCanvasForGL);
-
     // Render and optionally collect theme colors beneath each material
-    this.renderer.resize();
     const themeColors = this.renderer.render({ collectThemes: true });
     if (themeColors) {
       this.log('debug', 'Collected theme colors for materials:', themeColors);

@@ -76,6 +76,8 @@ export function createLiquidGlassRenderer(
     renderScale: Math.max(0.05, options?.renderScale ?? 1),
     logicalResolution: { width: 1, height: 1 },
     backgroundPixelData: null as { data: Uint8ClampedArray; width: number; height: number } | null,
+    // Cache the last background source for re-upload after context reset
+    lastBackgroundSource: null as TexImageSource | null,
   };
 
   const identityTransform: LiquidRendererMaterialElementTransform = {
@@ -201,6 +203,23 @@ export function createLiquidGlassRenderer(
     gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 5 * 4, 3 * 4);
   }
 
+  /**
+   * Force reinitialize WebGL resources. Call this after canvas size changes or context loss.
+   */
+  function reinitializeWebGL(): void {
+    const programOk = setupProgram();
+    if (!programOk) {
+      console.error('Failed to reinitialize WebGL program');
+      return;
+    }
+    setupGeometry();
+
+    // Re-upload texture if we had one
+    if (state.lastBackgroundSource) {
+      createTexture(0, state.lastBackgroundSource);
+    }
+  }
+
   function resize(): void {
     if (!gl) return;
     const dpr = window.devicePixelRatio || 1;
@@ -229,9 +248,19 @@ export function createLiquidGlassRenderer(
     const physicalWidth = Math.max(1, Math.round(cssWidth * scale));
     const physicalHeight = Math.max(1, Math.round(cssHeight * scale));
 
-    canvas.width = physicalWidth;
-    canvas.height = physicalHeight;
-    gl.viewport(0, 0, physicalWidth, physicalHeight);
+    // Check if canvas size actually changed
+    // Modifying canvas.width/height resets WebGL context, so we need to reinitialize
+    const sizeChanged = canvas.width !== physicalWidth || canvas.height !== physicalHeight;
+
+    if (sizeChanged) {
+      canvas.width = physicalWidth;
+      canvas.height = physicalHeight;
+
+      // WebGL context was reset, reinitialize everything
+      reinitializeWebGL();
+    }
+
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   }
 
   /**
@@ -463,6 +492,9 @@ export function createLiquidGlassRenderer(
       }
     },
     setBackground(source: TexImageSource) {
+      // Cache the source for re-upload after context reset
+      state.lastBackgroundSource = source;
+
       createTexture(0, source);
       state.textureResolution.width = (source as any).width || state.textureResolution.width;
       state.textureResolution.height = (source as any).height || state.textureResolution.height;

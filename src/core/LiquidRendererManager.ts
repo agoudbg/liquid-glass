@@ -224,11 +224,52 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', 'Container resized');
 
     const rect = this.updateContainerPositionAndSize();
-    this.backdropCanvas.width = rect.width * (window.devicePixelRatio || 1);
-    this.backdropCanvas.height = rect.height * (window.devicePixelRatio || 1);
+    const dpr = window.devicePixelRatio || 1;
+    const newWidth = Math.round(rect.width * dpr);
+    const newHeight = Math.round(rect.height * dpr);
 
-    this.materialsCanvas.width = rect.width * (window.devicePixelRatio || 1);
-    this.materialsCanvas.height = rect.height * (window.devicePixelRatio || 1);
+    // Skip if container has no size yet
+    if (newWidth <= 0 || newHeight <= 0) {
+      this.log('debug', 'Skipping resize - container has no size');
+      return;
+    }
+
+    // Check if size actually changed
+    const sizeChanged = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
+    if (!sizeChanged) {
+      this.log('debug', 'Container size unchanged, skipping resize');
+      return;
+    }
+
+    this.backdropCanvas.width = newWidth;
+    this.backdropCanvas.height = newHeight;
+
+    // If a backdrop capture is in progress, we need to restart it with the new size
+    // Mark that we need to redo the capture
+    if (this.isRenderingBackdrop) {
+      this.hasPendingBackdropRenderRequest = true;
+      this.log('debug', 'Backdrop capture in progress, will restart after current capture');
+    }
+
+    // Check if materialsCanvas size needs to change
+    // Modifying canvas.width/height resets WebGL context, so we must dispose the renderer
+    if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
+      this.log('debug', 'Materials canvas size changed, disposing old renderer');
+      if (this.renderer) {
+        this.renderer.dispose();
+        this.renderer = null;
+      }
+      // Clear tracked materials so they get re-added to the new renderer
+      this.addedMaterialIds.clear();
+      // Clear cached backdrop canvas so it gets recreated with new size
+      this.backdropCanvasForGL = null;
+      this.backdropCanvasForGLCtx = null;
+      // Force backdrop to be dirty so it gets uploaded to the new renderer
+      this.isBackdropDirty = true;
+
+      this.materialsCanvas.width = newWidth;
+      this.materialsCanvas.height = newHeight;
+    }
 
     this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
 

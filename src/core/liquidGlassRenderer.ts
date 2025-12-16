@@ -12,6 +12,7 @@ export type LiquidGlassConfig = {
   refractIndex: number
   refractIntensity: number
   blur: number
+  dispersion: number // Chromatic aberration strength (0.0 to 0.05)
   radius: number
   radiusTR?: number
   radiusBR?: number
@@ -154,6 +155,7 @@ export function createLiquidGlassRenderer(
       'uRefractIndex',
       'uRefractIntensity',
       'uBlur',
+      'uDispersion',
     ];
     uniformNames.forEach((name) => {
       state.uniforms[name] = gl.getUniformLocation(program, name);
@@ -316,6 +318,7 @@ export function createLiquidGlassRenderer(
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
     gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
+    gl.uniform1f(state.uniforms.uDispersion, material.config.dispersion ?? 0.01);
   }
 
   function computeThemeColors(): ThemeColorMap {

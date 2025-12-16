@@ -15,6 +15,7 @@ uniform float uThickness;        // Physical thickness in pixels
 uniform float uRefractIndex;     // Index of refraction
 uniform float uRefractIntensity; // Scales refraction offset
 uniform float uBlur;             // LOD bias for mipmap-based blur
+uniform float uDispersion;       // Chromatic aberration strength (0.0 to 0.05)
 
 float sdfRect(vec2 p, vec4 r) {
   // p is relative to center; y is up.
@@ -55,7 +56,22 @@ void main() {
   float refract_length = (h + 8.0 * uThickness) / -refract_vec.z;
 
   vec2 pixelOffset = refract_vec.xy * refract_length * uRefractIntensity;
-  uv += pixelOffset / uResolution;
+  vec2 refraction = pixelOffset / uResolution;
 
-  fragColor = textureLod(uTexture, uv, uBlur);
+  // Chromatic aberration: sample R, G, B with different offsets
+  // Red channel: slightly more refraction (outer edge)
+  // Green channel: base refraction
+  // Blue channel: slightly less refraction (inner edge)
+  float lod = uBlur;
+  
+  // Clamp UV coordinates to prevent sampling outside texture bounds
+  vec2 uvR = clamp(vTextureCoord + refraction * (1.0 + uDispersion), 0.0, 1.0);
+  vec2 uvG = clamp(vTextureCoord + refraction, 0.0, 1.0);
+  vec2 uvB = clamp(vTextureCoord + refraction * (1.0 - uDispersion), 0.0, 1.0);
+  
+  float r = textureLod(uTexture, uvR, lod).r;
+  float g = textureLod(uTexture, uvG, lod).g;
+  float b = textureLod(uTexture, uvB, lod).b;
+  
+  fragColor = vec4(r, g, b, 1.0);
 }

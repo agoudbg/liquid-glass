@@ -45,6 +45,7 @@ const props = defineProps<{
   radiusBL?: number;
   radiusTL?: number;
   blur?: number;
+  dispersion?: number; // Chromatic aberration strength (0.0 to 0.05)
   saturation?: number;
   useCustomColor?: boolean;
   backgroundColor?: string;
@@ -201,6 +202,7 @@ onMounted(() => {
       refractIndex: props.refractIndex,
       refractIntensity: props.refractIntensity,
       blur: props.blur,
+      dispersion: props.dispersion,
       radius: props.radius,
       radiusTR: props.radiusTR,
       radiusBR: props.radiusBR,

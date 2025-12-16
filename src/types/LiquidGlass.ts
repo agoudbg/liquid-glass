@@ -37,6 +37,7 @@ export interface LiquidRendererMaterialElementOptions {
   refractIndex?: number;
   refractIntensity?: number;
   blur?: number;
+  dispersion?: number; // Chromatic aberration strength (0.0 to 0.05)
   radius: number;
   radiusTR?: number;
   radiusBR?: number;
@@ -50,6 +51,7 @@ export interface LiquidRendererMaterialGlassAttributions {
   refractIndex: number;
   refractIntensity: number;
   blur: number;
+  dispersion: number; // Chromatic aberration strength (0.0 to 0.05)
   radius: number;
   radiusTR: number;
   radiusBR: number;

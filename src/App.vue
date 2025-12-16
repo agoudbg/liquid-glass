@@ -31,7 +31,8 @@
         </div>
 
         <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-          <LiquidGlassMaterial :radius="20" :radiusBR="50" :blur="3" :thickness="20" ref="demoMaterial1">
+          <LiquidGlassMaterial :radius="20" :radiusBR="50" :blur="3" :thickness="20" ref="demoMaterial1"
+            :only-click-interactions="true">
             <div class="demo-card">
               <h3>Drag or Resize</h3>
             </div>

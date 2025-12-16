@@ -81,20 +81,33 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
   public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
     const rect = this.element.getBoundingClientRect();
-    const x = rect.left + window.scrollX;
-    const y = rect.top + window.scrollY;
+    const dpr = window.devicePixelRatio || 1;
+    const {
+      translateX, translateY, scaleX, scaleY,
+    } = this.transform;
+
+    const safeScaleX = scaleX === 0 ? 1 : scaleX;
+    const safeScaleY = scaleY === 0 ? 1 : scaleY;
+
+    // Remove current transform offsets so the renderer does not double-apply them.
+    // Because scaling occurs around the element's origin (default center), add back
+    // the half-difference introduced by the scale to recover the pre-scale box.
+    const width = rect.width / safeScaleX;
+    const height = rect.height / safeScaleY;
+    const offsetXFromScale = (rect.width - width) / 2;
+    const offsetYFromScale = (rect.height - height) / 2;
+    const x = rect.left + window.scrollX - translateX + offsetXFromScale;
+    const y = rect.top + window.scrollY - translateY + offsetYFromScale;
 
     // Position should be relative to the document
     this.position.x = x - this.manager.position.x;
     this.position.y = y - this.manager.position.y;
 
-    this.size.width = rect.width * (window.devicePixelRatio || 1);
-    this.size.height = rect.height * (window.devicePixelRatio || 1);
+    this.size.width = width * dpr;
+    this.size.height = height * dpr;
 
     // Since position or size may have changed, re-calculate recommended attributes
     this.initializeGlassAttributes(this.options);
-
-    console.log('LiquidRendererMaterialElement: updatePositionAndSize called, position:', this.position, 'size:', this.size, 'attributes:', this.glassAttributes);
 
     if (!options?.suppressReRender) {
       this.sendReRenderRequest();

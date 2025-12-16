@@ -159,6 +159,18 @@ const cleanupRemovedElementUrls = (nextLength: number) => {
   });
 };
 
+const getBackdropElementCanvas = (i: number) => backdropElementUrls.value[i] ?? '';
+
+const getMaterialsCanvas = () => {
+  if (!materialsCanvasRef.value) return;
+  const { materialsCanvas } = manager.value!;
+  const ctx = materialsCanvasRef.value.getContext('2d');
+  if (ctx) {
+    ctx.clearRect(0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
+    ctx.drawImage(materialsCanvas, 0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
+  }
+};
+
 onMounted(() => {
   manager.value = useLiquidContext();
 
@@ -190,22 +202,9 @@ onMounted(() => {
   });
 
   manager.value.on('materialsRendered', () => {
-    console.log('LiquidGlassDebugger: materialsRendered event received');
     getMaterialsCanvas();
   });
 });
-
-const getBackdropElementCanvas = (i: number) => backdropElementUrls.value[i] ?? '';
-
-const getMaterialsCanvas = () => {
-  if (!materialsCanvasRef.value) return;
-  const { materialsCanvas } = manager.value!;
-  const ctx = materialsCanvasRef.value.getContext('2d');
-  if (ctx) {
-    ctx.clearRect(0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
-    ctx.drawImage(materialsCanvas, 0, 0, materialsCanvasRef.value.width, materialsCanvasRef.value.height);
-  }
-};
 
 watch(
   backdropElements,

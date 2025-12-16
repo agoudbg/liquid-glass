@@ -65,8 +65,6 @@ onMounted(() => {
   );
 
   manager.on('materialsRendered', () => {
-    console.log('LiquidGlass: materialsRendered event received');
-
     // if is uniform mode, update the uniform canvas
     if (manager.renderMode === 'uniform') {
       if (uniformCanvas.value) {

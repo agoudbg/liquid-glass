@@ -1,7 +1,7 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.2">
+    <LiquidGlass class="liquid-glass-container" :debug="true" :render-precision="0.2">
       <div class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">

@@ -78,6 +78,52 @@ const interaction = computed<InteractionConfig>(() => ({
 const materialElement = ref<HTMLElement | null>(null);
 const materialManager = ref<LiquidRendererMaterialElement | null>(null);
 
+const INTERACTIVE_TAGS = new Set([
+  'A',
+  'BUTTON',
+  'INPUT',
+  'SELECT',
+  'TEXTAREA',
+  'OPTION',
+  'LABEL',
+  'SUMMARY',
+  'DETAILS',
+  'VIDEO',
+  'AUDIO',
+]);
+
+const INTERACTIVE_ROLES = new Set([
+  'button',
+  'link',
+  'checkbox',
+  'menuitem',
+  'option',
+  'radio',
+  'switch',
+  'tab',
+]);
+
+// Detect whether the pointer originates from an interactive child.
+// We still run material interaction, but we avoid capturing the pointer to keep child interactivity intact.
+const isFromInteractiveChild = (event: PointerEvent) => {
+  const path = event.composedPath();
+  for (const node of path) {
+    if (!(node instanceof HTMLElement)) continue;
+
+    if (node === materialElement.value) break;
+
+    if (node.dataset.lgSkipInteraction === 'true' || node.dataset.lgIgnoreMaterial === 'true') return true;
+    const tag = node.tagName;
+    if (INTERACTIVE_TAGS.has(tag)) return true;
+    const role = node.getAttribute('role');
+    if (role && INTERACTIVE_ROLES.has(role)) return true;
+    if (node.isContentEditable) return true;
+  }
+  return false;
+};
+
+const interactivePointerIds = new Set<number>();
+
 // Compute border radius style
 const borderRadius = computed(() => {
   const r = props.radius ?? 0;
@@ -469,6 +515,12 @@ const readPointer = (event: PointerEvent) => {
 
 const onPointerDown = (event: PointerEvent) => {
   if (props.disableInteractions) return;
+  const fromInteractiveChild = isFromInteractiveChild(event);
+  if (fromInteractiveChild) {
+    interactivePointerIds.add(event.pointerId);
+  } else {
+    interactivePointerIds.delete(event.pointerId);
+  }
   interactionState.value.pointerId = event.pointerId;
   interactionState.value.isPointerDown = true;
   interactionState.value.interacting = true;
@@ -476,7 +528,9 @@ const onPointerDown = (event: PointerEvent) => {
   interactionState.value.originX = event.clientX;
   interactionState.value.originY = event.clientY;
 
-  materialElement.value?.setPointerCapture(event.pointerId);
+  if (!fromInteractiveChild) {
+    materialElement.value?.setPointerCapture(event.pointerId);
+  }
 
   const {
     nx, ny, dx, dy,
@@ -489,13 +543,19 @@ const onPointerDown = (event: PointerEvent) => {
 const onPointerMove = (event: PointerEvent) => {
   if (props.disableInteractions) return;
   if (event.pointerType === 'mouse' && props.onlyClickInteractions && !interactionState.value.isPointerDown) return;
+  const fromInteractiveChild = interactivePointerIds.has(event.pointerId) || isFromInteractiveChild(event);
+  if (fromInteractiveChild && interactionState.value.pointerId === undefined) {
+    interactivePointerIds.add(event.pointerId);
+  }
 
   if (interactionState.value.originX === null || interactionState.value.originY === null) {
     interactionState.value.originX = event.clientX;
     interactionState.value.originY = event.clientY;
   }
 
-  const shouldActivate = interactionState.value.isPointerDown || (event.pointerType === 'mouse' && !props.onlyClickInteractions);
+  const shouldActivate = interactionState.value.isPointerDown
+    || (event.pointerType === 'mouse' && !props.onlyClickInteractions)
+    || fromInteractiveChild;
   interactionState.value.interacting = shouldActivate;
   interactionState.value.highlightVisible = shouldActivate || event.pointerType !== 'mouse';
 
@@ -509,6 +569,9 @@ const onPointerMove = (event: PointerEvent) => {
 
 const onPointerUp = () => {
   if (props.disableInteractions) return;
+  if (interactionState.value.pointerId !== undefined) {
+    interactivePointerIds.delete(interactionState.value.pointerId);
+  }
   interactionState.value.isPointerDown = false;
   interactionState.value.highlightVisible = false;
   resetInteractionTargets();
@@ -517,6 +580,9 @@ const onPointerUp = () => {
 
 const onPointerLeave = () => {
   if (props.disableInteractions) return;
+  if (interactionState.value.pointerId !== undefined) {
+    interactivePointerIds.delete(interactionState.value.pointerId);
+  }
   interactionState.value.isPointerDown = false;
   interactionState.value.highlightVisible = false;
   interactionState.value.originX = null;

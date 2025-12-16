@@ -278,6 +278,7 @@ const updateHighlightPosition = (nx: number, ny: number) => {
 
 const animationFrameId = ref<number | null>(null);
 
+let i = 0;
 const stepAnimation = () => {
   const state = interactionState.value;
   const cfg = interaction.value;
@@ -307,43 +308,70 @@ const stepAnimation = () => {
     if (triggerRebound.value) {
       state.targetX -= state.currentX * cfg.releaseReboundDamping;
       state.targetY -= state.currentY * cfg.releaseReboundDamping;
+      state.targetScaleX += (cfg.baseScale - state.currentScaleX) * cfg.releaseReboundDamping;
+      state.targetScaleY += (cfg.baseScale - state.currentScaleY) * cfg.releaseReboundDamping;
     }
   } else {
+    if (i++ % 100 === 0) {
+      // console.log('Rebound', {
+      //   currentX: state.currentX,
+      //   currentY: state.currentY,
+      //   originX: state.originX,
+      //   originY: state.originY,
+      //   targetX: state.targetX,
+      //   targetY: state.targetY,
+      //   reboundTargetX: state.reboundTargetX,
+      //   reboundTargetY: state.reboundTargetY,
+      //   triggerRebound: triggerRebound.value,
+      // });
+    }
     if (triggerRebound.value === undefined
-      // && Math.abs(state.currentX - state.targetX) < 1
-      // && Math.abs(state.currentY - state.targetY) < 1
-      // && Math.abs(velocityX) < 0.001
-      // && Math.abs(velocityY) < 0.001
+      && Math.abs(state.currentX - state.targetX) < 1
+      && Math.abs(state.currentY - state.targetY) < 1
+      && state.currentX !== 0
+      && state.currentY !== 0
+      && state.targetX !== 0
+      && state.targetY !== 0
       && Math.abs(state.currentX - state.reboundTargetX) > 0.5
       && Math.abs(state.currentY - state.reboundTargetY) > 0.5
     ) {
       triggerRebound.value = true;
 
-      console.log('Rebound', {
-        currentX: state.currentX,
-        currentY: state.currentY,
-        originX: state.originX,
-        originY: state.originY,
-        targetX: state.targetX,
-        targetY: state.targetY,
-      });
+      // console.log('Rebound', {
+      //   currentX: state.currentX,
+      //   currentY: state.currentY,
+      //   originX: state.originX,
+      //   originY: state.originY,
+      //   targetX: state.targetX,
+      //   targetY: state.targetY,
+      //   reboundTargetX: state.reboundTargetX,
+      //   reboundTargetY: state.reboundTargetY,
+      //   triggerRebound: triggerRebound.value,
+      // });
 
-      console.log('Setting triggerRebound to true');
-    }
+      // console.log('Setting triggerRebound to true');
 
-    if (triggerRebound.value) {
-      state.targetX /= 2;
-      state.targetY /= 2;
+      // if (triggerRebound.value) {
+      state.reboundTargetX = state.targetX / 1.5;
+      state.reboundTargetY = state.targetY / 1.5;
 
-      state.reboundTargetX = state.targetX;
-      state.reboundTargetY = state.targetY;
+      state.targetX = state.reboundTargetX;
+      state.targetY = state.reboundTargetY;
 
-      triggerRebound.value = false;
+      // triggerRebound.value = false;
 
-      console.log('New target after rebound:', {
-        targetX: state.targetX,
-        targetY: state.targetY,
-      });
+      // console.log('New target after rebound:', {
+      //   // currentX: state.currentX,
+      //   // currentY: state.currentY,
+      //   // originX: state.originX,
+      //   // originY: state.originY,
+      //   // targetX: state.targetX,
+      //   // targetY: state.targetY,
+      //   reboundTargetX: state.reboundTargetX,
+      //   reboundTargetY: state.reboundTargetY,
+      //   // triggerRebound: triggerRebound.value,
+      // });
+      // // }
     }
   }
 
@@ -376,12 +404,12 @@ const stepAnimation = () => {
         && Math.abs(state.currentX) < 0.01
         && Math.abs(state.currentY) < 0.01)
       || (
-        triggerRebound.value === false
+        triggerRebound.value !== undefined
         && Math.abs(state.currentX - state.reboundTargetX) < 0.5
         && Math.abs(state.currentY - state.reboundTargetY) < 0.5));
 
   if (atRest) {
-    console.log('Animation at rest #rebound:', triggerRebound.value, 'interacting:', state.interacting);
+    // console.log('Animation at rest #rebound:', triggerRebound.value, 'interacting:', state.interacting);
     if (!state.interacting) {
       if (triggerRebound.value) {
         triggerRebound.value = false;
@@ -393,9 +421,11 @@ const stepAnimation = () => {
         return;
       }
     } else if (triggerRebound.value) {
-      triggerRebound.value = false;
+      triggerRebound.value = undefined;
+      // console.log('Resetting triggerRebound to false');
     } else {
       triggerRebound.value = undefined;
+      // console.log('Resetting triggerRebound to undefined');
     }
   }
 

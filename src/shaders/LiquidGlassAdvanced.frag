@@ -58,20 +58,33 @@ void main() {
   vec2 pixelOffset = refract_vec.xy * refract_length * uRefractIntensity;
   vec2 refraction = pixelOffset / uResolution;
 
-  // Chromatic aberration: sample R, G, B with different offsets
-  // Red channel: slightly more refraction (outer edge)
-  // Green channel: base refraction
-  // Blue channel: slightly less refraction (inner edge)
+  // LOD bias for mipmap-based blur
   float lod = uBlur;
   
-  // Clamp UV coordinates to prevent sampling outside texture bounds
-  vec2 uvR = clamp(vTextureCoord + refraction * (1.0 + uDispersion), 0.0, 1.0);
-  vec2 uvG = clamp(vTextureCoord + refraction, 0.0, 1.0);
-  vec2 uvB = clamp(vTextureCoord + refraction * (1.0 - uDispersion), 0.0, 1.0);
-  
-  float r = textureLod(uTexture, uvR, lod).r;
-  float g = textureLod(uTexture, uvG, lod).g;
-  float b = textureLod(uTexture, uvB, lod).b;
-  
-  fragColor = vec4(r, g, b, 1.0);
+  // Performance optimization: skip chromatic aberration when dispersion is negligible
+  // This reduces texture fetch overhead on mobile devices by avoiding 3 separate samples
+  if (uDispersion < 0.0001) {
+    // Single sample path - no chromatic aberration
+    vec2 uvFinal = clamp(vTextureCoord + refraction, 0.0, 1.0);
+    fragColor = textureLod(uTexture, uvFinal, lod);
+  } else {
+    // Chromatic aberration path: sample R, G, B with different offsets
+    // Red channel: slightly more refraction (outer edge)
+    // Green channel: base refraction  
+    // Blue channel: slightly less refraction (inner edge)
+    
+    // Clamp UV coordinates to prevent sampling outside texture bounds
+    vec2 uvR = clamp(vTextureCoord + refraction * (1.0 + uDispersion), 0.0, 1.0);
+    vec2 uvG = clamp(vTextureCoord + refraction, 0.0, 1.0);
+    vec2 uvB = clamp(vTextureCoord + refraction * (1.0 - uDispersion), 0.0, 1.0);
+    
+    float r = textureLod(uTexture, uvR, lod).r;
+    float g = textureLod(uTexture, uvG, lod).g;
+    float b = textureLod(uTexture, uvB, lod).b;
+    
+    // Alpha is taken from the green channel (center sample) for consistency
+    float a = textureLod(uTexture, uvG, lod).a;
+    
+    fragColor = vec4(r, g, b, a);
+  }
 }

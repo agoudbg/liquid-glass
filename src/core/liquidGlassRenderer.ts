@@ -204,66 +204,86 @@ export function createLiquidGlassRenderer(
   function resize(): void {
     if (!gl) return;
     const dpr = window.devicePixelRatio || 1;
-    // Prefer the true logical (unscaled) resolution from the captured backdrop.
-    // textureResolution is set when setBackground() is called and represents
-    // the backdrop's physical pixel dimensions.
-    // If textureResolution is not yet set, use canvas.width directly as the
-    // logical resolution. The caller (renderMaterials) sets canvas dimensions
-    // to physical pixel size (size * dpr) before creating the renderer, so
-    // canvas.width represents the intended logical resolution, not a scaled value.
-    const logicalWidth = (state.textureResolution.width > 1
-      ? state.textureResolution.width
-      : 0)
-      || canvas.clientWidth * dpr
-      || canvas.width;
-    const logicalHeight = (state.textureResolution.height > 1
-      ? state.textureResolution.height
-      : 0)
-      || canvas.clientHeight * dpr
-      || canvas.height;
+    const scale = dpr * state.renderScale;
 
-    state.logicalResolution.width = logicalWidth;
-    state.logicalResolution.height = logicalHeight;
+    // Calculate CSS pixel dimensions (logical size)
+    // textureResolution stores the backdrop's physical pixel dimensions
+    // We need to convert back to CSS pixels, then apply our scale
+    let cssWidth: number;
+    let cssHeight: number;
 
-    const scaledWidth = Math.max(1, Math.round(state.logicalResolution.width));
-    const scaledHeight = Math.max(1, Math.round(state.logicalResolution.height));
+    if (state.textureResolution.width > 1 && state.textureResolution.height > 1) {
+      // textureResolution is in physical pixels, convert to CSS pixels
+      cssWidth = state.textureResolution.width / dpr;
+      cssHeight = state.textureResolution.height / dpr;
+    } else {
+      cssWidth = canvas.clientWidth || canvas.width / dpr;
+      cssHeight = canvas.clientHeight || canvas.height / dpr;
+    }
 
-    canvas.width = scaledWidth;
-    canvas.height = scaledHeight;
-    gl.viewport(0, 0, scaledWidth, scaledHeight);
+    // Store logical resolution (CSS pixels)
+    state.logicalResolution.width = cssWidth;
+    state.logicalResolution.height = cssHeight;
+
+    // Canvas physical dimensions = CSS pixels * scale
+    const physicalWidth = Math.max(1, Math.round(cssWidth * scale));
+    const physicalHeight = Math.max(1, Math.round(cssHeight * scale));
+
+    canvas.width = physicalWidth;
+    canvas.height = physicalHeight;
+    gl.viewport(0, 0, physicalWidth, physicalHeight);
   }
 
-  function updateUniforms(material: GlassMaterialInstance): void {
+  /**
+   * Update uniforms for a material.
+   * @param material The material instance
+   * @param scale The unified scale factor (dpr * renderScale)
+   * @param physicalWidth The physical canvas width (gl.drawingBufferWidth)
+   * @param physicalHeight The physical canvas height (gl.drawingBufferHeight)
+   */
+  function updateUniforms(
+    material: GlassMaterialInstance,
+    scale: number,
+    physicalWidth: number,
+    physicalHeight: number,
+  ): void {
     if (!gl) return;
     if (!state.program) return;
-    const { width } = state.logicalResolution;
-    const { height } = state.logicalResolution;
-    const dpr = window.devicePixelRatio || 1;
 
     const transform = material.transform ?? identityTransform;
 
-    gl.uniform2f(state.uniforms.uResolution, width, height);
+    // Set resolution to physical canvas dimensions
+    gl.uniform2f(state.uniforms.uResolution, physicalWidth, physicalHeight);
 
-    const centerX = (material.position.x + transform.translateX) * dpr;
-    const centerY = height - ((material.position.y + transform.translateY) * dpr);
-    gl.uniform2f(state.uniforms.uCenter, centerX, centerY);
+    // Calculate material dimensions in physical pixels
+    const w = material.config.width * scale * transform.scaleX;
+    const h = material.config.height * scale * transform.scaleY;
 
-    const sizeX = (material.config.width * dpr * transform.scaleX) / 2;
-    const sizeY = (material.config.height * dpr * transform.scaleY) / 2;
-    gl.uniform2f(state.uniforms.uSize, sizeX, sizeY);
+    // position is the CENTER of the material in CSS pixels
+    const centerXCss = material.position.x + transform.translateX;
+    const centerYCss = material.position.y + transform.translateY;
+
+    // Convert to physical pixels with Y-axis flip (WebGL origin is bottom-left)
+    const physicalCenterX = centerXCss * scale;
+    const physicalCenterY = physicalHeight - (centerYCss * scale);
+
+    gl.uniform2f(state.uniforms.uCenter, physicalCenterX, physicalCenterY);
+
+    // Shader expects half-width and half-height
+    gl.uniform2f(state.uniforms.uSize, w / 2, h / 2);
 
     const baseRadius = material.config.radius;
     const radiusScale = Math.min(transform.scaleX, transform.scaleY);
 
     gl.uniform4f(
       state.uniforms.uRadius,
-      (material.config.radiusTR ?? baseRadius) * dpr * radiusScale,
-      (material.config.radiusBR ?? baseRadius) * dpr * radiusScale,
-      (material.config.radiusBL ?? baseRadius) * dpr * radiusScale,
-      (material.config.radiusTL ?? baseRadius) * dpr * radiusScale,
+      (material.config.radiusTR ?? baseRadius) * scale * radiusScale,
+      (material.config.radiusBR ?? baseRadius) * scale * radiusScale,
+      (material.config.radiusBL ?? baseRadius) * scale * radiusScale,
+      (material.config.radiusTL ?? baseRadius) * scale * radiusScale,
     );
 
-    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * dpr * radiusScale);
+    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * scale * radiusScale);
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
     gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
@@ -274,16 +294,18 @@ export function createLiquidGlassRenderer(
 
     const { data, width, height } = state.backgroundPixelData;
     const dpr = window.devicePixelRatio || 1;
+    const scale = dpr * state.renderScale;
     const result: ThemeColorMap = {};
 
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
     state.materials.forEach((material, id) => {
       const transform = material.transform ?? identityTransform;
-      const halfW = (material.config.width * dpr * transform.scaleX) / 2;
-      const halfH = (material.config.height * dpr * transform.scaleY) / 2;
-      const centerX = (material.position.x + transform.translateX) * dpr;
-      const centerY = (material.position.y + transform.translateY) * dpr;
+      const halfW = (material.config.width * scale * transform.scaleX) / 2;
+      const halfH = (material.config.height * scale * transform.scaleY) / 2;
+      // position is the CENTER of the material in CSS pixels
+      const centerX = (material.position.x + transform.translateX) * scale;
+      const centerY = (material.position.y + transform.translateY) * scale;
 
       const startX = clamp(Math.floor(centerX - halfW), 0, width - 1);
       const endX = clamp(Math.ceil(centerX + halfW), 0, width - 1);
@@ -341,20 +363,49 @@ export function createLiquidGlassRenderer(
       return null;
     }
 
-    // Clear canvas once
+    // 1. Prepare physical size parameters - UNIFIED scale factor
+    const dpr = window.devicePixelRatio || 1;
+    const scale = dpr * state.renderScale;
+    const physicalWidth = gl.drawingBufferWidth;
+    const physicalHeight = gl.drawingBufferHeight;
+
+    // 2. Global state initialization - clear canvas once
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Enable blending for proper transparency compositing
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-    // Render each material
+    // Enable scissor test for per-material clipping
+    gl.enable(gl.SCISSOR_TEST);
+
+    // 3. Core loop - render each material with its own scissor rect
     gl.bindVertexArray(state.vao);
     state.materials.forEach((material) => {
-      updateUniforms(material);
+      const transform = material.transform ?? identityTransform;
+
+      // A. Calculate scissor rectangle in physical pixels
+      // position is the CENTER of the material in CSS pixels
+      const w = material.config.width * scale * transform.scaleX;
+      const h = material.config.height * scale * transform.scaleY;
+      // Convert center to left edge: centerX - width/2
+      const centerXCss = material.position.x + transform.translateX;
+      const centerYCss = material.position.y + transform.translateY;
+      const x = centerXCss * scale - w / 2;
+      // WebGL Y-axis: origin is bottom-left, so flip Y
+      // bottomY = physicalHeight - centerY_physical - height/2
+      const y = physicalHeight - centerYCss * scale - h / 2;
+
+      // B. Apply scissor rect immediately before drawing this material
+      gl.scissor(x, y, w, h);
+
+      // C. Update uniforms with the same scale and draw immediately
+      updateUniforms(material, scale, physicalWidth, physicalHeight);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     });
 
+    // 4. Cleanup - restore global state
+    gl.disable(gl.SCISSOR_TEST);
     gl.disable(gl.BLEND);
 
     const themes = collectThemes ? computeThemeColors() : null;

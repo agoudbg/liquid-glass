@@ -43,6 +43,17 @@ export class LiquidRendererManager extends EventEmitter {
 
   public size = { width: 0, height: 0 };
 
+  // Performance optimization: persistent canvas for WebGL backdrop conversion
+  private backdropCanvasForGL: HTMLCanvasElement | null = null;
+
+  private backdropCanvasForGLCtx: CanvasRenderingContext2D | null = null;
+
+  // Performance optimization: dirty flag to avoid unnecessary texture uploads
+  private isBackdropDirty = true;
+
+  // Track which materials have been added to avoid remove+add on every frame
+  private addedMaterialIds = new Set<string>();
+
   public visible: boolean = true;
 
   constructor(options: LiquidRendererManagerOptions) {
@@ -334,6 +345,9 @@ export class LiquidRendererManager extends EventEmitter {
 
     ctx.restore();
 
+    // Mark backdrop as dirty so texture will be re-uploaded on next render
+    this.isBackdropDirty = true;
+
     // Emit event that backdrop capture is complete...
     this.emit('backdropCaptured', {
       canvas: this.backdropCanvas,
@@ -405,52 +419,80 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
-    // Convert OffscreenCanvas to HTMLCanvasElement for WebGL processing
-    const backdropCanvasForGL = document.createElement('canvas');
-    backdropCanvasForGL.width = this.backdropCanvas.width;
-    backdropCanvasForGL.height = this.backdropCanvas.height;
-    const backdropCtxForGL = backdropCanvasForGL.getContext('2d');
-    if (backdropCtxForGL) {
-      backdropCtxForGL.drawImage(this.backdropCanvas, 0, 0);
-    } else {
-      this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
-      this.isRenderingMaterials = false;
-      return;
+    // PERFORMANCE OPTIMIZATION: Only update backdrop texture when it has changed
+    if (this.isBackdropDirty) {
+      // Reuse persistent canvas for backdrop conversion to avoid GC pressure
+      if (
+        !this.backdropCanvasForGL
+        || this.backdropCanvasForGL.width !== this.backdropCanvas.width
+        || this.backdropCanvasForGL.height !== this.backdropCanvas.height
+      ) {
+        this.backdropCanvasForGL = document.createElement('canvas');
+        this.backdropCanvasForGL.width = this.backdropCanvas.width;
+        this.backdropCanvasForGL.height = this.backdropCanvas.height;
+        this.backdropCanvasForGLCtx = this.backdropCanvasForGL.getContext('2d');
+      }
+
+      if (this.backdropCanvasForGLCtx) {
+        this.backdropCanvasForGLCtx.drawImage(this.backdropCanvas, 0, 0);
+        this.renderer.setBackground(this.backdropCanvasForGL);
+        this.isBackdropDirty = false;
+        this.log('debug', 'Backdrop texture uploaded to GPU');
+      } else {
+        this.log('error', 'Failed to get 2D context for backdrop canvas conversion');
+        this.isRenderingMaterials = false;
+        return;
+      }
+
+      this.renderer.resize();
     }
 
-    // Set backdrop
-    this.renderer.setBackground(backdropCanvasForGL);
-    this.renderer!.resize();
-
-    // Add materials
+    // PERFORMANCE OPTIMIZATION: Update existing materials instead of remove+add
+    const currentMaterialIds = new Set<string>();
     this.registeredMaterialElements.forEach((element) => {
       const { glassAttributes, position, size } = element;
       const { transform } = element;
+      const dpr = window.devicePixelRatio || 1;
 
-      // Remove current material if exists
-      this.renderer!.removeMaterial(element.materialId);
+      currentMaterialIds.add(element.materialId);
 
-      this.renderer!.addMaterial(
-        element.materialId,
-        {
-          thickness: glassAttributes.thickness,
-          refractIndex: glassAttributes.refractIndex,
-          refractIntensity: glassAttributes.refractIntensity,
-          blur: glassAttributes.blur,
-          radius: glassAttributes.radius,
-          radiusTR: glassAttributes.radiusTR,
-          radiusBR: glassAttributes.radiusBR,
-          radiusBL: glassAttributes.radiusBL,
-          radiusTL: glassAttributes.radiusTL,
-          width: size.width / (window.devicePixelRatio || 1),
-          height: size.height / (window.devicePixelRatio || 1),
-        },
-        {
-          x: position.x + size.width / 2 / (window.devicePixelRatio || 1),
-          y: position.y + size.height / 2 / (window.devicePixelRatio || 1),
-        },
-        transform,
-      );
+      const materialConfig = {
+        thickness: glassAttributes.thickness,
+        refractIndex: glassAttributes.refractIndex,
+        refractIntensity: glassAttributes.refractIntensity,
+        blur: glassAttributes.blur,
+        radius: glassAttributes.radius,
+        radiusTR: glassAttributes.radiusTR,
+        radiusBR: glassAttributes.radiusBR,
+        radiusBL: glassAttributes.radiusBL,
+        radiusTL: glassAttributes.radiusTL,
+        width: size.width / dpr,
+        height: size.height / dpr,
+      };
+
+      const materialPosition = {
+        x: position.x + size.width / 2 / dpr,
+        y: position.y + size.height / 2 / dpr,
+      };
+
+      if (this.addedMaterialIds.has(element.materialId)) {
+        // Material already exists, just update config and position
+        this.renderer!.updateMaterial(element.materialId, materialConfig);
+        this.renderer!.setMaterialPosition(element.materialId, materialPosition.x, materialPosition.y);
+        this.renderer!.setMaterialTransform(element.materialId, transform);
+      } else {
+        // New material, add it
+        this.renderer!.addMaterial(element.materialId, materialConfig, materialPosition, transform);
+        this.addedMaterialIds.add(element.materialId);
+      }
+    });
+
+    // Remove materials that are no longer registered
+    this.addedMaterialIds.forEach((id) => {
+      if (!currentMaterialIds.has(id)) {
+        this.renderer!.removeMaterial(id);
+        this.addedMaterialIds.delete(id);
+      }
     });
 
     // Render and optionally collect theme colors beneath each material
@@ -498,6 +540,10 @@ export class LiquidRendererManager extends EventEmitter {
       this.renderer.dispose();
       this.renderer = null;
     }
+    // Clean up cached resources
+    this.backdropCanvasForGL = null;
+    this.backdropCanvasForGLCtx = null;
+    this.addedMaterialIds.clear();
   }
 
   public getRenderPrecision() {

@@ -60,11 +60,11 @@ const defaultInteraction: InteractionConfig = {
   translateFactor: 0.08,
   stretchFactor: 0.0003,
   stretchLimit: 1,
-  damping: 0.3,
-  reboundDamping: 0.2,
-  releaseDamping: 0.4,
-  releaseReboundDamping: 0.4,
-  reboundThreshold: 0.2,
+  damping: 0.15,
+  reboundDamping: 0.13,
+  releaseDamping: 0.18,
+  releaseReboundDamping: 0.19,
+  reboundThreshold: 0.12,
   highlightSize: 200,
   highlightOpacity: 0.5,
   highlightHDRFactor: 1.2,
@@ -108,7 +108,9 @@ const INTERACTIVE_ROLES = new Set([
 // We still run material interaction, but we avoid capturing the pointer to keep child interactivity intact.
 const isFromInteractiveChild = (event: PointerEvent) => {
   const path = event.composedPath();
+  // eslint-disable-next-line no-restricted-syntax
   for (const node of path) {
+    // eslint-disable-next-line no-continue
     if (!(node instanceof HTMLElement)) continue;
 
     if (node === materialElement.value) break;
@@ -325,22 +327,43 @@ const updateHighlightPosition = (nx: number, ny: number) => {
 };
 
 const animationFrameId = ref<number | null>(null);
+const lastTimestamp = ref<number | null>(null);
+
+const toDeltaFrames = (deltaMs: number) => {
+  const frames = deltaMs / (1000 / 60);
+  return Math.min(Math.max(frames, 0.1), 5);
+};
+
+const lerpWithDamping = (current: number, target: number, perFrameDamping: number, deltaFrames: number) => {
+  const factor = 1 - (1 - perFrameDamping) ** deltaFrames;
+  return current + (target - current) * factor;
+};
+
+const scaleWithDelta = (value: number, deltaFrames: number) => 1 - (1 - value) ** deltaFrames;
 
 let i = 0;
-const stepAnimation = () => {
+const stepAnimation = (timestamp: number) => {
+  if (lastTimestamp.value === null) {
+    lastTimestamp.value = timestamp;
+  }
+
+  const deltaMs = timestamp - lastTimestamp.value;
+  const deltaFrames = toDeltaFrames(deltaMs);
+  lastTimestamp.value = timestamp;
+
   const state = interactionState.value;
   const cfg = interaction.value;
-  const damping = state.interacting ? cfg.damping : cfg.releaseDamping;
+  const perFrameDamping = state.interacting ? cfg.damping : cfg.releaseDamping;
 
   const prevX = state.currentX;
   const prevY = state.currentY;
   const prevScaleX = state.currentScaleX;
   const prevScaleY = state.currentScaleY;
 
-  state.currentX += (state.targetX - state.currentX) * damping;
-  state.currentY += (state.targetY - state.currentY) * damping;
-  state.currentScaleX += (state.targetScaleX - state.currentScaleX) * damping;
-  state.currentScaleY += (state.targetScaleY - state.currentScaleY) * damping;
+  state.currentX = lerpWithDamping(state.currentX, state.targetX, perFrameDamping, deltaFrames);
+  state.currentY = lerpWithDamping(state.currentY, state.targetY, perFrameDamping, deltaFrames);
+  state.currentScaleX = lerpWithDamping(state.currentScaleX, state.targetScaleX, perFrameDamping, deltaFrames);
+  state.currentScaleY = lerpWithDamping(state.currentScaleY, state.targetScaleY, perFrameDamping, deltaFrames);
 
   let velocityX = state.currentX - prevX;
   let velocityY = state.currentY - prevY;
@@ -354,10 +377,11 @@ const stepAnimation = () => {
     }
 
     if (triggerRebound.value) {
-      state.targetX -= state.currentX * cfg.releaseReboundDamping;
-      state.targetY -= state.currentY * cfg.releaseReboundDamping;
-      state.targetScaleX += (cfg.baseScale - state.currentScaleX) * cfg.releaseReboundDamping;
-      state.targetScaleY += (cfg.baseScale - state.currentScaleY) * cfg.releaseReboundDamping;
+      const reboundFactor = scaleWithDelta(cfg.releaseReboundDamping, deltaFrames);
+      state.targetX -= state.currentX * reboundFactor;
+      state.targetY -= state.currentY * reboundFactor;
+      state.targetScaleX += (cfg.baseScale - state.currentScaleX) * reboundFactor;
+      state.targetScaleY += (cfg.baseScale - state.currentScaleY) * reboundFactor;
     }
   } else {
     if (i++ % 100 === 0) {
@@ -495,6 +519,8 @@ const stopAnimation = () => {
     interactionState.value.reboundTargetX = 0;
     interactionState.value.reboundTargetY = 0;
   }
+
+  lastTimestamp.value = null;
 };
 
 const readPointer = (event: PointerEvent) => {
@@ -679,7 +705,7 @@ defineExpose({ updating, startUpdating, stopUpdating });
   width: 100%;
   height: 100%;
   border-radius: v-bind(borderRadius);
-  border: 2px solid #ffffff61;
+  border: 1px solid #ffffff34;
   overflow: hidden;
   background-color: v-bind(calculatedBackgroundColor);
   color: v-bind(calculatedForegroundColor);

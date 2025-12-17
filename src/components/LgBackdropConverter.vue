@@ -20,7 +20,7 @@ const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 
 const captureLib = props.captureLib || 'html-to-image';
 
-const defaultPixelRatio = 1;
+const defaultPixelRatio = window.devicePixelRatio || 1;
 
 // Draw the backdrop using the selected library
 const drawBackdrop = async () => {

@@ -52,12 +52,12 @@
     </label>
   </div>
 
-  <!-- <div class="page-test">
+  <div class="page-test">
     <LiquidGlass class="liquid-glass-container-page" :debug="true" :power-efficient-mode="false">
-      <header>
+      <header class="liquid-glass-test-header">
         <div class="left">
           <LiquidGlassMaterial class="button" :radius="20">
-            <button>Home</button>
+            <p>Home</p>
           </LiquidGlassMaterial>
         </div>
         <div class="title">
@@ -67,7 +67,7 @@
         </div>
         <div class="right">
           <LiquidGlassMaterial class="button" :radius="20">
-            <button>Share</button>
+            share
           </LiquidGlassMaterial>
         </div>
       </header>
@@ -76,6 +76,38 @@
           <section class="content-section">
             <h2>Welcome to the Liquid Glass Demo Page</h2>
             <p>This is a demonstration of the Liquid Glass effect using Vue.js components.</p>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
+            <div class="card-content">
+              <h3>Info Card</h3>
+              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
+            </div>
             <div class="card-content">
               <h3>Info Card</h3>
               <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
@@ -93,11 +125,11 @@
           </div>
         </LiquidGlassMaterial>
       </footer>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
-  </div> -->
+  </div>
 
-  <!-- <div class="playground-container">
+  <div class="playground-container">
     <h2>Playground</h2>
     <LiquidGlassPlayground />
   </div>
@@ -107,7 +139,7 @@
   <div class="multi-glass-container">
     <h2>Multi-Glass Demo</h2>
     <MultiGlassDemo />
-  </div> -->
+  </div>
 
 </template>
 
@@ -257,7 +289,7 @@ html {
 }
 
 .single-glass-container {
-  width: 80vw;
+  width: 95vw;
   height: 920px;
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -284,7 +316,7 @@ html {
 }
 
 .demo-backdrop {
-  width: 70vw;
+  width: 60vw;
   height: 100%;
   border-radius: 12px;
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
@@ -436,14 +468,14 @@ html {
 }
 
 header {
-  position: sticky;
+  position: absolute;
   top: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px;
-  backdrop-filter: blur(10px);
-  z-index: 9999;
+  /* backdrop-filter: blur(10px); */
+  z-index: 99;
 }
 
 header .left,
@@ -470,7 +502,7 @@ button {
   font-size: 14px;
   cursor: pointer;
   color: inherit;
-  z-index: 10002;
+  z-index: 10009;
 }
 
 .info-card {
@@ -486,6 +518,8 @@ button {
 
 .content-section {
   padding: 20px;
+  height: 200px;
+  overflow: auto;
 }
 
 .spacer-large {

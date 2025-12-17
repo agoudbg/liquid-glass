@@ -325,19 +325,23 @@ export function createLiquidGlassRenderer(
     if (!state.backgroundPixelData) return {};
 
     const { data, width, height } = state.backgroundPixelData;
-    const dpr = window.devicePixelRatio || 1;
-    const scale = dpr * state.renderScale;
+    const cssWidth = Math.max(1, state.logicalResolution.width);
+    const cssHeight = Math.max(1, state.logicalResolution.height);
+
+    // Derive pixel-per-CSS scaling from the captured texture to avoid double-applying DPR.
+    const pxPerCssX = width / cssWidth;
+    const pxPerCssY = height / cssHeight;
     const result: ThemeColorMap = {};
 
     const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v));
 
     state.materials.forEach((material, id) => {
       const transform = material.transform ?? identityTransform;
-      const halfW = (material.config.width * scale * transform.scaleX) / 2;
-      const halfH = (material.config.height * scale * transform.scaleY) / 2;
+      const halfW = (material.config.width * transform.scaleX * pxPerCssX) / 2;
+      const halfH = (material.config.height * transform.scaleY * pxPerCssY) / 2;
       // position is the CENTER of the material in CSS pixels
-      const centerX = (material.position.x + transform.translateX) * scale;
-      const centerY = (material.position.y + transform.translateY) * scale;
+      const centerX = (material.position.x + transform.translateX) * pxPerCssX;
+      const centerY = (material.position.y + transform.translateY) * pxPerCssY;
 
       const startX = clamp(Math.floor(centerX - halfW), 0, width - 1);
       const endX = clamp(Math.ceil(centerX + halfW), 0, width - 1);

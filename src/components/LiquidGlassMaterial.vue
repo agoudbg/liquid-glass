@@ -52,6 +52,8 @@ const props = defineProps<{
   disableInteractions?: boolean;
   onlyClickInteractions?: boolean;
   interaction?: Partial<InteractionConfig>;
+  illuminationAngle?: number;
+  illuminationIntensity?: number;
 }>();
 
 const defaultInteraction: InteractionConfig = {
@@ -619,6 +621,16 @@ const onPointerLeave = () => {
   ensureAnimation();
 };
 
+const borderImage = computed(() => {
+  const angle = props.illuminationAngle ?? 45;
+  const intensity = props.illuminationIntensity ?? 0.8;
+  const lightColor = `rgba(255, 255, 255, ${intensity})`;
+  const darkColor = `rgba(255, 255, 255, ${intensity * 0.4})`;
+
+  // Create a gradient border
+  return `linear-gradient(${angle}deg, ${lightColor}, ${darkColor})`;
+});
+
 watch(() => interactionState.value.interacting, () => {
   triggerRebound.value = undefined;
 });
@@ -705,7 +717,7 @@ defineExpose({ updating, startUpdating, stopUpdating });
   width: 100%;
   height: 100%;
   border-radius: v-bind(borderRadius);
-  border: 1px solid #ffffff34;
+  border: 15px solid v-bind(borderImage);
   overflow: hidden;
   background-color: v-bind(calculatedBackgroundColor);
   color: v-bind(calculatedForegroundColor);
@@ -714,19 +726,19 @@ defineExpose({ updating, startUpdating, stopUpdating });
   will-change: transform;
 
   transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
+}
 
-  &[allowing-color-transition="true"] {
-    transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
-  }
+.liquid-glass-material[allowing-color-transition="true"] {
+  transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
+}
 
-  &[render-mode="uniform"] {
-    z-index: 10000;
-  }
+.liquid-glass-material[render-mode="uniform"] {
+  z-index: 10000;
+}
 
-  &[is-fallback-mode="true"] {
-    backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
-    -webkit-backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
-  }
+.liquid-glass-material[is-fallback-mode="true"] {
+  backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
+  -webkit-backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
 }
 
 .liquid-glass-highlight {

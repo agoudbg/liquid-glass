@@ -271,6 +271,11 @@ export class LiquidRendererManager extends EventEmitter {
       this.materialsCanvas.height = newHeight;
     }
 
+    // Ask backdrop to re-check their sizes
+    this.registeredBackdropElements.forEach((el) => {
+      el.updatePositionAndSize();
+    });
+
     this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
 
     // Capture the backdrop after resizing

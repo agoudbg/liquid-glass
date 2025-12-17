@@ -49,6 +49,11 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.manager.log('debug', 'LiquidRendererBackdropElement created for element:', element);
   }
 
+  public setOptions(options: Partial<LiquidRendererBackdropElementOptions>) {
+    this.options = { ...this.options, ...options };
+    this.manager.requestBackdropRender();
+  }
+
   /**
    * Add event listeners based on options
    */

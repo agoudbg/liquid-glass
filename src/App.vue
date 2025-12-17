@@ -13,6 +13,7 @@
                 <div class="demo-tile">Texture</div>
                 <div class="demo-tile">Shape</div>
               </div>
+              <!-- <img src="/susu.webp" /> -->
             </div>
           </template>
         </LgBackdropConverter>
@@ -31,10 +32,10 @@
         </div>
 
         <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-          <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="20"
-            ref="demoMaterial1" :only-click-interactions="true">
+          <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="28"
+            ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
             <div class="demo-card">
-              <h3>Drag or Resize</h3>
+              <span>Drag or Resize</span>
             </div>
           </LiquidGlassMaterial>
 
@@ -316,7 +317,7 @@ html {
 }
 
 .demo-backdrop {
-  width: 60vw;
+  width: 90vw;
   height: 100%;
   border-radius: 12px;
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),
@@ -411,8 +412,8 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 200px;
-  height: 140px;
+  width: 290px;
+  height: 200px;
   touch-action: none;
 }
 
@@ -425,6 +426,7 @@ html {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 4px 0 0 0;
   cursor: se-resize;
+  z-index: 999;
 }
 
 .demo-card {

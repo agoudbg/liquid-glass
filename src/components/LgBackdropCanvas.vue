@@ -65,6 +65,10 @@ watch(() => props.draw, (newDraw, oldDraw) => {
   }
 }, { deep: false });
 
+watch(() => props.zIndex, (newVal) => {
+  backdropManager.value?.setOptions({ zIndex: newVal });
+});
+
 </script>
 
 <template>

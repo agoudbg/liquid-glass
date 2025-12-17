@@ -131,6 +131,8 @@ export class LiquidRendererManager extends EventEmitter {
       this.powerEfficientMode = options.powerEfficientMode;
       this.log('debug', `Power efficient mode set to: ${this.powerEfficientMode}`);
     }
+
+    this.emit('optionsChanged', options);
   }
 
   public registerBackdropElement(element: LiquidRendererBackdropElement) {

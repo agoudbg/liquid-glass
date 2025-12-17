@@ -50,6 +50,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     this.manager.log('debug', 'LiquidRendererMaterialElement created for element:', element);
   }
 
+  public setOptions(options: Partial<LiquidRendererMaterialElementOptions>) {
+    this.options = { ...this.options, ...options };
+    this.initializeGlassAttributes(this.options);
+    this.manager.requestMaterialsRender();
+  }
+
   private initializeGlassAttributes(options: LiquidRendererMaterialElementOptions) {
     this.glassAttributes = {
       radius: options.radius,

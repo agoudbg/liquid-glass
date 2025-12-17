@@ -78,7 +78,7 @@ const defaultInteraction: InteractionConfig = {
 const interaction = computed<InteractionConfig>(() => ({
   ...defaultInteraction,
   ...(props.interaction ?? {}),
-  ...props.isMoveable ? {} : { translateFactor: 0 },
+  ...props.isMoveable ? { translateFactor: 0 } : {},
 }));
 
 const materialElement = ref<HTMLElement | null>(null);
@@ -168,6 +168,7 @@ const boxShadowInsetSize = computed(() => {
 const allowingColorTransition = ref<boolean | undefined>(undefined);
 
 const updateBackgroundColor = () => {
+  if (props.backgroundColor) return;
   if (materialManager.value && !materialManager.value?.options.useCustomColor) {
     const autoBackgroundColorMode = materialManager.value.automaticBackgroundColorMode;
     switch (autoBackgroundColorMode) {
@@ -196,7 +197,10 @@ const updateBackgroundColor = () => {
 
 const fallbackBlur = computed(() => `${Math.min(props.blur ?? 6, 6)}px`);
 
-const renderMode = computed(() => manager.renderMode);
+const renderMode = ref(manager.renderMode);
+manager.on('optionsChanged', () => {
+  renderMode.value = manager.renderMode;
+});
 
 onMounted(() => {
   console.log('LgMaterialConverter mounted');
@@ -749,6 +753,44 @@ watch(() => props.disableInteractions, (disabled) => {
     resetInteractionTargets();
     interactionState.value.highlightVisible = false;
     stopAnimation();
+  }
+});
+
+watch(() => [
+  props.thickness,
+  props.refractIndex,
+  props.refractIntensity,
+  props.radius,
+  props.radiusTR,
+  props.radiusBR,
+  props.radiusBL,
+  props.radiusTL,
+  props.blur,
+  props.dispersion,
+  props.saturation,
+  props.useCustomColor,
+  props.backgroundColor,
+  props.illuminationAngle,
+  props.illuminationIntensity,
+], () => {
+  if (materialManager.value) {
+    materialManager.value.setOptions({
+      thickness: props.thickness,
+      refractIndex: props.refractIndex,
+      refractIntensity: props.refractIntensity,
+      radius: props.radius,
+      radiusTR: props.radiusTR,
+      radiusBR: props.radiusBR,
+      radiusBL: props.radiusBL,
+      radiusTL: props.radiusTL,
+      blur: props.blur,
+      dispersion: props.dispersion,
+      saturation: props.saturation,
+      useCustomColor: props.useCustomColor,
+      backgroundColor: props.backgroundColor,
+      illuminationAngle: props.illuminationAngle,
+      illuminationIntensity: props.illuminationIntensity,
+    });
   }
 });
 

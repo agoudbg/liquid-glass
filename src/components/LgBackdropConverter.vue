@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
@@ -18,8 +18,6 @@ const props = defineProps<{
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 
-const captureLib = props.captureLib || 'html-to-image';
-
 const defaultPixelRatio = window.devicePixelRatio || 1;
 
 // Draw the backdrop using the selected library
@@ -29,6 +27,8 @@ const drawBackdrop = async () => {
 
   const { element } = backdropManager.value;
   if (!element) return;
+
+  const captureLib = props.captureLib || 'html-to-image';
 
   console.log('LgBackdropConverter: capturing backdrop for element:', element);
 
@@ -94,6 +94,14 @@ onMounted(() => {
       drawBackdrop();
     });
   }
+});
+
+watch(() => props.zIndex, (newVal) => {
+  backdropManager.value?.setOptions({ zIndex: newVal });
+});
+
+watch(() => props.captureLib, () => {
+  drawBackdrop();
 });
 
 // Allow slotted content to manually trigger a fresh capture

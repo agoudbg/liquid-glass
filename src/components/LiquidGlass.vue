@@ -1,6 +1,6 @@
 <template>
   <div class="liquid-glass-container" ref="container">
-    <canvas v-if="manager?.renderMode === 'uniform'" class="liquid-glass-uniform-canvas"
+    <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
       :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
     <slot></slot>
   </div>
@@ -8,7 +8,9 @@
 
 <script lang="ts" setup>
 
-import { onMounted, onUnmounted, ref } from 'vue';
+import {
+  onMounted, onUnmounted, ref, watch,
+} from 'vue';
 
 import { provideLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
@@ -40,7 +42,21 @@ manager.on('fallbackModeChanged', onFallbackModeChanged);
 
 isFallbackMode.value = manager.isFallbackMode;
 
+watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode], () => {
+  manager.setOptions({
+    debug: props.debug,
+    renderPrecision: props.renderPrecision,
+    renderMode: props.renderMode,
+    powerEfficientMode: props.powerEfficientMode,
+  });
+});
+
 const container = ref<HTMLElement | null>(null);
+
+const currentRenderMode = ref(manager.renderMode);
+manager.on('optionsChanged', () => {
+  currentRenderMode.value = manager.renderMode;
+});
 
 const setVisibility = (visible: boolean) => {
   manager.setVisibility(visible);

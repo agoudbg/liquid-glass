@@ -52,6 +52,8 @@ const props = defineProps<{
   disableInteractions?: boolean;
   onlyClickInteractions?: boolean;
   interaction?: Partial<InteractionConfig>;
+  /** Whether the material is moveable by user interaction */
+  isMoveable?: boolean;
   illuminationAngle?: number;
   illuminationIntensity?: number;
 }>();
@@ -76,6 +78,7 @@ const defaultInteraction: InteractionConfig = {
 const interaction = computed<InteractionConfig>(() => ({
   ...defaultInteraction,
   ...(props.interaction ?? {}),
+  ...props.isMoveable ? {} : { translateFactor: 0 },
 }));
 
 const materialElement = ref<HTMLElement | null>(null);
@@ -343,7 +346,6 @@ const lerpWithDamping = (current: number, target: number, perFrameDamping: numbe
 
 const scaleWithDelta = (value: number, deltaFrames: number) => 1 - (1 - value) ** deltaFrames;
 
-let i = 0;
 const stepAnimation = (timestamp: number) => {
   if (lastTimestamp.value === null) {
     lastTimestamp.value = timestamp;
@@ -386,19 +388,20 @@ const stepAnimation = (timestamp: number) => {
       state.targetScaleY += (cfg.baseScale - state.currentScaleY) * reboundFactor;
     }
   } else {
-    if (i++ % 100 === 0) {
-      // console.log('Rebound', {
-      //   currentX: state.currentX,
-      //   currentY: state.currentY,
-      //   originX: state.originX,
-      //   originY: state.originY,
-      //   targetX: state.targetX,
-      //   targetY: state.targetY,
-      //   reboundTargetX: state.reboundTargetX,
-      //   reboundTargetY: state.reboundTargetY,
-      //   triggerRebound: triggerRebound.value,
-      // });
-    }
+    // if (i++ % 100 === 0) {
+    // console.log('Rebound', {
+    //   currentX: state.currentX,
+    //   currentY: state.currentY,
+    //   originX: state.originX,
+    //   originY: state.originY,
+    //   targetX: state.targetX,
+    //   targetY: state.targetY,
+    //   reboundTargetX: state.reboundTargetX,
+    //   reboundTargetY: state.reboundTargetY,
+    //   triggerRebound: triggerRebound.value,
+    // });
+    // }
+    // eslint-disable-next-line no-lonely-if
     if (triggerRebound.value === undefined
       && Math.abs(state.currentX - state.targetX) < 1
       && Math.abs(state.currentY - state.targetY) < 1

@@ -623,12 +623,54 @@ const onPointerLeave = () => {
 
 const borderImage = computed(() => {
   const angle = props.illuminationAngle ?? 45;
-  const intensity = props.illuminationIntensity ?? 0.8;
-  const lightColor = `rgba(255, 255, 255, ${intensity})`;
-  const darkColor = `rgba(255, 255, 255, ${intensity * 0.4})`;
+  // Light-effect: same hue (white) with varying alpha for a glossy sweep
+  const intensity = props.illuminationIntensity ?? 0.5; // peak alpha
+  const low = Math.max(0, Math.min(intensity * 0.2, 1));
+  const mid = Math.max(0, Math.min(intensity * 0.45, 1));
+  const high = Math.max(0, Math.min(intensity, 1));
 
-  // Create a gradient border
-  return `linear-gradient(${angle}deg, ${lightColor}, ${darkColor})`;
+  const start = angle;
+  const fixAngle = (a: number) => ((a % 360) + 360) % 360;
+  const color = (alpha: number) => `rgba(255, 255, 255, ${alpha})`;
+
+  // Balanced stops: high-light → mid → low → mid → high (seamless)
+  let gradientList = [
+    { angle: fixAngle(start + 0), color: high },
+    { angle: fixAngle(start + 60), color: mid },
+    { angle: fixAngle(start + 90), color: low },
+    { angle: fixAngle(start + 120), color: mid },
+    { angle: fixAngle(start + 180), color: high },
+    { angle: fixAngle(start + 240), color: mid },
+    { angle: fixAngle(start + 270), color: low },
+    { angle: fixAngle(start + 300), color: mid },
+    { angle: fixAngle(start + 360), color: high },
+  ];
+
+  // Sort by angle
+  gradientList = gradientList.sort((a, b) => a.angle - b.angle);
+
+  // Ensure the ring wraps smoothly: explicit 0° and 360° stops with interpolated alpha
+  const firstStop = gradientList[0];
+  const lastStop = gradientList[gradientList.length - 1];
+
+  if (firstStop.angle !== 0) {
+    const span = 360 - lastStop.angle + firstStop.angle; // distance crossing 360→0
+    const ratio = span === 0 ? 0 : (360 - lastStop.angle) / span;
+    const interpolatedAlpha = lastStop.color + (firstStop.color - lastStop.color) * ratio;
+    gradientList.unshift({ angle: 0, color: interpolatedAlpha });
+  }
+
+  const newLast = gradientList[gradientList.length - 1];
+  if (newLast.angle !== 360) {
+    const endAlpha = gradientList[0].color; // match 0° to avoid seam
+    gradientList.push({ angle: 360, color: endAlpha });
+  }
+
+  const gradientStops = gradientList
+    .map((stop) => `${color(stop.color)} ${stop.angle}deg`)
+    .join(', ');
+
+  return `conic-gradient(${gradientStops})`;
 });
 
 watch(() => interactionState.value.interacting, () => {
@@ -717,7 +759,6 @@ defineExpose({ updating, startUpdating, stopUpdating });
   width: 100%;
   height: 100%;
   border-radius: v-bind(borderRadius);
-  border: 15px solid v-bind(borderImage);
   overflow: hidden;
   background-color: v-bind(calculatedBackgroundColor);
   color: v-bind(calculatedForegroundColor);
@@ -726,6 +767,27 @@ defineExpose({ updating, startUpdating, stopUpdating });
   will-change: transform;
 
   transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
+}
+
+.liquid-glass-material::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: v-bind(borderImage);
+  background-size: 100% 100%;
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.liquid-glass-material>* {
+  position: relative;
+  z-index: 1;
 }
 
 .liquid-glass-material[allowing-color-transition="true"] {

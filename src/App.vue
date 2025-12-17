@@ -13,7 +13,13 @@
                 <div class="demo-tile">Texture</div>
                 <div class="demo-tile">Shape</div>
               </div>
-              <!-- <img src="/susu.webp" /> -->
+              <div>
+                <label>
+                  <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
+                  Show Susu
+                </label>
+              </div>
+              <img src="/susu.webp" v-if="showImage" />
             </div>
           </template>
         </LgBackdropConverter>
@@ -163,6 +169,7 @@ import {
 } from './index';
 
 const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
+const showImage = ref<boolean>(false);
 
 watch(showDebug, (newVal) => {
   localStorage.setItem('liquid-glass-debugger-open', newVal ? 'true' : 'false');
@@ -290,7 +297,7 @@ html {
 }
 
 .single-glass-container {
-  width: 95vw;
+  width: 70vw;
   height: 920px;
   border: 1px solid #ccc;
   border-radius: 12px;
@@ -317,7 +324,7 @@ html {
 }
 
 .demo-backdrop {
-  width: 90vw;
+  width: 60vw;
   height: 100%;
   border-radius: 12px;
   background: radial-gradient(circle at 20% 20%, #2d7cf1 0%, rgba(45, 124, 241, 0) 40%),

@@ -2,7 +2,7 @@
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
     <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.8">
-      <div class="single-glass-layout">
+      <LgBackdropScrollArea class="single-glass-layout">
         <LgBackdropConverter :capture-lib="'html-to-image'">
           <template #default="{ requestBackdropRedraw }">
             <div class="demo-backdrop">
@@ -23,30 +23,30 @@
             </div>
           </template>
         </LgBackdropConverter>
+      </LgBackdropScrollArea>
 
-        <div class="canvas-container">
-          <LgBackdropCanvas :draw="drawBlueRect" />
-        </div>
+      <div class="canvas-container">
+        <LgBackdropCanvas :draw="drawBlueRect" />
+      </div>
 
-        <div class="demo-material" :position="demoMaterial0Position">
-          <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
-            <div class="demo-card">
-              <h3>Glass card</h3>
-              <button @click="updateDemoMaterial0Position()">Click</button>
-            </div>
-          </LiquidGlassMaterial>
-        </div>
+      <div class="demo-material" :position="demoMaterial0Position">
+        <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
+          <div class="demo-card">
+            <h3>Glass card</h3>
+            <button @click="updateDemoMaterial0Position()">Click</button>
+          </div>
+        </LiquidGlassMaterial>
+      </div>
 
-        <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-          <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="28"
-            ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
-            <div class="demo-card">
-              <span>Drag or Resize</span>
-            </div>
-          </LiquidGlassMaterial>
+      <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
+        <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="28" ref="demoMaterial1"
+          :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
+          <div class="demo-card">
+            <span>Drag or Resize</span>
+          </div>
+        </LiquidGlassMaterial>
 
-          <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
-        </div>
+        <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
       </div>
       <LiquidGlassDebugger v-if="showDebug" />
     </LiquidGlass>
@@ -316,6 +316,7 @@ html {
 }
 
 .single-glass-layout {
+  width: 40vw;
   height: calc(100% - 42px);
   display: grid;
   grid-template-columns: 2fr 1fr;

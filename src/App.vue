@@ -1,29 +1,31 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.8">
-      <LgBackdropScrollArea class="single-glass-layout">
-        <LgBackdropConverter :capture-lib="'html-to-image'">
-          <template #default="{ requestBackdropRedraw }">
-            <div class="demo-backdrop">
-              <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
-              <div class="demo-tiles">
-                <div class="demo-tile">Color</div>
-                <div class="demo-tile">Noise</div>
-                <div class="demo-tile">Texture</div>
-                <div class="demo-tile">Shape</div>
+    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.3">
+      <div class="single-glass-layout">
+        <LiquidGlassScrollArea>
+          <LgBackdropConverter :capture-lib="'html-to-image'">
+            <template #default="{ requestBackdropRedraw }">
+              <div class="demo-backdrop">
+                <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
+                <div class="demo-tiles">
+                  <div class="demo-tile">Color</div>
+                  <div class="demo-tile">Noise</div>
+                  <div class="demo-tile">Texture</div>
+                  <div class="demo-tile">Shape</div>
+                </div>
+                <div>
+                  <label>
+                    <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
+                    Show Susu
+                  </label>
+                </div>
+                <img src="/susu.webp" v-if="showImage" />
               </div>
-              <div>
-                <label>
-                  <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
-                  Show Susu
-                </label>
-              </div>
-              <img src="/susu.webp" v-if="showImage" />
-            </div>
-          </template>
-        </LgBackdropConverter>
-      </LgBackdropScrollArea>
+            </template>
+          </LgBackdropConverter>
+        </LiquidGlassScrollArea>
+      </div>
 
       <div class="canvas-container">
         <LgBackdropCanvas :draw="drawBlueRect" />
@@ -162,10 +164,10 @@ import {
   CustomDrawCallback,
   LgBackdropCanvas,
   LgBackdropConverter,
-  LgBackdropScrollArea,
   LiquidGlass,
   LiquidGlassDebugger,
   LiquidGlassMaterial,
+  LiquidGlassScrollArea,
 } from './index';
 
 const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
@@ -322,6 +324,7 @@ html {
   grid-template-columns: 2fr 1fr;
   gap: 16px;
   padding: 12px 16px 16px;
+  overflow: auto;
 }
 
 .demo-backdrop {

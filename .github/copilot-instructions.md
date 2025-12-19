@@ -18,5 +18,3 @@
 具体的技术细节与 AI 探讨后 在 [需求](../.development/doc/需求.md) & [开发计划](../.development/doc/开发计划.md) 中。Liquid Glass 效果参考 Telegram Android 的效果和外部存储库 https://github.com/Muggleee/liquid-glass，将其 Java 转换为 Canvas&JS 实现。 [tAndroidReference](../.development/tAndroidReference/README.md)
 
 组件库&技术栈为 Vite+Vue+TS 开发。
-
-**每次做出修改后，不要急于结束对话，而是尝试运行 pnpm dev，收集我的反馈后按要求继续对话。**

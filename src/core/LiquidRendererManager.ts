@@ -19,6 +19,11 @@ export class LiquidRendererManager extends EventEmitter {
 
   public materialsCanvas = document.createElement('canvas');
 
+  // Cached composite canvas used when baking backdrop + materials for nesting
+  private compositeCanvas: OffscreenCanvas | null = null;
+
+  private compositeCanvasCtx: OffscreenCanvasRenderingContext2D | null = null;
+
   private renderer: LiquidGlassRenderer | null = null;
 
   public renderPrecision = 0; // 0=auto
@@ -204,6 +209,21 @@ export class LiquidRendererManager extends EventEmitter {
   private rafLoop() {
     if (!this.isRunning) return;
 
+    // Ensure canvases stay in sync with container size to avoid stretched backdrops
+    const dpr = window.devicePixelRatio || 1;
+    const expectedBackdropWidth = Math.round(this.container?.scrollWidth * dpr || 0);
+    const expectedBackdropHeight = Math.round(this.container?.scrollHeight * dpr || 0);
+    if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
+      const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
+        || this.backdropCanvas.height !== expectedBackdropHeight;
+      if (sizeMismatch) {
+        this.log('debug', 'RAF: Backdrop canvas size mismatch detected; resizing');
+        this.resizeInternalCanvases(expectedBackdropWidth, expectedBackdropHeight);
+        this.isBackdropDirty = true;
+        this.hasPendingBackdropRenderRequest = true;
+      }
+    }
+
     // Check if we need to do anything
     if (this.isLayoutDirty) {
       this.log('debug', 'RAF: Layout dirty, recalculating positions');
@@ -224,6 +244,11 @@ export class LiquidRendererManager extends EventEmitter {
       this.log('debug', 'RAF: Texture dirty, rendering materials');
       this.renderMaterials();
       this.isTextureDirty = false;
+    }
+
+    if (this.hasPendingBackdropRenderRequest && !this.isRenderingBackdrop) {
+      this.hasPendingBackdropRenderRequest = false;
+      this.captureBackdrop();
     }
 
     // Schedule next frame
@@ -350,21 +375,63 @@ export class LiquidRendererManager extends EventEmitter {
     this.scroll.x = this.content.scrollLeft || 0;
     this.scroll.y = this.content.scrollTop || 0;
 
+    const contentWidth = this.container.scrollWidth;
+    const contentHeight = this.container.scrollHeight;
+
     // Canvas sizing strategy based on scrollable mode
     if (this.scrollable) {
       // Scrollable mode: Canvas = full content size
-      this.size.width = this.content.scrollWidth;
-      this.size.height = this.content.scrollHeight;
+      this.size.width = contentWidth;
+      this.size.height = contentHeight;
     } else {
-      // Non-scrollable mode: Canvas = viewport size
-      this.size.width = rect.width;
-      this.size.height = rect.height;
+      // Non-scrollable mode: Canvas = at least viewport, but honor content growth to avoid stretching
+      this.size.width = Math.max(rect.width, contentWidth);
+      this.size.height = Math.max(rect.height, contentHeight);
     }
 
     this.viewportSize.width = rect.width;
     this.viewportSize.height = rect.height;
     
     return rect;
+  }
+
+  /**
+   * Keep internal canvases sized to container scroll size (device-pixel aware).
+   */
+  private resizeInternalCanvases(newWidth: number, newHeight: number) {
+    if (newWidth <= 0 || newHeight <= 0) return;
+
+    const backdropChanged = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
+
+    if (!backdropChanged) return;
+
+    this.log('debug', `Resizing internal canvases to ${newWidth}x${newHeight}`);
+
+    this.backdropCanvas.width = newWidth;
+    this.backdropCanvas.height = newHeight;
+
+    // Resize materials canvas and dispose renderer if the size changes
+    if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
+      if (this.renderer) {
+        this.renderer.dispose();
+        this.renderer = null;
+      }
+      this.addedMaterialIds.clear();
+      this.backdropCanvasForGL = null;
+      this.backdropCanvasForGLCtx = null;
+
+      this.materialsCanvas.width = newWidth;
+      this.materialsCanvas.height = newHeight;
+    }
+
+    // Composite canvas should match the new size on next use
+    this.compositeCanvas = null;
+    this.compositeCanvasCtx = null;
+
+    // Ask backdrop elements to refresh their cached bounds without triggering render storms
+    this.registeredBackdropElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
   }
 
   /**
@@ -384,40 +451,11 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     const dpr = window.devicePixelRatio || 1;
-    const newWidth = Math.round(this.size.width * dpr);
-    const newHeight = Math.round(this.size.height * dpr);
+    const newWidth = Math.round(this.container.scrollWidth * dpr);
+    const newHeight = Math.round(this.container.scrollHeight * dpr);
 
     // Check if canvas needs resizing
-    const needsResize = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
-    
-    if (needsResize) {
-      this.log('debug', `Resizing backdrop canvas from ${this.backdropCanvas.width}x${this.backdropCanvas.height} to ${newWidth}x${newHeight}`);
-      
-      this.backdropCanvas.width = newWidth;
-      this.backdropCanvas.height = newHeight;
-
-      // Check if materialsCanvas size needs to change
-      if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
-        this.log('debug', 'Materials canvas size changed, disposing old renderer');
-        if (this.renderer) {
-          this.renderer.dispose();
-          this.renderer = null;
-        }
-        // Clear tracked materials so they get re-added to the new renderer
-        this.addedMaterialIds.clear();
-        // Clear cached backdrop canvas so it gets recreated with new size
-        this.backdropCanvasForGL = null;
-        this.backdropCanvasForGLCtx = null;
-
-        this.materialsCanvas.width = newWidth;
-        this.materialsCanvas.height = newHeight;
-      }
-
-      // Ask backdrop elements to re-check their sizes
-      this.registeredBackdropElements.forEach((el) => {
-        el.updatePositionAndSize({ suppressReRender: true });
-      });
-    }
+    this.resizeInternalCanvases(newWidth, newHeight);
 
     this.isRenderingBackdrop = true;
     this.updateFallbackMode();
@@ -699,7 +737,7 @@ export class LiquidRendererManager extends EventEmitter {
 
       this.isRenderingMaterials = false;
 
-      this.renderFullCanvas();
+      this.renderFullComposite();
 
       // If there was a pending request, trigger another render
       if (this.hasPendingMaterialsRenderRequest) {
@@ -709,46 +747,46 @@ export class LiquidRendererManager extends EventEmitter {
     });
   }
 
-  public renderFullCanvas() {
-    // Duplicate backdrop canvas
-    const fullCanvas = new OffscreenCanvas(this.viewportSize.width * (window.devicePixelRatio || 1), this.viewportSize.height * (window.devicePixelRatio || 1));
-    const fullCtx = fullCanvas.getContext('2d');
-    if (!fullCtx) {
-      this.log('error', 'Failed to get 2D context for full canvas rendering');
+  public renderFullComposite() {
+    const width = this.backdropCanvas.width || this.materialsCanvas.width;
+    const height = this.backdropCanvas.height || this.materialsCanvas.height;
+
+    if (width === 0 || height === 0) {
+      this.log('warn', 'Skipping full composite render because canvas size is zero');
       return;
     }
 
-    // Draw backdrop
-    fullCtx.drawImage(
-      this.backdropCanvas,
-      this.scroll.x * (window.devicePixelRatio || 1),
-      this.scroll.y * (window.devicePixelRatio || 1),
-      this.viewportSize.width * (window.devicePixelRatio || 1),
-      this.viewportSize.height * (window.devicePixelRatio || 1),
-      0,
-      0,
-      this.viewportSize.width * (window.devicePixelRatio || 1),
-      this.viewportSize.height * (window.devicePixelRatio || 1),
-    );
+    if (!this.compositeCanvas || this.compositeCanvas.width !== width || this.compositeCanvas.height !== height) {
+      this.compositeCanvas = new OffscreenCanvas(width, height);
+      this.compositeCanvasCtx = this.compositeCanvas.getContext('2d');
+    }
 
-    // Draw materials
-    fullCtx.drawImage(
-      this.materialsCanvas,
-      this.scroll.x * (window.devicePixelRatio || 1),
-      this.scroll.y * (window.devicePixelRatio || 1),
-      this.viewportSize.width * (window.devicePixelRatio || 1),
-      this.viewportSize.height * (window.devicePixelRatio || 1),
-      0,
-      0,
-      this.viewportSize.width * (window.devicePixelRatio || 1),
-      this.viewportSize.height * (window.devicePixelRatio || 1),
-    );
+    if (!this.compositeCanvasCtx || !this.compositeCanvas) {
+      this.log('error', 'Failed to get 2D context for composite canvas rendering');
+      return;
+    }
+
+    this.compositeCanvasCtx.clearRect(0, 0, width, height);
+
+    // Draw backdrop then materials with normal alpha blending
+    if (this.backdropCanvas.width && this.backdropCanvas.height) {
+      this.compositeCanvasCtx.drawImage(this.backdropCanvas, 0, 0);
+    }
+
+    if (this.materialsCanvas.width && this.materialsCanvas.height) {
+      this.compositeCanvasCtx.drawImage(this.materialsCanvas, 0, 0);
+    }
 
     this.emit('fullCanvasRendered', {
-      canvas: fullCanvas,
-      width: fullCanvas.width,
-      height: fullCanvas.height,
+      canvas: this.compositeCanvas,
+      width: this.compositeCanvas.width,
+      height: this.compositeCanvas.height,
     } as LiquidRendererFullCanvasRenderedEvent);
+  }
+
+  // Backward-compatible alias
+  public renderFullCanvas() {
+    this.renderFullComposite();
   }
 
   /**

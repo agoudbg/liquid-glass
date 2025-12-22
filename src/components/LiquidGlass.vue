@@ -1,8 +1,13 @@
 <template>
   <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
-    <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">
+    <div
+      class="liquid-glass-content"
+      :class="{ 'scrollable': props.scrollable }"
+      :style="{ zIndex: contentZIndex }"
+      ref="content"
+    >
       <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
-        :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
+        :is-fallback-mode="isFallbackMode" :style="{ zIndex: canvasZIndex }" ref="uniformCanvas"></canvas>
       <slot></slot>
     </div>
   </div>
@@ -11,10 +16,12 @@
 <script lang="ts" setup>
 
 import {
-  onMounted, onUnmounted, ref, watch,
+  computed, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 
-import { provideLiquidContext, useLiquidContext } from '../core/LiquidContext';
+import {
+  provideLiquidContext, provideLiquidDepth, useLiquidContext, useLiquidDepth,
+} from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
 import { LiquidRendererFullCanvasRenderedEvent } from '../types/LiquidGlass';
@@ -25,9 +32,12 @@ const props = defineProps<{
   renderMode?: 'uniform' | 'dedicated';
   powerEfficientMode?: boolean;
   scrollable?: boolean;
+  zIndex?: number;
 }>();
 
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
+const parentDepth = useLiquidDepth(-1);
+const depth = (parentDepth ?? -1) + 1;
 
 // Try to get parent LiquidRendererManager from context
 let parentManager = null;
@@ -47,6 +57,15 @@ const manager: LiquidRendererManager = new LiquidRendererManager({
 });
 
 provideLiquidContext(manager);
+provideLiquidDepth(depth);
+
+const contentZIndex = computed(() => (props.zIndex !== undefined
+  ? props.zIndex
+  : 10000 - depth * 2));
+
+const canvasZIndex = computed(() => (props.zIndex !== undefined
+  ? props.zIndex - 1
+  : 9999 - depth * 2));
 
 const isFallbackMode = ref<boolean>(false);
 const onFallbackModeChanged = (fallback: boolean) => {
@@ -120,7 +139,7 @@ onMounted(() => {
   manager.on('backdropCaptured', () => {
     // Only when backdrop content changes, render full canvas for parent
     if (backdropManager.value) {
-      manager.renderFullCanvas();
+      manager.renderFullComposite();
     }
   });
 
@@ -147,7 +166,7 @@ onMounted(() => {
       watchResize: false, // Don't watch resize - manager handles via RAF
       watchNodeChanges: true, // Only structural changes
     });
-    manager.renderFullCanvas();
+    manager.renderFullComposite();
   }
 });
 

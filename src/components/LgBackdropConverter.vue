@@ -5,7 +5,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
+let resizeObserver: ResizeObserver | null = null;
 
 const defaultPixelRatio = window.devicePixelRatio || 1;
 
@@ -97,6 +98,13 @@ onMounted(() => {
 
     drawBackdrop();
 
+    // ResizeObserver on the converted element to catch internal size changes
+    resizeObserver = new ResizeObserver(() => {
+      backdropManager.value?.updatePositionAndSize({ suppressReRender: true });
+      drawBackdrop();
+    });
+    resizeObserver.observe(backdropElement.value);
+
     // Listen for re-capture requests from the backdrop element
     backdropManager.value.on('requestBackdropCapture', () => {
       // Draw the backdrop using the selected library
@@ -104,6 +112,12 @@ onMounted(() => {
       drawBackdrop();
     });
   }
+});
+
+onUnmounted(() => {
+  resizeObserver?.disconnect();
+  resizeObserver = null;
+  backdropManager.value?.destroy();
 });
 
 watch(() => props.zIndex, (newVal) => {

@@ -76,19 +76,13 @@ export class LiquidRendererMaterialElement extends EventEmitter {
    * Add event listeners based on options
    */
   private addEventListeners() {
-    // Add any event listeners needed for this material element
-    // Todo: add debounce
-    const resizeObserver = new ResizeObserver(() => {
-      this.manager.log('debug', 'Material element resized:', this.element);
-      // Handle resize logic
-      this.updatePositionAndSize();
-    });
-    resizeObserver.observe(this.element);
+    // No individual listeners needed - manager handles all resize/position updates via RAF loop
+    // This reduces performance overhead and prevents cascading updates
+    this.manager.log('debug', 'MaterialElement initialized without individual observers');
   }
 
   public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
     const rect = this.element.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
     const {
       translateX, translateY, scaleX, scaleY,
     } = this.transform;
@@ -123,7 +117,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
   public sendReRenderRequest() {
     this.manager.log('debug', 'Requesting re-render for material element:', this.element);
-    this.manager.onMaterialElementChange();
+    this.manager.markTextureDirty();
   }
 
   /**

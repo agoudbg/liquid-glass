@@ -66,6 +66,21 @@ export class LiquidRendererManager extends EventEmitter {
 
   public visible: boolean = true;
 
+  // RAF loop and dirty flags
+  private rafId: number | null = null;
+
+  private isLayoutDirty = false;
+
+  private isTextureDirty = false;
+
+  private isRunning = false;
+
+  // Scrollable mode
+  public scrollable = false;
+
+  // Event listener cleanup
+  private cleanupFunctions: Array<() => void> = [];
+
   constructor(options: LiquidRendererManagerOptions) {
     super();
     // Initialize with options if needed
@@ -77,6 +92,7 @@ export class LiquidRendererManager extends EventEmitter {
     if (options.container) {
       this.container = options.container;
       this.content = this.container.getElementsByClassName('liquid-glass-content')[0] as HTMLElement;
+      this.scrollable = options.scrollable ?? false;
       this.addResizeListeners();
     } else {
       // Fallback to document body if no container provided
@@ -145,7 +161,87 @@ export class LiquidRendererManager extends EventEmitter {
       this.log('debug', `Power efficient mode set to: ${this.powerEfficientMode}`);
     }
 
+    if (options.scrollable !== undefined) {
+      this.scrollable = options.scrollable;
+      this.log('debug', `Scrollable mode set to: ${this.scrollable}`);
+      this.markLayoutDirty();
+    }
+
     this.emit('optionsChanged', options);
+
+    // Start RAF loop if not already running
+    if (!this.isRunning) {
+      this.startRAFLoop();
+    }
+  }
+
+  /**
+   * Start the RAF loop for centralized update handling
+   */
+  private startRAFLoop() {
+    if (this.isRunning) return;
+    this.isRunning = true;
+    this.log('debug', 'Starting RAF loop');
+    this.rafLoop();
+  }
+
+  /**
+   * Stop the RAF loop
+   */
+  private stopRAFLoop() {
+    if (!this.isRunning) return;
+    this.isRunning = false;
+    if (this.rafId !== null) {
+      cancelAnimationFrame(this.rafId);
+      this.rafId = null;
+    }
+    this.log('debug', 'Stopped RAF loop');
+  }
+
+  /**
+   * RAF loop: centralized update mechanism
+   */
+  private rafLoop() {
+    if (!this.isRunning) return;
+
+    // Check if we need to do anything
+    if (this.isLayoutDirty) {
+      this.log('debug', 'RAF: Layout dirty, recalculating positions');
+      
+      // Update container first
+      this.updateContainerPositionAndSize();
+      
+      // Recalculate all material positions
+      this.registeredMaterialElements.forEach((el) => {
+        el.updatePositionAndSize({ suppressReRender: true });
+      });
+      
+      this.isLayoutDirty = false;
+      this.isTextureDirty = true; // Layout change requires re-render
+    }
+
+    if (this.isTextureDirty && !this.isRenderingMaterials) {
+      this.log('debug', 'RAF: Texture dirty, rendering materials');
+      this.renderMaterials();
+      this.isTextureDirty = false;
+    }
+
+    // Schedule next frame
+    this.rafId = requestAnimationFrame(() => this.rafLoop());
+  }
+
+  /**
+   * Mark layout as dirty (positions/sizes changed)
+   */
+  public markLayoutDirty() {
+    this.isLayoutDirty = true;
+  }
+
+  /**
+   * Mark texture as dirty (need to re-render WebGL)
+   */
+  public markTextureDirty() {
+    this.isTextureDirty = true;
   }
 
   public registerBackdropElement(element: LiquidRendererBackdropElement) {
@@ -175,7 +271,8 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
-    this.log('debug', 'No pending. Backdrop elements changed, capturing backdrop.');
+    this.log('debug', 'No pending. Backdrop elements changed, marking backdrop dirty.');
+    this.isBackdropDirty = true;
     this.captureBackdrop();
   }
 
@@ -197,7 +294,7 @@ export class LiquidRendererManager extends EventEmitter {
     this.emit('materialElementChanged', this.registeredMaterialElements);
 
     // Re-render materials when elements change
-    this.renderMaterials();
+    this.markTextureDirty();
   }
 
   /**
@@ -206,21 +303,37 @@ export class LiquidRendererManager extends EventEmitter {
   private addResizeListeners() {
     this.log('debug', 'Adding resize listeners');
 
+    // Clean up old listeners
+    this.cleanupListeners();
+
     const resizeObserver = new ResizeObserver(() => {
-      this.onContainerChange();
+      this.markLayoutDirty();
     });
     resizeObserver.observe(this.container);
+    this.cleanupFunctions.push(() => resizeObserver.disconnect());
 
-    window.addEventListener('resize', () => {
-      this.onContainerChange();
-    });
+    const windowResizeHandler = () => {
+      this.markLayoutDirty();
+    };
+    window.addEventListener('resize', windowResizeHandler);
+    this.cleanupFunctions.push(() => window.removeEventListener('resize', windowResizeHandler));
 
-    this.content.addEventListener('scroll', () => {
-      this.onContainerChange();
-    });
+    const scrollHandler = () => {
+      this.markLayoutDirty();
+    };
+    this.content.addEventListener('scroll', scrollHandler);
+    this.cleanupFunctions.push(() => this.content.removeEventListener('scroll', scrollHandler));
 
-    // Initial resize
-    this.onContainerChange();
+    // Initial update
+    this.markLayoutDirty();
+  }
+
+  /**
+   * Clean up event listeners
+   */
+  private cleanupListeners() {
+    this.cleanupFunctions.forEach((cleanup) => cleanup());
+    this.cleanupFunctions = [];
   }
 
   /**
@@ -237,88 +350,21 @@ export class LiquidRendererManager extends EventEmitter {
     this.scroll.x = this.content.scrollLeft || 0;
     this.scroll.y = this.content.scrollTop || 0;
 
-    this.size.width = this.content.scrollWidth;
-    this.size.height = this.content.scrollHeight;
+    // Canvas sizing strategy based on scrollable mode
+    if (this.scrollable) {
+      // Scrollable mode: Canvas = full content size
+      this.size.width = this.content.scrollWidth;
+      this.size.height = this.content.scrollHeight;
+    } else {
+      // Non-scrollable mode: Canvas = viewport size
+      this.size.width = rect.width;
+      this.size.height = rect.height;
+    }
 
     this.viewportSize.width = rect.width;
     this.viewportSize.height = rect.height;
+    
     return rect;
-  }
-
-  /**
-   * Handle container change events
-   */
-  private async onContainerChange() {
-    this.log('debug', 'Container resized');
-
-    const scrollBefore = { ...this.scroll };
-
-    const rect = this.updateContainerPositionAndSize();
-    const dpr = window.devicePixelRatio || 1;
-    const newWidth = Math.round(this.size.width * dpr);
-    const newHeight = Math.round(this.size.height * dpr);
-
-    // Skip if container has no size yet
-    if (newWidth <= 0 || newHeight <= 0) {
-      this.log('debug', 'Skipping resize - container has no size');
-      return;
-    }
-
-    // Check if size actually changed
-    const sizeChanged = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
-    const scrollChanged = this.scroll.x !== scrollBefore.x || this.scroll.y !== scrollBefore.y;
-
-    if (!sizeChanged && !scrollChanged) {
-      this.log('debug', 'Container size unchanged, skipping resize');
-      return;
-    }
-
-    // If only scroll changed, we can skip resizing canvases
-    if (!sizeChanged && scrollChanged) {
-      this.log('debug', 'Container scroll changed, re-rendering materials');
-      this.renderMaterials();
-      return;
-    }
-
-    this.backdropCanvas.width = newWidth;
-    this.backdropCanvas.height = newHeight;
-
-    // If a backdrop capture is in progress, we need to restart it with the new size
-    // Mark that we need to redo the capture
-    if (this.isRenderingBackdrop) {
-      this.hasPendingBackdropRenderRequest = true;
-      this.log('debug', 'Backdrop capture in progress, will restart after current capture');
-    }
-
-    // Check if materialsCanvas size needs to change
-    // Modifying canvas.width/height resets WebGL context, so we must dispose the renderer
-    if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
-      this.log('debug', 'Materials canvas size changed, disposing old renderer');
-      if (this.renderer) {
-        this.renderer.dispose();
-        this.renderer = null;
-      }
-      // Clear tracked materials so they get re-added to the new renderer
-      this.addedMaterialIds.clear();
-      // Clear cached backdrop canvas so it gets recreated with new size
-      this.backdropCanvasForGL = null;
-      this.backdropCanvasForGLCtx = null;
-      // Force backdrop to be dirty so it gets uploaded to the new renderer
-      this.isBackdropDirty = true;
-
-      this.materialsCanvas.width = newWidth;
-      this.materialsCanvas.height = newHeight;
-    }
-
-    // Ask backdrop to re-check their sizes
-    this.registeredBackdropElements.forEach((el) => {
-      el.updatePositionAndSize();
-    });
-
-    this.log('debug', `Canvas resized to ${this.backdropCanvas.width}x${this.backdropCanvas.height}`);
-
-    // Capture the backdrop after resizing
-    await this.captureBackdrop();
   }
 
   /**
@@ -337,6 +383,42 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
+    const dpr = window.devicePixelRatio || 1;
+    const newWidth = Math.round(this.size.width * dpr);
+    const newHeight = Math.round(this.size.height * dpr);
+
+    // Check if canvas needs resizing
+    const needsResize = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
+    
+    if (needsResize) {
+      this.log('debug', `Resizing backdrop canvas from ${this.backdropCanvas.width}x${this.backdropCanvas.height} to ${newWidth}x${newHeight}`);
+      
+      this.backdropCanvas.width = newWidth;
+      this.backdropCanvas.height = newHeight;
+
+      // Check if materialsCanvas size needs to change
+      if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
+        this.log('debug', 'Materials canvas size changed, disposing old renderer');
+        if (this.renderer) {
+          this.renderer.dispose();
+          this.renderer = null;
+        }
+        // Clear tracked materials so they get re-added to the new renderer
+        this.addedMaterialIds.clear();
+        // Clear cached backdrop canvas so it gets recreated with new size
+        this.backdropCanvasForGL = null;
+        this.backdropCanvasForGLCtx = null;
+
+        this.materialsCanvas.width = newWidth;
+        this.materialsCanvas.height = newHeight;
+      }
+
+      // Ask backdrop elements to re-check their sizes
+      this.registeredBackdropElements.forEach((el) => {
+        el.updatePositionAndSize({ suppressReRender: true });
+      });
+    }
+
     this.isRenderingBackdrop = true;
     this.updateFallbackMode();
 
@@ -349,8 +431,6 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     ctx.clearRect(0, 0, this.backdropCanvas.width, this.backdropCanvas.height);
-
-    const dpr = window.devicePixelRatio;
 
     ctx.save();
 
@@ -537,7 +617,6 @@ export class LiquidRendererManager extends EventEmitter {
     this.registeredMaterialElements.forEach((element) => {
       const { glassAttributes, position, size } = element;
       const { transform } = element;
-      const dpr = window.devicePixelRatio || 1;
 
       currentMaterialIds.add(element.materialId);
 
@@ -672,7 +751,23 @@ export class LiquidRendererManager extends EventEmitter {
     } as LiquidRendererFullCanvasRenderedEvent);
   }
 
+  /**
+   * Request backdrop capture from parent (for nested LiquidGlass)
+   * This should only be called when DOM structure changes, NOT on material interactions
+   */
+  public requestBackdropCapture() {
+    this.log('debug', 'Requesting backdrop capture due to structural change');
+    this.isBackdropDirty = true;
+    this.captureBackdrop();
+  }
+
   public dispose() {
+    // Stop RAF loop
+    this.stopRAFLoop();
+    
+    // Clean up listeners
+    this.cleanupListeners();
+    
     if (this.renderer) {
       this.renderer.dispose();
       this.renderer = null;

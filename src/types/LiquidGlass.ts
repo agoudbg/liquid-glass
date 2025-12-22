@@ -19,6 +19,8 @@ export interface LiquidRendererManagerOptions {
   /** Enable power efficient mode to reduce resource consumption */
   powerEfficientMode?: boolean;
   requireFullRender?: boolean;
+  /** Enable scrollable mode - sets overflow:auto and enables scroll management */
+  scrollable?: boolean;
 }
 
 export type LiquidRendererBackdropElementType = 'canvas' | 'html' | 'scroll_box' | 'liquid_glass' | undefined;

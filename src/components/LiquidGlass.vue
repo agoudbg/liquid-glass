@@ -1,6 +1,6 @@
 <template>
-  <div class="liquid-glass-container" ref="container">
-    <div class="liquid-glass-content" ref="content">
+  <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
+    <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">
       <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
         :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
       <slot></slot>
@@ -24,6 +24,7 @@ const props = defineProps<{
   renderPrecision?: number;
   renderMode?: 'uniform' | 'dedicated';
   powerEfficientMode?: boolean;
+  scrollable?: boolean;
 }>();
 
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
@@ -55,12 +56,13 @@ manager.on('fallbackModeChanged', onFallbackModeChanged);
 
 isFallbackMode.value = manager.isFallbackMode;
 
-watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode], () => {
+watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode, props.scrollable], () => {
   manager.setOptions({
     debug: props.debug,
     renderPrecision: props.renderPrecision,
     renderMode: props.renderMode,
     powerEfficientMode: props.powerEfficientMode,
+    scrollable: props.scrollable,
   });
 });
 
@@ -91,6 +93,7 @@ onMounted(() => {
       renderMode: props.renderMode ?? 'uniform',
       powerEfficientMode: props.powerEfficientMode ?? false,
       requireFullRender: !!backdropManager.value,
+      scrollable: props.scrollable ?? false,
     },
   );
 
@@ -113,8 +116,17 @@ onMounted(() => {
     }
   });
 
-  manager.on('fullCanvasRendered', ({ canvas, width, height }: LiquidRendererFullCanvasRenderedEvent) => {
-    // If has backdrop manager, upload backdrop to parent
+  // Listen to backdrop changes to update parent (not material changes)
+  manager.on('backdropCaptured', () => {
+    // Only when backdrop content changes, render full canvas for parent
+    if (backdropManager.value) {
+      manager.renderFullCanvas();
+    }
+  });
+
+  manager.on('fullCanvasRendered', ({ canvas }: LiquidRendererFullCanvasRenderedEvent) => {
+    // If has backdrop manager, upload composite to parent
+    // This is the "composite canvas" approach - only structural changes trigger this
     if (backdropManager.value) {
       backdropManager.value.requestManagerBackdropCapture(canvas);
     }
@@ -132,7 +144,8 @@ onMounted(() => {
   if (parentManager) {
     backdropManager.value = new LiquidRendererBackdropElement(parentManager, container.value!, {
       type: 'liquid_glass',
-      watchResize: true,
+      watchResize: false, // Don't watch resize - manager handles via RAF
+      watchNodeChanges: true, // Only structural changes
     });
     manager.renderFullCanvas();
   }
@@ -145,6 +158,25 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.liquid-glass-container {
+  position: relative;
+  overflow: visible;
+}
+
+.liquid-glass-container.scrollable {
+  overflow: auto;
+}
+
+.liquid-glass-content {
+  position: relative;
+}
+
+.liquid-glass-content.scrollable {
+  /* Scrollable mode: content may be larger than viewport */
+  min-width: 100%;
+  min-height: 100%;
+}
+
 .page-container {
   position: relative;
   width: 100%;

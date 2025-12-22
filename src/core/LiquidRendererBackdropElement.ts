@@ -50,42 +50,36 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   }
 
   public setOptions(options: Partial<LiquidRendererBackdropElementOptions>) {
-    this.options = { ...this.options, ...options };
-    this.manager.requestBackdropRender();
+    if (options.type !== undefined) {
+      this.type = options.type;
+    }
+    if (this.options) {
+      Object.assign(this.options, options);
+    } else {
+      this.options = options as LiquidRendererBackdropElementOptions;
+    }
+    // Structural change - request re-capture
+    this.sendReCaptureRequest();
   }
 
   /**
    * Add event listeners based on options
    */
   private addEventListeners() {
-    // Add any event listeners needed for this backdrop element
-    // Todo: add debounce
-    if (this.options?.watchResize) {
-      const resizeObserver = new ResizeObserver(() => {
-        this.manager.log('debug', 'Backdrop element resized:', this.element);
-        // Handle resize logic
-        this.updatePositionAndSize();
-      });
-      resizeObserver.observe(this.element);
-    }
-
+    // Only listen to structural changes that require re-capture
+    // Position/size updates are handled by manager's RAF loop
+    
     if (this.options?.watchNodeChanges) {
       const observer = new MutationObserver(() => {
-        this.manager.log('debug', 'Backdrop element node changed:', this.element);
-        // Handle node change logic
-        this.updatePositionAndSize();
+        this.manager.log('debug', 'Backdrop element DOM changed:', this.element);
+        // DOM structure changed - need to re-capture
+        this.sendReCaptureRequest();
       });
       observer.observe(this.element, { childList: true, subtree: true });
     }
 
-    if (this.options?.watchPositionChanges) {
-      // Position change detection can be complex; this is a placeholder
-      this.element.addEventListener('scroll', () => {
-        this.manager.log('debug', 'Backdrop element position may have changed due to scroll:', this.element);
-        // Handle position change logic
-        this.updatePositionAndSize();
-      });
-    }
+    // Note: Resize and scroll are now handled by the manager's centralized RAF loop
+    // This prevents child interactions from triggering expensive parent re-captures
   }
 
   public updatePositionAndSize(options?: { suppressReRender?: boolean }) {

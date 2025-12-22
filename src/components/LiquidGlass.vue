@@ -1,8 +1,10 @@
 <template>
   <div class="liquid-glass-container" ref="container">
-    <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
-      :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
-    <slot></slot>
+    <div class="liquid-glass-content" ref="content">
+      <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
+        :is-fallback-mode="isFallbackMode" ref="uniformCanvas"></canvas>
+      <slot></slot>
+    </div>
   </div>
 </template>
 
@@ -12,8 +14,10 @@ import {
   onMounted, onUnmounted, ref, watch,
 } from 'vue';
 
-import { provideLiquidContext } from '../core/LiquidContext';
+import { provideLiquidContext, useLiquidContext } from '../core/LiquidContext';
+import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
+import { LiquidRendererFullCanvasRenderedEvent } from '../types/LiquidGlass';
 
 const props = defineProps<{
   debug?: boolean;
@@ -23,6 +27,15 @@ const props = defineProps<{
 }>();
 
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
+
+// Try to get parent LiquidRendererManager from context
+let parentManager = null;
+const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
+try {
+  parentManager = useLiquidContext();
+} catch {
+  // No parent context found
+}
 
 // Initialize the LiquidRendererManager
 const manager: LiquidRendererManager = new LiquidRendererManager({
@@ -77,21 +90,33 @@ onMounted(() => {
       renderPrecision: props.renderPrecision ?? 0,
       renderMode: props.renderMode ?? 'uniform',
       powerEfficientMode: props.powerEfficientMode ?? false,
+      requireFullRender: !!backdropManager.value,
     },
   );
 
   manager.on('materialsRendered', () => {
-    // if is uniform mode, update the uniform canvas
+    // If is uniform mode, update the uniform canvas
     if (manager.renderMode === 'uniform') {
       if (uniformCanvas.value) {
         uniformCanvas.value.width = manager.materialsCanvas.width;
         uniformCanvas.value.height = manager.materialsCanvas.height;
+
+        uniformCanvas.value.style.width = `${manager.size.width}px`;
+        uniformCanvas.value.style.height = `${manager.size.height}px`;
+
         const ctx = uniformCanvas.value.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
           ctx.drawImage(manager.materialsCanvas, 0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
         }
       }
+    }
+  });
+
+  manager.on('fullCanvasRendered', ({ canvas, width, height }: LiquidRendererFullCanvasRenderedEvent) => {
+    // If has backdrop manager, upload backdrop to parent
+    if (backdropManager.value) {
+      backdropManager.value.requestManagerBackdropCapture(canvas);
     }
   });
 
@@ -103,7 +128,16 @@ onMounted(() => {
 
     window.addEventListener('visibilitychange', () => setVisibility(!document.hidden));
   }
+  // If has parent manager, register this manager as child
+  if (parentManager) {
+    backdropManager.value = new LiquidRendererBackdropElement(parentManager, container.value!, {
+      type: 'liquid_glass',
+      watchResize: true,
+    });
+    manager.renderFullCanvas();
+  }
 });
+
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
 });
@@ -111,19 +145,31 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.liquid-glass-container {
+.page-container {
   position: relative;
   width: 100%;
   height: 100%;
   overflow: hidden;
 }
 
+.liquid-glass-container {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.liquid-glass-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
 .liquid-glass-uniform-canvas {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
   z-index: 9999;
   pointer-events: none;
   transition: visibility 0.2s ease, opacity 0.2s ease;

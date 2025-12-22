@@ -53,7 +53,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public setOptions(options: Partial<LiquidRendererMaterialElementOptions>) {
     this.options = { ...this.options, ...options };
     this.initializeGlassAttributes(this.options);
-    this.manager.requestMaterialsRender();
+    // this.manager.requestMaterialsRender();
   }
 
   private initializeGlassAttributes(options: LiquidRendererMaterialElementOptions) {
@@ -107,11 +107,11 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     const y = rect.top + window.scrollY - translateY + offsetYFromScale;
 
     // Position should be relative to the document
-    this.position.x = x - this.manager.position.x;
-    this.position.y = y - this.manager.position.y;
+    this.position.x = x - this.manager.position.x + this.manager.scroll.x;
+    this.position.y = y - this.manager.position.y + this.manager.scroll.y;
 
-    this.size.width = width * dpr;
-    this.size.height = height * dpr;
+    this.size.width = width;
+    this.size.height = height;
 
     // Since position or size may have changed, re-calculate recommended attributes
     this.initializeGlassAttributes(this.options);

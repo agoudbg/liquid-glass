@@ -1,6 +1,8 @@
 import { toCanvas } from 'html-to-image';
 
-import { AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererManagerOptions } from '../types/LiquidGlass';
+import {
+  AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions,
+} from '../types/LiquidGlass';
 import { EventEmitter } from './EventEmitter';
 import { createLiquidGlassRenderer, LiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
@@ -10,6 +12,8 @@ export class LiquidRendererManager extends EventEmitter {
   public debug = false;
 
   public container: HTMLElement;
+
+  public content: HTMLElement;
 
   public backdropCanvas = new OffscreenCanvas(1, 1);
 
@@ -41,7 +45,13 @@ export class LiquidRendererManager extends EventEmitter {
 
   public position = { x: 0, y: 0 };
 
+  public scroll = { x: 0, y: 0 };
+
   public size = { width: 0, height: 0 };
+
+  public viewportSize = { width: 0, height: 0 };
+
+  public scrollBarSize = { width: 0, height: 0 };
 
   // Performance optimization: persistent canvas for WebGL backdrop conversion
   private backdropCanvasForGL: HTMLCanvasElement | null = null;
@@ -66,10 +76,12 @@ export class LiquidRendererManager extends EventEmitter {
     // Add resize listener and observer for container
     if (options.container) {
       this.container = options.container;
+      this.content = this.container.getElementsByClassName('liquid-glass-content')[0] as HTMLElement;
       this.addResizeListeners();
     } else {
       // Fallback to document body if no container provided
       this.container = document.body;
+      this.content = document.body;
       // This will not run resize listeners until container is set
       this.log('warn', 'No container provided for LiquidRendererManager; resize listeners not added.');
     }
@@ -94,6 +106,7 @@ export class LiquidRendererManager extends EventEmitter {
 
     if (options.container && options.container !== this.container) {
       this.container = options.container;
+      this.content = this.container.getElementsByClassName('liquid-glass-content')[0] as HTMLElement;
       this.log('debug', 'Container updated, adding resize listeners.');
 
       // Update container position first, BEFORE triggering any re-renders.
@@ -202,6 +215,10 @@ export class LiquidRendererManager extends EventEmitter {
       this.onContainerChange();
     });
 
+    this.content.addEventListener('scroll', () => {
+      this.onContainerChange();
+    });
+
     // Initial resize
     this.onContainerChange();
   }
@@ -213,9 +230,18 @@ export class LiquidRendererManager extends EventEmitter {
     const rect = this.container.getBoundingClientRect();
     this.position.x = rect.left + window.scrollX;
     this.position.y = rect.top + window.scrollY;
-    this.size.width = rect.width;
-    this.size.height = rect.height;
 
+    this.scrollBarSize.width = this.content.offsetWidth - this.content.clientWidth;
+    this.scrollBarSize.height = this.content.offsetHeight - this.content.clientHeight;
+
+    this.scroll.x = this.content.scrollLeft || 0;
+    this.scroll.y = this.content.scrollTop || 0;
+
+    this.size.width = this.content.scrollWidth;
+    this.size.height = this.content.scrollHeight;
+
+    this.viewportSize.width = rect.width;
+    this.viewportSize.height = rect.height;
     return rect;
   }
 
@@ -225,10 +251,12 @@ export class LiquidRendererManager extends EventEmitter {
   private async onContainerChange() {
     this.log('debug', 'Container resized');
 
+    const scrollBefore = { ...this.scroll };
+
     const rect = this.updateContainerPositionAndSize();
     const dpr = window.devicePixelRatio || 1;
-    const newWidth = Math.round(rect.width * dpr);
-    const newHeight = Math.round(rect.height * dpr);
+    const newWidth = Math.round(this.size.width * dpr);
+    const newHeight = Math.round(this.size.height * dpr);
 
     // Skip if container has no size yet
     if (newWidth <= 0 || newHeight <= 0) {
@@ -238,8 +266,17 @@ export class LiquidRendererManager extends EventEmitter {
 
     // Check if size actually changed
     const sizeChanged = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
-    if (!sizeChanged) {
+    const scrollChanged = this.scroll.x !== scrollBefore.x || this.scroll.y !== scrollBefore.y;
+
+    if (!sizeChanged && !scrollChanged) {
       this.log('debug', 'Container size unchanged, skipping resize');
+      return;
+    }
+
+    // If only scroll changed, we can skip resizing canvases
+    if (!sizeChanged && scrollChanged) {
+      this.log('debug', 'Container scroll changed, re-rendering materials');
+      this.renderMaterials();
       return;
     }
 
@@ -332,8 +369,8 @@ export class LiquidRendererManager extends EventEmitter {
       // Since backgroundImage is complex, use html-to-image to capture it
       // Create a element with the same size and background but no children
       const bgDiv = document.createElement('div');
-      bgDiv.style.width = `${this.container.clientWidth}px`;
-      bgDiv.style.height = `${this.container.clientHeight}px`;
+      bgDiv.style.width = `${this.content.scrollWidth}px`;
+      bgDiv.style.height = `${this.content.scrollHeight}px`;
       bgDiv.style.backgroundColor = backgroundColor;
       bgDiv.style.backgroundImage = backgroundImage;
       bgDiv.style.backgroundSize = style.backgroundSize;
@@ -344,7 +381,7 @@ export class LiquidRendererManager extends EventEmitter {
       document.body.appendChild(bgDiv);
 
       await toCanvas(bgDiv).then((bgCanvas) => {
-        ctx.drawImage(bgCanvas, 0, 0, this.container.clientWidth, this.container.clientHeight);
+        ctx.drawImage(bgCanvas, 0, 0, this.content.scrollWidth, this.content.scrollHeight);
         this.log('debug', `Drawn backdrop with background image: ${backgroundImage}`);
         document.body.removeChild(bgDiv);
       }).catch((error) => {
@@ -515,13 +552,20 @@ export class LiquidRendererManager extends EventEmitter {
         radiusBR: glassAttributes.radiusBR,
         radiusBL: glassAttributes.radiusBL,
         radiusTL: glassAttributes.radiusTL,
-        width: size.width / dpr,
-        height: size.height / dpr,
+        width: size.width,
+        height: size.height,
       };
 
+      this.log('info', 'Material config for element:', {
+        scroll: this.scroll,
+        position,
+        pPosition: this.position,
+        size,
+      });
+
       const materialPosition = {
-        x: position.x + size.width / 2 / dpr,
-        y: position.y + size.height / 2 / dpr,
+        x: position.x + size.width / 2,
+        y: position.y + size.height / 2,
       };
 
       if (this.addedMaterialIds.has(element.materialId)) {
@@ -576,12 +620,56 @@ export class LiquidRendererManager extends EventEmitter {
 
       this.isRenderingMaterials = false;
 
+      this.renderFullCanvas();
+
       // If there was a pending request, trigger another render
       if (this.hasPendingMaterialsRenderRequest) {
         this.hasPendingMaterialsRenderRequest = false;
         this.renderMaterials();
       }
     });
+  }
+
+  public renderFullCanvas() {
+    // Duplicate backdrop canvas
+    const fullCanvas = new OffscreenCanvas(this.viewportSize.width * (window.devicePixelRatio || 1), this.viewportSize.height * (window.devicePixelRatio || 1));
+    const fullCtx = fullCanvas.getContext('2d');
+    if (!fullCtx) {
+      this.log('error', 'Failed to get 2D context for full canvas rendering');
+      return;
+    }
+
+    // Draw backdrop
+    fullCtx.drawImage(
+      this.backdropCanvas,
+      this.scroll.x * (window.devicePixelRatio || 1),
+      this.scroll.y * (window.devicePixelRatio || 1),
+      this.viewportSize.width * (window.devicePixelRatio || 1),
+      this.viewportSize.height * (window.devicePixelRatio || 1),
+      0,
+      0,
+      this.viewportSize.width * (window.devicePixelRatio || 1),
+      this.viewportSize.height * (window.devicePixelRatio || 1),
+    );
+
+    // Draw materials
+    fullCtx.drawImage(
+      this.materialsCanvas,
+      this.scroll.x * (window.devicePixelRatio || 1),
+      this.scroll.y * (window.devicePixelRatio || 1),
+      this.viewportSize.width * (window.devicePixelRatio || 1),
+      this.viewportSize.height * (window.devicePixelRatio || 1),
+      0,
+      0,
+      this.viewportSize.width * (window.devicePixelRatio || 1),
+      this.viewportSize.height * (window.devicePixelRatio || 1),
+    );
+
+    this.emit('fullCanvasRendered', {
+      canvas: fullCanvas,
+      width: fullCanvas.width,
+      height: fullCanvas.height,
+    } as LiquidRendererFullCanvasRenderedEvent);
   }
 
   public dispose() {

@@ -3,7 +3,7 @@
     :allowing-color-transition="allowingColorTransition" :disable-interactions="disableInteractions"
     :only-click-interactions="onlyClickInteractions" :style="materialStyle" @pointerdown="onPointerDown"
     @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerLeave">
-    <div class="liquid-glass-highlight" :style="highlightStyle"></div>
+    <div class="liquid-glass-highlight" :class="{ visible: highlightVisible }" :style="highlightStyle"></div>
     <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
 </template>
@@ -284,7 +284,7 @@ const highlightStyle = computed(() => {
     opacity,
     left: `${x}%`,
     top: `${y}%`,
-    transform: 'translate(-50%, -50%)',
+    transform: `translate(-50%, -50%) scale(${highlightVisible.value ? 1 : 5})`,
     background: `radial-gradient(circle at 50% 50%,
       rgba(255, 255, 255, ${opacity * hdr}) 0%,
       rgba(255, 255, 255, ${opacity * hdr * 0.95}) 15%,
@@ -856,6 +856,10 @@ defineExpose({ updating, startUpdating, stopUpdating });
   border-radius: 50%;
   mix-blend-mode: screen;
   will-change: transform, opacity;
-  transition: opacity 0.1s;
+  transition: opacity 0.5s, transform 0.5s;
+
+  &.visible {
+    transition: opacity 0.4s;
+  }
 }
 </style>

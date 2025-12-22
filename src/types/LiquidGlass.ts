@@ -18,9 +18,10 @@ export interface LiquidRendererManagerOptions {
   renderMode?: RenderMode;
   /** Enable power efficient mode to reduce resource consumption */
   powerEfficientMode?: boolean;
+  requireFullRender?: boolean;
 }
 
-export type LiquidRendererBackdropElementType = 'canvas' | 'html' | 'scroll_box' | undefined;
+export type LiquidRendererBackdropElementType = 'canvas' | 'html' | 'scroll_box' | 'liquid_glass' | undefined;
 
 export interface LiquidRendererBackdropElementOptions {
   zIndex?: number;
@@ -67,6 +68,12 @@ export interface LiquidRendererMaterialElementTransform {
 }
 
 export interface LiquidRendererBackdropCapturedEvent {
+  canvas: OffscreenCanvas;
+  width: number;
+  height: number;
+}
+
+export interface LiquidRendererFullCanvasRenderedEvent {
   canvas: OffscreenCanvas;
   width: number;
   height: number;

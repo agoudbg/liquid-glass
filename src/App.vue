@@ -1,56 +1,66 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.3">
-      <div class="single-glass-layout">
-        <LiquidGlassScrollArea>
-          <LgBackdropConverter :capture-lib="'html-to-image'">
-            <template #default="{ requestBackdropRedraw }">
-              <div class="demo-backdrop">
-                <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
-                <div class="demo-tiles">
-                  <div class="demo-tile">Color</div>
-                  <div class="demo-tile">Noise</div>
-                  <div class="demo-tile">Texture</div>
-                  <div class="demo-tile">Shape</div>
-                </div>
-                <div>
-                  <label>
-                    <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
-                    Show Susu
-                  </label>
-                </div>
-                <img src="/susu.webp" v-if="showImage" />
-              </div>
-            </template>
-          </LgBackdropConverter>
-        </LiquidGlassScrollArea>
-      </div>
+    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.8">
+      <div style="width: 120%; height: 120%">
+        <div class="single-glass-layout">
+          <LiquidGlass>
+            <div style="width: 2800px;">
+              <LiquidGlassDebugger v-if="showDebug" />
+              <LgBackdropConverter :capture-lib="'html-to-image'">
+                <template #default="{ requestBackdropRedraw }">
+                  <div class="demo-backdrop">
+                    <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
+                    <div class="demo-tiles">
+                      <div class="demo-tile">Color</div>
+                      <div class="demo-tile">Noise</div>
+                      <div class="demo-tile">Texture</div>
+                      <div class="demo-tile">Shape</div>
+                    </div>
+                    <LiquidGlassMaterial :radius="20" ref="demoMaterial9">
+                      <div class="demo-card">
+                        <h3>Glass card</h3>
+                        <button @click="updateDemoMaterial0Position()">Click</button>
+                      </div>
+                    </LiquidGlassMaterial>
+                    <div>
+                      <label>
+                        <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
+                        Show Susu
+                      </label>
+                    </div>
+                    <img src="/susu.webp" v-if="showImage" />
+                  </div>
+                </template>
+              </LgBackdropConverter>
+            </div>
+          </LiquidGlass>
+        </div>
 
-      <div class="canvas-container">
-        <LgBackdropCanvas :draw="drawBlueRect" />
-      </div>
+        <div class="canvas-container">
+          <LgBackdropCanvas :draw="drawBlueRect" />
+        </div>
 
-      <div class="demo-material" :position="demoMaterial0Position">
-        <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
-          <div class="demo-card">
-            <h3>Glass card</h3>
-            <button @click="updateDemoMaterial0Position()">Click</button>
-          </div>
-        </LiquidGlassMaterial>
-      </div>
+        <div class="demo-material" :position="demoMaterial0Position">
+          <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
+            <div class="demo-card">
+              <h3>Glass card</h3>
+              <button @click="updateDemoMaterial0Position()">Click</button>
+            </div>
+          </LiquidGlassMaterial>
+        </div>
 
-      <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-        <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="28" ref="demoMaterial1"
-          :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
-          <div class="demo-card">
-            <span>Drag or Resize</span>
-          </div>
-        </LiquidGlassMaterial>
+        <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
+          <LiquidGlassMaterial :radius="20" :radiusBR="50" :dispersion="0.1" :blur="0" :thickness="28"
+            ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
+            <div class="demo-card">
+              <span>Drag or Resize</span>
+            </div>
+          </LiquidGlassMaterial>
 
-        <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
+          <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
+        </div>
       </div>
-      <LiquidGlassDebugger v-if="showDebug" />
     </LiquidGlass>
   </div>
 
@@ -59,83 +69,6 @@
       <input type="checkbox" v-model="showDebug" />
       Show Debugger
     </label>
-  </div>
-
-  <div class="page-test">
-    <LiquidGlass class="liquid-glass-container-page" :debug="true" :power-efficient-mode="false">
-      <header class="liquid-glass-test-header">
-        <div class="left">
-          <LiquidGlassMaterial class="button" :radius="20">
-            <p>Home</p>
-          </LiquidGlassMaterial>
-        </div>
-        <div class="title">
-          <LgBackdropConverter :capture-lib="'html-to-image'">
-            <div class="title-text">Liquid Glass</div>
-          </LgBackdropConverter>
-        </div>
-        <div class="right">
-          <LiquidGlassMaterial class="button" :radius="20">
-            share
-          </LiquidGlassMaterial>
-        </div>
-      </header>
-      <main>
-        <LgBackdropConverter :capture-lib="'html-to-image'">
-          <section class="content-section">
-            <h2>Welcome to the Liquid Glass Demo Page</h2>
-            <p>This is a demonstration of the Liquid Glass effect using Vue.js components.</p>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <div class="card-content">
-              <h3>Info Card</h3>
-              <p>This card uses a custom background color with increased blur and saturation for a unique look.</p>
-            </div>
-            <p>Scroll down to see more content with the Liquid Glass effect applied.</p>
-            <div class="spacer-large"></div>
-            <p>End of the demo content.</p>
-          </section>
-        </LgBackdropConverter>
-      </main>
-      <footer>
-        <LiquidGlassMaterial class="footer-glass" :radius="0" :blur="10" :saturation="120">
-          <div class="footer-content">
-            <p>© 2024 Liquid Glass Demo. All rights reserved.</p>
-          </div>
-        </LiquidGlassMaterial>
-      </footer>
-      <!-- <LiquidGlassDebugger /> -->
-    </LiquidGlass>
   </div>
 
   <div class="playground-container">
@@ -167,7 +100,6 @@ import {
   LiquidGlass,
   LiquidGlassDebugger,
   LiquidGlassMaterial,
-  LiquidGlassScrollArea,
 } from './index';
 
 const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
@@ -437,7 +369,7 @@ html {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 4px 0 0 0;
   cursor: se-resize;
-  z-index: 999;
+  z-index: 19999;
 }
 
 .demo-card {

@@ -38,6 +38,8 @@ const drawBackdrop = async () => {
     const canvas = await toCanvas(element, {
       // pixelRatio: window.devicePixelRatio || 1,
       pixelRatio: defaultPixelRatio,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
     });
     console.log('LgBackdropConverter: captured canvas with html-to-image', {
       width: canvas.width,
@@ -53,8 +55,16 @@ const drawBackdrop = async () => {
     // Use html2canvas to capture the backdrop
     const html2canvas = (await import('html2canvas')).default;
     const canvas = await html2canvas(element, {
-      // scale: window.devicePixelRatio || 1,
       scale: defaultPixelRatio,
+      width: element.scrollWidth,
+      height: element.scrollHeight,
+      onclone(document) {
+        // Remove liquid glass materials
+        const materials = document.querySelectorAll('.liquid-glass-material');
+        materials.forEach((mat) => {
+          (mat as HTMLElement).style.visibility = 'hidden';
+        });
+      },
     });
     console.log('LgBackdropConverter: captured canvas with html2canvas', {
       width: canvas.width,

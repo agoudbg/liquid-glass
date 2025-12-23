@@ -76,6 +76,8 @@ export class LiquidRendererManager extends EventEmitter {
 
   private isLayoutDirty = false;
 
+  private isScrollDirty = false;
+
   private isTextureDirty = false;
 
   private isRunning = false;
@@ -83,6 +85,10 @@ export class LiquidRendererManager extends EventEmitter {
   private lastContainerScrollWidth = 0;
 
   private lastContainerScrollHeight = 0;
+
+  private lastScrollX = 0;
+
+  private lastScrollY = 0;
 
   // Scrollable mode
   public scrollable = false;
@@ -213,36 +219,23 @@ export class LiquidRendererManager extends EventEmitter {
   private rafLoop() {
     if (!this.isRunning) return;
 
-    const currentScrollWidth = this.container?.scrollWidth ?? 0;
-    const currentScrollHeight = this.container?.scrollHeight ?? 0;
+    // Use content.scrollWidth/scrollHeight to detect size changes
+    // The content element is the actual scrollable area containing all backdrop content
+    const currentScrollWidth = this.content?.scrollWidth ?? 0;
+    const currentScrollHeight = this.content?.scrollHeight ?? 0;
     if (currentScrollWidth !== this.lastContainerScrollWidth
       || currentScrollHeight !== this.lastContainerScrollHeight) {
-      this.log('debug', 'RAF: Container scroll size changed, marking layout dirty');
+      this.log('debug', 'RAF: Content scroll size changed, marking layout dirty');
       this.markLayoutDirty();
       this.lastContainerScrollWidth = currentScrollWidth;
       this.lastContainerScrollHeight = currentScrollHeight;
     }
 
-    // Ensure canvases stay in sync with container size to avoid stretched backdrops
-    const dpr = window.devicePixelRatio || 1;
-    const expectedBackdropWidth = Math.round(this.container?.scrollWidth * dpr || 0);
-    const expectedBackdropHeight = Math.round(this.container?.scrollHeight * dpr || 0);
-    if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
-      const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
-        || this.backdropCanvas.height !== expectedBackdropHeight;
-      if (sizeMismatch) {
-        this.log('debug', 'RAF: Backdrop canvas size mismatch detected; resizing');
-        this.resizeInternalCanvases(expectedBackdropWidth, expectedBackdropHeight);
-        this.isBackdropDirty = true;
-        this.hasPendingBackdropRenderRequest = true;
-      }
-    }
-
-    // Check if we need to do anything
+    // Handle layout changes (resize, DOM changes)
     if (this.isLayoutDirty) {
       this.log('debug', 'RAF: Layout dirty, recalculating positions');
 
-      // Update container first
+      // Update container first - this updates this.size with the correct full content size
       this.updateContainerPositionAndSize();
 
       // Recalculate all backdrop positions so their capture callbacks re-run when layout changes
@@ -256,9 +249,46 @@ export class LiquidRendererManager extends EventEmitter {
       });
 
       this.isLayoutDirty = false;
+      this.isScrollDirty = false; // Layout update includes scroll update
       // Layout change requires backdrop recapture and material re-render
       this.hasPendingBackdropRenderRequest = true;
       this.isTextureDirty = true; // Layout change requires re-render
+    }
+
+    // Handle scroll changes (scroll position changed, but layout didn't)
+    // This is a lighter update - we only need to update scroll values and material positions
+    if (this.isScrollDirty) {
+      this.log('debug', 'RAF: Scroll dirty, updating scroll position and materials');
+
+      // Update scroll values only
+      this.scroll.x = this.content.scrollLeft || 0;
+      this.scroll.y = this.content.scrollTop || 0;
+
+      // Only update material positions (they need scroll offset for correct rendering)
+      this.registeredMaterialElements.forEach((el) => {
+        el.updatePositionAndSize({ suppressReRender: true });
+      });
+
+      this.isScrollDirty = false;
+      // Scroll change requires material re-render (to update positions)
+      this.isTextureDirty = true;
+    }
+
+    // Ensure canvases stay in sync with container size to avoid stretched backdrops
+    // Use this.size which represents the full content size (important for scrollable mode)
+    // This must happen AFTER updateContainerPositionAndSize() so this.size is up-to-date
+    const dpr = window.devicePixelRatio || 1;
+    const expectedBackdropWidth = Math.round(this.size.width * dpr);
+    const expectedBackdropHeight = Math.round(this.size.height * dpr);
+    if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
+      const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
+        || this.backdropCanvas.height !== expectedBackdropHeight;
+      if (sizeMismatch) {
+        this.log('debug', 'RAF: Backdrop canvas size mismatch detected; resizing');
+        this.resizeInternalCanvases(expectedBackdropWidth, expectedBackdropHeight);
+        this.isBackdropDirty = true;
+        this.hasPendingBackdropRenderRequest = true;
+      }
     }
 
     if (this.isTextureDirty && !this.isRenderingMaterials) {
@@ -281,6 +311,14 @@ export class LiquidRendererManager extends EventEmitter {
    */
   public markLayoutDirty() {
     this.isLayoutDirty = true;
+  }
+
+  /**
+   * Mark scroll as dirty (scroll position changed, but layout didn't)
+   * This is a lighter update than layout dirty - we only need to update material positions
+   */
+  public markScrollDirty() {
+    this.isScrollDirty = true;
   }
 
   /**
@@ -364,18 +402,14 @@ export class LiquidRendererManager extends EventEmitter {
     window.addEventListener('resize', windowResizeHandler);
     this.cleanupFunctions.push(() => window.removeEventListener('resize', windowResizeHandler));
 
-    // Universal scroll tracking
-    const scrollHandler = (event: Event) => {
-      const target = event.target as Node;
-      // Check if the scrolling element is an ancestor of the container or the container itself
-      if (target && (target === this.container || (target instanceof Node && target.contains(this.container)))) {
-        this.markLayoutDirty();
-      }
+    // Content scroll tracking - directly listen to the content element
+    // This is important for scrollable mode to update material positions
+    // Scroll only marks scroll dirty, not layout dirty - we don't need to recapture backdrops
+    const contentScrollHandler = () => {
+      this.markScrollDirty();
     };
-
-    // Use capture phase to detect scroll on any element
-    window.addEventListener('scroll', scrollHandler, true);
-    this.cleanupFunctions.push(() => window.removeEventListener('scroll', scrollHandler, true));
+    this.content.addEventListener('scroll', contentScrollHandler);
+    this.cleanupFunctions.push(() => this.content.removeEventListener('scroll', contentScrollHandler));
 
     // Initial update
     this.markLayoutDirty();
@@ -403,19 +437,10 @@ export class LiquidRendererManager extends EventEmitter {
     this.scroll.x = this.content.scrollLeft || 0;
     this.scroll.y = this.content.scrollTop || 0;
 
-    const contentWidth = this.container.scrollWidth;
-    const contentHeight = this.container.scrollHeight;
-
-    // Canvas sizing strategy based on scrollable mode
-    if (this.scrollable) {
-      // Scrollable mode: Canvas = full content size
-      this.size.width = contentWidth;
-      this.size.height = contentHeight;
-    } else {
-      // Non-scrollable mode: Canvas = at least viewport, but honor content growth to avoid stretching
-      this.size.width = Math.max(rect.width, contentWidth);
-      this.size.height = Math.max(rect.height, contentHeight);
-    }
+    // Use content.scrollWidth/scrollHeight for full content size (important for scrollable mode)
+    // The content element is the actual scrollable area that contains all the backdrop content
+    this.size.width = this.content.scrollWidth;
+    this.size.height = this.content.scrollHeight;
 
     this.viewportSize.width = rect.width;
     this.viewportSize.height = rect.height;
@@ -479,8 +504,9 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     const dpr = window.devicePixelRatio || 1;
-    const newWidth = Math.round(this.container.scrollWidth * dpr);
-    const newHeight = Math.round(this.container.scrollHeight * dpr);
+    // Use this.size which represents the full content size (scrollWidth/scrollHeight for scrollable mode)
+    const newWidth = Math.round(this.size.width * dpr);
+    const newHeight = Math.round(this.size.height * dpr);
 
     // Check if canvas needs resizing
     this.resizeInternalCanvases(newWidth, newHeight);
@@ -776,39 +802,54 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   public renderFullComposite() {
-    const width = this.backdropCanvas.width || this.materialsCanvas.width;
-    const height = this.backdropCanvas.height || this.materialsCanvas.height;
+    const dpr = window.devicePixelRatio || 1;
 
-    if (width === 0 || height === 0) {
-      this.log('warn', 'Skipping full composite render because canvas size is zero');
+    // For nested LiquidGlass, we need to pass only the viewport area to parent
+    // This is crucial for scrollable mode - parent should see what's visible, not the entire content
+    const fullCanvas = new OffscreenCanvas(
+      this.viewportSize.width * dpr,
+      this.viewportSize.height * dpr,
+    );
+    const fullCtx = fullCanvas.getContext('2d');
+    if (!fullCtx) {
+      this.log('error', 'Failed to get 2D context for full canvas rendering');
       return;
     }
 
-    if (!this.compositeCanvas || this.compositeCanvas.width !== width || this.compositeCanvas.height !== height) {
-      this.compositeCanvas = new OffscreenCanvas(width, height);
-      this.compositeCanvasCtx = this.compositeCanvas.getContext('2d');
-    }
-
-    if (!this.compositeCanvasCtx || !this.compositeCanvas) {
-      this.log('error', 'Failed to get 2D context for composite canvas rendering');
-      return;
-    }
-
-    this.compositeCanvasCtx.clearRect(0, 0, width, height);
-
-    // Draw backdrop then materials with normal alpha blending
+    // Draw backdrop - extract only the currently visible portion based on scroll position
     if (this.backdropCanvas.width && this.backdropCanvas.height) {
-      this.compositeCanvasCtx.drawImage(this.backdropCanvas, 0, 0);
+      fullCtx.drawImage(
+        this.backdropCanvas,
+        this.scroll.x * dpr,
+        this.scroll.y * dpr,
+        this.viewportSize.width * dpr,
+        this.viewportSize.height * dpr,
+        0,
+        0,
+        this.viewportSize.width * dpr,
+        this.viewportSize.height * dpr,
+      );
     }
 
+    // Draw materials - extract only the currently visible portion based on scroll position
     if (this.materialsCanvas.width && this.materialsCanvas.height) {
-      this.compositeCanvasCtx.drawImage(this.materialsCanvas, 0, 0);
+      fullCtx.drawImage(
+        this.materialsCanvas,
+        this.scroll.x * dpr,
+        this.scroll.y * dpr,
+        this.viewportSize.width * dpr,
+        this.viewportSize.height * dpr,
+        0,
+        0,
+        this.viewportSize.width * dpr,
+        this.viewportSize.height * dpr,
+      );
     }
 
     this.emit('fullCanvasRendered', {
-      canvas: this.compositeCanvas,
-      width: this.compositeCanvas.width,
-      height: this.compositeCanvas.height,
+      canvas: fullCanvas,
+      width: fullCanvas.width,
+      height: fullCanvas.height,
     } as LiquidRendererFullCanvasRenderedEvent);
   }
 

@@ -124,11 +124,10 @@ onMounted(() => {
         }
       }
     }
-  });
 
-  // Listen to backdrop changes to update parent (not material changes)
-  manager.on('backdropCaptured', () => {
-    // Only when backdrop content changes, render full canvas for parent
+    // If has parent, update parent with current viewport composite
+    // Materials rendering is the final step after backdrop capture, so we update parent here
+    // This covers both backdrop changes and scroll-only changes (which skip backdrop capture)
     if (backdropManager.value) {
       manager.renderFullComposite();
     }

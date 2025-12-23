@@ -4,7 +4,7 @@
     <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.8">
       <div style="width: 120%; height: 120%">
         <div class="single-glass-layout">
-          <LiquidGlass>
+          <LiquidGlass :scrollable="true">
             <div style="width: 2800px;">
               <LiquidGlassDebugger v-if="showDebug" />
               <LgBackdropConverter :capture-lib="'html-to-image'">

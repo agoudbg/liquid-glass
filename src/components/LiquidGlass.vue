@@ -170,7 +170,9 @@ onUnmounted(() => {
 <style scoped>
 .liquid-glass-container {
   position: relative;
-  overflow: visible;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .liquid-glass-container.scrollable {
@@ -179,33 +181,16 @@ onUnmounted(() => {
 
 .liquid-glass-content {
   position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 .liquid-glass-content.scrollable {
+  overflow: auto;
   /* Scrollable mode: content may be larger than viewport */
   min-width: 100%;
   min-height: 100%;
-}
-
-.page-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.liquid-glass-container {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-.liquid-glass-content {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: auto;
 }
 
 .liquid-glass-uniform-canvas {

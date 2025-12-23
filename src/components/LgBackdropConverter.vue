@@ -5,7 +5,9 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import {
+  onMounted, onUnmounted, ref, watch,
+} from 'vue';
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
@@ -65,15 +67,12 @@ const attachChildResizeObserver = () => {
 
 // Draw the backdrop using the selected library
 const drawBackdrop = async () => {
-  console.log('LgBackdropConverter: drawBackdrop called');
   if (!backdropManager.value) return;
 
   const { element } = backdropManager.value;
   if (!element) return;
 
   const captureLib = props.captureLib || 'html-to-image';
-
-  console.log('LgBackdropConverter: capturing backdrop for element:', element);
 
   if (captureLib === 'html-to-image') {
     // Use html-to-image to capture the backdrop
@@ -84,10 +83,7 @@ const drawBackdrop = async () => {
       width: element.scrollWidth,
       height: element.scrollHeight,
     });
-    console.log('LgBackdropConverter: captured canvas with html-to-image', {
-      width: canvas.width,
-      height: canvas.height,
-    });
+
     const offscreenCanvas = new OffscreenCanvas(canvas.width, canvas.height);
     const ctx = offscreenCanvas.getContext('2d');
     if (ctx) {
@@ -109,27 +105,21 @@ const drawBackdrop = async () => {
         });
       },
     });
-    console.log('LgBackdropConverter: captured canvas with html2canvas', {
-      width: canvas.width,
-      height: canvas.height,
-    });
+
     const offscreenCanvas = new OffscreenCanvas(canvas.width, canvas.height);
     const ctx = offscreenCanvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(canvas, 0, 0);
-      console.log('LgBackdropConverter: captured canvas with html2canvas, sending to manager');
       backdropManager.value.requestManagerBackdropCapture(offscreenCanvas);
     }
   }
 };
 
 onMounted(() => {
-  console.log('LgBackdropConverter mounted');
   const manager = useLiquidContext();
 
   // Register self as a backdrop element
   if (backdropElement.value) {
-    console.log('LgBackdropConverter: registering backdrop element with manager');
     backdropManager.value = new LiquidRendererBackdropElement(manager, backdropElement.value, {
       type: 'html',
       zIndex: props.zIndex,
@@ -162,7 +152,6 @@ onMounted(() => {
     // Listen for re-capture requests from the backdrop element
     backdropManager.value.on('requestBackdropCapture', () => {
       // Draw the backdrop using the selected library
-      console.log('LgBackdropConverter: received requestBackdropCapture event, drawing backdrop');
       drawBackdrop();
     });
   }

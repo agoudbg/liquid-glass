@@ -203,11 +203,8 @@ manager.on('optionsChanged', () => {
 });
 
 onMounted(() => {
-  console.log('LgMaterialConverter mounted');
-
   // Register self as a material element
   if (materialElement.value) {
-    console.log('LgMaterialConverter: registering material element with manager');
     materialManager.value = new LiquidRendererMaterialElement(manager, materialElement.value, {
       thickness: props.thickness,
       refractIndex: props.refractIndex,

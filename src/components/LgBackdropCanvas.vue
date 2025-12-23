@@ -41,6 +41,7 @@ const register = async (callback: CustomDrawCallback) => {
   });
 
   drawCanvas(callback);
+
   backdropManager.value.on('requestBackdropCapture', () => {
     drawCanvas(callback);
   });

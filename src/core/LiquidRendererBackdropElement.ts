@@ -68,7 +68,7 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   private addEventListeners() {
     // Only listen to structural changes that require re-capture
     // Position/size updates are handled by manager's RAF loop
-    
+
     if (this.options?.watchNodeChanges) {
       const observer = new MutationObserver(() => {
         this.manager.log('debug', 'Backdrop element DOM changed:', this.element);

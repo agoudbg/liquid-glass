@@ -241,16 +241,23 @@ export class LiquidRendererManager extends EventEmitter {
     // Check if we need to do anything
     if (this.isLayoutDirty) {
       this.log('debug', 'RAF: Layout dirty, recalculating positions');
-      
+
       // Update container first
       this.updateContainerPositionAndSize();
-      
+
+      // Recalculate all backdrop positions so their capture callbacks re-run when layout changes
+      this.registeredBackdropElements.forEach((el) => {
+        el.updatePositionAndSize();
+      });
+
       // Recalculate all material positions
       this.registeredMaterialElements.forEach((el) => {
         el.updatePositionAndSize({ suppressReRender: true });
       });
-      
+
       this.isLayoutDirty = false;
+      // Layout change requires backdrop recapture and material re-render
+      this.hasPendingBackdropRenderRequest = true;
       this.isTextureDirty = true; // Layout change requires re-render
     }
 
@@ -412,7 +419,7 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.viewportSize.width = rect.width;
     this.viewportSize.height = rect.height;
-    
+
     return rect;
   }
 
@@ -823,10 +830,10 @@ export class LiquidRendererManager extends EventEmitter {
   public dispose() {
     // Stop RAF loop
     this.stopRAFLoop();
-    
+
     // Clean up listeners
     this.cleanupListeners();
-    
+
     if (this.renderer) {
       this.renderer.dispose();
       this.renderer = null;

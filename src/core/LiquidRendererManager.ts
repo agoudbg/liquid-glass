@@ -80,6 +80,10 @@ export class LiquidRendererManager extends EventEmitter {
 
   private isRunning = false;
 
+  private lastContainerScrollWidth = 0;
+
+  private lastContainerScrollHeight = 0;
+
   // Scrollable mode
   public scrollable = false;
 
@@ -98,14 +102,14 @@ export class LiquidRendererManager extends EventEmitter {
       this.container = options.container;
       this.content = this.container.getElementsByClassName('liquid-glass-content')[0] as HTMLElement;
       this.scrollable = options.scrollable ?? false;
-      this.addResizeListeners();
     } else {
       // Fallback to document body if no container provided
       this.container = document.body;
       this.content = document.body;
-      // This will not run resize listeners until container is set
-      this.log('warn', 'No container provided for LiquidRendererManager; resize listeners not added.');
+      this.log('warn', 'No container provided for LiquidRendererManager; defaulting to document.body.');
     }
+
+    this.addResizeListeners();
 
     this.renderPrecision = options.renderPrecision ?? 0;
 
@@ -208,6 +212,16 @@ export class LiquidRendererManager extends EventEmitter {
    */
   private rafLoop() {
     if (!this.isRunning) return;
+
+    const currentScrollWidth = this.container?.scrollWidth ?? 0;
+    const currentScrollHeight = this.container?.scrollHeight ?? 0;
+    if (currentScrollWidth !== this.lastContainerScrollWidth
+      || currentScrollHeight !== this.lastContainerScrollHeight) {
+      this.log('debug', 'RAF: Container scroll size changed, marking layout dirty');
+      this.markLayoutDirty();
+      this.lastContainerScrollWidth = currentScrollWidth;
+      this.lastContainerScrollHeight = currentScrollHeight;
+    }
 
     // Ensure canvases stay in sync with container size to avoid stretched backdrops
     const dpr = window.devicePixelRatio || 1;
@@ -343,11 +357,18 @@ export class LiquidRendererManager extends EventEmitter {
     window.addEventListener('resize', windowResizeHandler);
     this.cleanupFunctions.push(() => window.removeEventListener('resize', windowResizeHandler));
 
-    const scrollHandler = () => {
-      this.markLayoutDirty();
+    // Universal scroll tracking
+    const scrollHandler = (event: Event) => {
+      const target = event.target as Node;
+      // Check if the scrolling element is an ancestor of the container or the container itself
+      if (target && (target === this.container || (target instanceof Node && target.contains(this.container)))) {
+        this.markLayoutDirty();
+      }
     };
-    this.content.addEventListener('scroll', scrollHandler);
-    this.cleanupFunctions.push(() => this.content.removeEventListener('scroll', scrollHandler));
+
+    // Use capture phase to detect scroll on any element
+    window.addEventListener('scroll', scrollHandler, true);
+    this.cleanupFunctions.push(() => window.removeEventListener('scroll', scrollHandler, true));
 
     // Initial update
     this.markLayoutDirty();

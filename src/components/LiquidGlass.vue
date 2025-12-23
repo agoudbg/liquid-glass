@@ -1,11 +1,6 @@
 <template>
   <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
-    <div
-      class="liquid-glass-content"
-      :class="{ 'scrollable': props.scrollable }"
-      :style="{ zIndex: contentZIndex }"
-      ref="content"
-    >
+    <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">
       <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
         :is-fallback-mode="isFallbackMode" :style="{ zIndex: canvasZIndex }" ref="uniformCanvas"></canvas>
       <slot></slot>
@@ -58,10 +53,6 @@ const manager: LiquidRendererManager = new LiquidRendererManager({
 
 provideLiquidContext(manager);
 provideLiquidDepth(depth);
-
-const contentZIndex = computed(() => (props.zIndex !== undefined
-  ? props.zIndex
-  : 10000 - depth * 2));
 
 const canvasZIndex = computed(() => (props.zIndex !== undefined
   ? props.zIndex - 1

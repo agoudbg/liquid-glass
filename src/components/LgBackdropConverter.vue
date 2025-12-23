@@ -18,8 +18,50 @@ const props = defineProps<{
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 let resizeObserver: ResizeObserver | null = null;
+let childResizeObserver: ResizeObserver | null = null;
+let mutationObserver: MutationObserver | null = null;
+let imgLoadCleanups: Array<() => void> = [];
 
 const defaultPixelRatio = window.devicePixelRatio || 1;
+
+const triggerBackdropCapture = () => {
+  if (!backdropManager.value) return;
+  // Ask the backdrop element to queue a fresh capture and let the manager debounce work
+  backdropManager.value.sendReCaptureRequest();
+};
+
+const bindImageLoadListeners = () => {
+  // Clear old listeners before re-binding to avoid leaks
+  imgLoadCleanups.forEach((cleanup) => cleanup());
+  imgLoadCleanups = [];
+
+  const root = backdropElement.value;
+  if (!root) return;
+
+  root.querySelectorAll('img').forEach((img) => {
+    const handler = () => triggerBackdropCapture();
+    img.addEventListener('load', handler, { once: false });
+    imgLoadCleanups.push(() => img.removeEventListener('load', handler));
+  });
+};
+
+const attachChildResizeObserver = () => {
+  const root = backdropElement.value;
+  if (!root) return;
+
+  const firstChild = root.firstElementChild as HTMLElement | null;
+  if (!firstChild) return;
+
+  if (childResizeObserver) {
+    childResizeObserver.disconnect();
+  }
+
+  childResizeObserver = new ResizeObserver(() => {
+    backdropManager.value?.updatePositionAndSize({ suppressReRender: true });
+    triggerBackdropCapture();
+  });
+  childResizeObserver.observe(firstChild);
+};
 
 // Draw the backdrop using the selected library
 const drawBackdrop = async () => {
@@ -101,9 +143,21 @@ onMounted(() => {
     // ResizeObserver on the converted element to catch internal size changes
     resizeObserver = new ResizeObserver(() => {
       backdropManager.value?.updatePositionAndSize({ suppressReRender: true });
-      drawBackdrop();
+      triggerBackdropCapture();
     });
     resizeObserver.observe(backdropElement.value);
+
+    attachChildResizeObserver();
+
+    mutationObserver = new MutationObserver(() => {
+      backdropManager.value?.updatePositionAndSize({ suppressReRender: true });
+      attachChildResizeObserver();
+      bindImageLoadListeners();
+      triggerBackdropCapture();
+    });
+    mutationObserver.observe(backdropElement.value, { childList: true, subtree: true });
+
+    bindImageLoadListeners();
 
     // Listen for re-capture requests from the backdrop element
     backdropManager.value.on('requestBackdropCapture', () => {
@@ -117,6 +171,12 @@ onMounted(() => {
 onUnmounted(() => {
   resizeObserver?.disconnect();
   resizeObserver = null;
+  childResizeObserver?.disconnect();
+  childResizeObserver = null;
+  mutationObserver?.disconnect();
+  mutationObserver = null;
+  imgLoadCleanups.forEach((cleanup) => cleanup());
+  imgLoadCleanups = [];
   backdropManager.value?.destroy();
 });
 

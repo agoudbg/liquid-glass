@@ -4,7 +4,7 @@
       <div class="float-header">
         <div class="left">
           <div class="button">
-            <LiquidGlassMaterial :blur="3" :radius="10">
+            <LiquidGlassMaterial :blur="1" :radius="20">
               <span>Home</span>
             </LiquidGlassMaterial>
           </div>
@@ -24,8 +24,8 @@
           </div>
         </div>
       </div>
-      <div class="main">
-        <LiquidGlass>
+      <div class="main-content">
+        <LiquidGlass :scrollable="true">
           <LgBackdropConverter :capture-lib="'html-to-image'">
             <div class="blog">
               <header class="site-header">
@@ -182,6 +182,13 @@ function selectPost(p: Post) {
 </script>
 
 <style scoped>
+.page-container {
+  height: 100vh;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
 .float-header {
   display: flex;
   justify-content: space-between;
@@ -189,7 +196,7 @@ function selectPost(p: Post) {
   padding: 12px 24px;
   position: fixed;
   top: 0;
-  z-index: 10;
+  z-index: 10002;
 }
 
 .float-header .left,
@@ -206,8 +213,13 @@ function selectPost(p: Post) {
 .float-header .button span {
   display: block;
   margin: 0 6px;
-  padding: 30px 30px;
+  padding: 10px;
   cursor: pointer;
+}
+
+.main-content {
+  height: calc(100vh - 80px);
+  overflow: auto;
 }
 
 .blog {
@@ -355,5 +367,13 @@ function selectPost(p: Post) {
   .sidebar {
     width: 100%
   }
+}
+</style>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+  background: #f9f9f9;
 }
 </style>

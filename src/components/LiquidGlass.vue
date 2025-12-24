@@ -19,7 +19,7 @@ import {
 } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
 import { LiquidRendererManager } from '../core/LiquidRendererManager';
-import { LiquidRendererFullCanvasRenderedEvent } from '../types/LiquidGlass';
+import { LiquidRendererFullCanvasRenderedEvent, ThemeColorThresholds } from '../types/LiquidGlass';
 
 const props = defineProps<{
   debug?: boolean;
@@ -28,6 +28,13 @@ const props = defineProps<{
   powerEfficientMode?: boolean;
   scrollable?: boolean;
   zIndex?: number;
+  /**
+   * Theme color detection thresholds for automatic background color mode.
+   * - ultraDarkMax: Maximum luma for ultra_dark mode (default: 25)
+   * - darkMax: Maximum luma for dark mode (default: 85)
+   * - ultraLightMin: Minimum luma for ultra_light mode (default: 230)
+   */
+  themeColorThresholds?: ThemeColorThresholds;
 }>();
 
 const uniformCanvas = ref<HTMLCanvasElement | null>(null);
@@ -66,13 +73,14 @@ manager.on('fallbackModeChanged', onFallbackModeChanged);
 
 isFallbackMode.value = manager.isFallbackMode;
 
-watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode, props.scrollable], () => {
+watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode, props.scrollable, props.themeColorThresholds], () => {
   manager.setOptions({
     debug: props.debug,
     renderPrecision: props.renderPrecision,
     renderMode: props.renderMode,
     powerEfficientMode: props.powerEfficientMode,
     scrollable: props.scrollable,
+    themeColorThresholds: props.themeColorThresholds,
   });
 });
 

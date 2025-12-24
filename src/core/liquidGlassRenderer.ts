@@ -8,6 +8,25 @@ type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 export type ThemeColor = 'black' | 'ultra_black' | 'white' | 'ultra_white';
 export type ThemeColorMap = Record<string, ThemeColor>;
 
+/**
+ * Configuration for theme color detection thresholds.
+ * Luma values are in the range 0-255.
+ */
+export interface ThemeColorThresholds {
+  /** Maximum luma for ultra_dark mode (default: 25) */
+  ultraDarkMax: number;
+  /** Maximum luma for dark mode (default: 85) */
+  darkMax: number;
+  /** Minimum luma for ultra_light mode (default: 230) */
+  ultraLightMin: number;
+}
+
+export const DEFAULT_THEME_COLOR_THRESHOLDS: ThemeColorThresholds = {
+  ultraDarkMax: 25,
+  darkMax: 85,
+  ultraLightMin: 230,
+};
+
 export type LiquidGlassConfig = {
   thickness: number
   refractIndex: number
@@ -51,6 +70,10 @@ export type LiquidGlassRenderer = {
    * Compute the theme colors without issuing a draw. Uses the last captured backdrop pixels.
    */
   getThemeColors: () => ThemeColorMap
+  /**
+   * Update the theme color detection thresholds.
+   */
+  setThemeThresholds: (thresholds: Partial<ThemeColorThresholds>) => void
   setRenderScale: (scale: number) => void
   resize: () => void
   dispose: () => void
@@ -58,9 +81,17 @@ export type LiquidGlassRenderer = {
 
 export function createLiquidGlassRenderer(
   canvas: HTMLCanvasElement,
-  options?: { renderScale?: number },
+  options?: { renderScale?: number; themeThresholds?: Partial<ThemeColorThresholds> },
 ): LiquidGlassRenderer | null {
-  const gl = canvas.getContext('webgl2');
+  const gl = canvas.getContext('webgl2', {
+    // Preserve drawing buffer to allow reading canvas content after render
+    // This is necessary because we use drawImage to copy the WebGL canvas to the uniform canvas
+    preserveDrawingBuffer: true,
+    // Premultiplied alpha for proper compositing with CSS
+    premultipliedAlpha: true,
+    // Transparent background
+    alpha: true,
+  });
   if (!gl) {
     console.error('WebGL2 not supported');
     return null;
@@ -80,6 +111,11 @@ export function createLiquidGlassRenderer(
     backgroundPixelData: null as { data: Uint8ClampedArray; width: number; height: number } | null,
     // Cache the last background source for re-upload after context reset
     lastBackgroundSource: null as TexImageSource | null,
+    // Theme color detection thresholds
+    themeThresholds: {
+      ...DEFAULT_THEME_COLOR_THRESHOLDS,
+      ...options?.themeThresholds,
+    } as ThemeColorThresholds,
   };
 
   const identityTransform: LiquidRendererMaterialElementTransform = {
@@ -375,12 +411,13 @@ export function createLiquidGlassRenderer(
       }
 
       const avgLuma = sumLuma / count;
+      const { ultraDarkMax, darkMax, ultraLightMin } = state.themeThresholds;
       let theme: ThemeColor;
-      if (avgLuma <= 32) {
+      if (avgLuma <= ultraDarkMax) {
         theme = 'ultra_black';
-      } else if (avgLuma <= 110) {
+      } else if (avgLuma <= darkMax) {
         theme = 'black';
-      } else if (avgLuma >= 224) {
+      } else if (avgLuma >= ultraLightMin) {
         theme = 'ultra_white';
       } else {
         theme = 'white';
@@ -392,12 +429,9 @@ export function createLiquidGlassRenderer(
     return result;
   }
 
-  function render(collectThemes = false, scheduleNext = true): ThemeColorMap | null {
+  function render(collectThemes = false): ThemeColorMap | null {
     if (!gl) return null;
     if (!state.program || !state.vao || !state.hasTexture) {
-      if (scheduleNext) {
-        state.animationId = requestAnimationFrame(() => render(false, true));
-      }
       return null;
     }
 
@@ -408,7 +442,10 @@ export function createLiquidGlassRenderer(
     const physicalWidth = gl.drawingBufferWidth;
     const physicalHeight = gl.drawingBufferHeight;
 
-    // 2. Global state initialization - clear canvas once
+    // 2. Global state initialization - clear canvas with transparent color
+    // Disable scissor test before clearing to ensure the entire canvas is cleared
+    gl.disable(gl.SCISSOR_TEST);
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // Enable blending for proper transparency compositing
@@ -449,9 +486,8 @@ export function createLiquidGlassRenderer(
 
     const themes = collectThemes ? computeThemeColors() : null;
 
-    if (scheduleNext) {
-      state.animationId = requestAnimationFrame(() => render(false, true));
-    }
+    // Note: We no longer schedule the next frame internally.
+    // The Manager's RAF loop handles render timing to avoid race conditions.
 
     return themes;
   }
@@ -460,7 +496,9 @@ export function createLiquidGlassRenderer(
   if (!ok) return null;
   setupGeometry();
   resize();
-  render(false, true);
+  // Note: We do NOT start an internal RAF loop here.
+  // The Manager controls when to call render() to avoid timing issues
+  // and duplicate rendering with the internal loop.
 
   return {
     addMaterial(
@@ -533,10 +571,16 @@ export function createLiquidGlassRenderer(
       }
     },
     render(options?: { collectThemes?: boolean }) {
-      return render(options?.collectThemes ?? false, false);
+      return render(options?.collectThemes ?? false);
     },
     getThemeColors() {
       return computeThemeColors();
+    },
+    setThemeThresholds(thresholds: Partial<ThemeColorThresholds>) {
+      state.themeThresholds = {
+        ...state.themeThresholds,
+        ...thresholds,
+      };
     },
     setRenderScale(scale: number) {
       state.renderScale = Math.max(0.05, scale);

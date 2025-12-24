@@ -1,11 +1,11 @@
 import { toCanvas } from 'html-to-image';
 
 import {
-  AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions,
+  AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions, ThemeColorThresholds,
 } from '../types/LiquidGlass';
 import { clampCanvasDimensions, getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
-import { createLiquidGlassRenderer, LiquidGlassRenderer } from './liquidGlassRenderer';
+import { createLiquidGlassRenderer, DEFAULT_THEME_COLOR_THRESHOLDS, LiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
 import { LiquidRendererMaterialElement } from './LiquidRendererMaterialElement';
 
@@ -94,6 +94,9 @@ export class LiquidRendererManager extends EventEmitter {
   // Scrollable mode
   public scrollable = false;
 
+  // Theme color detection thresholds
+  public themeColorThresholds: ThemeColorThresholds = { ...DEFAULT_THEME_COLOR_THRESHOLDS };
+
   // Event listener cleanup
   private cleanupFunctions: Array<() => void> = [];
 
@@ -123,6 +126,14 @@ export class LiquidRendererManager extends EventEmitter {
     this.renderMode = options.renderMode ?? 'uniform';
 
     this.powerEfficientMode = options.powerEfficientMode ?? false;
+
+    // Apply theme color thresholds if provided
+    if (options.themeColorThresholds) {
+      this.themeColorThresholds = {
+        ...DEFAULT_THEME_COLOR_THRESHOLDS,
+        ...options.themeColorThresholds,
+      };
+    }
 
     this.log('debug', 'LiquidRendererManager initialized');
   }
@@ -181,6 +192,18 @@ export class LiquidRendererManager extends EventEmitter {
       this.scrollable = options.scrollable;
       this.log('debug', `Scrollable mode set to: ${this.scrollable}`);
       this.markLayoutDirty();
+    }
+
+    if (options.themeColorThresholds !== undefined) {
+      this.themeColorThresholds = {
+        ...this.themeColorThresholds,
+        ...options.themeColorThresholds,
+      };
+      this.log('debug', 'Theme color thresholds set to:', this.themeColorThresholds);
+      // Update renderer thresholds if it exists
+      if (this.renderer) {
+        this.renderer.setThemeThresholds(this.themeColorThresholds);
+      }
     }
 
     this.emit('optionsChanged', options);
@@ -506,6 +529,17 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
+    // Update scroll values first - this ensures backdrop elements get correct scroll offsets
+    this.scroll.x = this.content.scrollLeft || 0;
+    this.scroll.y = this.content.scrollTop || 0;
+
+    // Update all backdrop element positions before capturing
+    // This ensures positions are correct even when captureBackdrop is called directly
+    // (e.g., from onBackdropElementChange) without going through RAF layout update
+    this.registeredBackdropElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
+
     // MEMORY FIX: Use getSafeDevicePixelRatio() and clampCanvasDimensions() to prevent OOM on mobile
     const dpr = getSafeDevicePixelRatio();
     // Use this.size which represents the full content size (scrollWidth/scrollHeight for scrollable mode)
@@ -574,7 +608,9 @@ export class LiquidRendererManager extends EventEmitter {
       return zIndexA - zIndexB;
     });
 
-    sortedElements.forEach((element) => {
+    this.log('debug', `Drawing ${sortedElements.length} backdrop elements, scroll: (${this.scroll.x}, ${this.scroll.y})`);
+
+    sortedElements.forEach((element, index) => {
       const { position, size, canvas } = element;
 
       if (!canvas) {
@@ -587,8 +623,12 @@ export class LiquidRendererManager extends EventEmitter {
         const drawY = Math.round(position.y);
         // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR
         const safeDpr = getSafeDevicePixelRatio();
-        const drawW = Math.round(size.width / safeDpr);
-        const drawH = Math.round(size.height / safeDpr);
+        // Use the canvas's actual dimensions divided by DPR to get CSS pixel size
+        // This ensures the captured content is drawn at its natural size without compression
+        const drawW = Math.round(canvas.width / safeDpr);
+        const drawH = Math.round(canvas.height / safeDpr);
+
+        this.log('debug', `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height})`);
 
         ctx.drawImage(
           canvas,
@@ -671,6 +711,7 @@ export class LiquidRendererManager extends EventEmitter {
     if (!this.renderer) {
       this.renderer = createLiquidGlassRenderer(this.materialsCanvas, {
         renderScale: renderPrecision,
+        themeThresholds: this.themeColorThresholds,
       });
       this.log('debug', 'Created new LiquidGlassRenderer instance');
     }

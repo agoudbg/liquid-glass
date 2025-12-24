@@ -88,9 +88,11 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     const x = rect.left + window.scrollX;
     const y = rect.top + window.scrollY;
 
-    // Position should be relative to the document
-    this.position.x = x - this.manager.position.x;
-    this.position.y = y - this.manager.position.y;
+    // Position should be relative to the manager's content area (not viewport)
+    // Must include scroll offset so elements are placed correctly in the full content canvas
+    // This is consistent with how LiquidRendererMaterialElement calculates position
+    this.position.x = x - this.manager.position.x + this.manager.scroll.x;
+    this.position.y = y - this.manager.position.y + this.manager.scroll.y;
 
     // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
     const dpr = getSafeDevicePixelRatio();
@@ -178,6 +180,14 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   public destroy() {
     // Unregister this element from the manager
     this.manager.unregisterBackdropElement(this);
+
+    // MEMORY FIX: Set OffscreenCanvas dimensions to 0 to hint browser to free GPU memory
+    // This is especially important on iOS where GPU memory is limited
+    if (this.canvas) {
+      this.canvas.width = 0;
+      this.canvas.height = 0;
+    }
+
     this.manager.log('debug', 'LiquidRendererBackdropElement destroyed for element:', this.element);
   }
 }

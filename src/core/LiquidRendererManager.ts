@@ -887,6 +887,20 @@ export class LiquidRendererManager extends EventEmitter {
       this.renderer.dispose();
       this.renderer = null;
     }
+
+    // MEMORY FIX: Set OffscreenCanvas dimensions to 0 to hint browser to free GPU memory
+    // This is especially important on iOS where GPU memory is limited
+    if (this.backdropCanvas) {
+      this.backdropCanvas.width = 0;
+      this.backdropCanvas.height = 0;
+    }
+    if (this.compositeCanvas) {
+      this.compositeCanvas.width = 0;
+      this.compositeCanvas.height = 0;
+      this.compositeCanvas = null;
+      this.compositeCanvasCtx = null;
+    }
+
     // Clean up cached resources
     this.backdropCanvasForGL = null;
     this.backdropCanvasForGLCtx = null;

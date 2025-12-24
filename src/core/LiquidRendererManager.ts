@@ -3,6 +3,7 @@ import { toCanvas } from 'html-to-image';
 import {
   AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions,
 } from '../types/LiquidGlass';
+import { clampCanvasDimensions, getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { createLiquidGlassRenderer, LiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
@@ -277,9 +278,11 @@ export class LiquidRendererManager extends EventEmitter {
     // Ensure canvases stay in sync with container size to avoid stretched backdrops
     // Use this.size which represents the full content size (important for scrollable mode)
     // This must happen AFTER updateContainerPositionAndSize() so this.size is up-to-date
-    const dpr = window.devicePixelRatio || 1;
-    const expectedBackdropWidth = Math.round(this.size.width * dpr);
-    const expectedBackdropHeight = Math.round(this.size.height * dpr);
+    // MEMORY FIX: Use getSafeDevicePixelRatio() and clampCanvasDimensions() to prevent OOM on mobile
+    const dpr = getSafeDevicePixelRatio();
+    const rawWidth = Math.round(this.size.width * dpr);
+    const rawHeight = Math.round(this.size.height * dpr);
+    const { width: expectedBackdropWidth, height: expectedBackdropHeight } = clampCanvasDimensions(rawWidth, rawHeight);
     if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
       const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
         || this.backdropCanvas.height !== expectedBackdropHeight;
@@ -503,10 +506,12 @@ export class LiquidRendererManager extends EventEmitter {
       return;
     }
 
-    const dpr = window.devicePixelRatio || 1;
+    // MEMORY FIX: Use getSafeDevicePixelRatio() and clampCanvasDimensions() to prevent OOM on mobile
+    const dpr = getSafeDevicePixelRatio();
     // Use this.size which represents the full content size (scrollWidth/scrollHeight for scrollable mode)
-    const newWidth = Math.round(this.size.width * dpr);
-    const newHeight = Math.round(this.size.height * dpr);
+    const rawWidth = Math.round(this.size.width * dpr);
+    const rawHeight = Math.round(this.size.height * dpr);
+    const { width: newWidth, height: newHeight } = clampCanvasDimensions(rawWidth, rawHeight);
 
     // Check if canvas needs resizing
     this.resizeInternalCanvases(newWidth, newHeight);
@@ -580,8 +585,10 @@ export class LiquidRendererManager extends EventEmitter {
       if (size.width > 0 && size.height > 0) {
         const drawX = Math.round(position.x);
         const drawY = Math.round(position.y);
-        const drawW = Math.round(size.width / (window.devicePixelRatio || 1));
-        const drawH = Math.round(size.height / (window.devicePixelRatio || 1));
+        // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR
+        const safeDpr = getSafeDevicePixelRatio();
+        const drawW = Math.round(size.width / safeDpr);
+        const drawH = Math.round(size.height / safeDpr);
 
         ctx.drawImage(
           canvas,
@@ -802,7 +809,8 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   public renderFullComposite() {
-    const dpr = window.devicePixelRatio || 1;
+    // MEMORY FIX: Use getSafeDevicePixelRatio() to prevent OOM on mobile
+    const dpr = getSafeDevicePixelRatio();
 
     // For nested LiquidGlass, we need to pass only the viewport area to parent
     // This is crucial for scrollable mode - parent should see what's visible, not the entire content

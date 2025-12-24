@@ -11,6 +11,7 @@ import {
 
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
+import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 
 const props = defineProps<{
   captureLib: 'html-to-image' | 'html2canvas';
@@ -24,7 +25,8 @@ let childResizeObserver: ResizeObserver | null = null;
 let mutationObserver: MutationObserver | null = null;
 let imgLoadCleanups: Array<() => void> = [];
 
-const defaultPixelRatio = window.devicePixelRatio || 1;
+// MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
+const defaultPixelRatio = getSafeDevicePixelRatio();
 
 const triggerBackdropCapture = () => {
   if (!backdropManager.value) return;

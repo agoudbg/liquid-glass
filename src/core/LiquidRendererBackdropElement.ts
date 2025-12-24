@@ -1,4 +1,5 @@
 import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType } from '../types/LiquidGlass';
+import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -91,8 +92,10 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.position.x = x - this.manager.position.x;
     this.position.y = y - this.manager.position.y;
 
-    this.size.width = rect.width * (window.devicePixelRatio || 1);
-    this.size.height = rect.height * (window.devicePixelRatio || 1);
+    // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
+    const dpr = getSafeDevicePixelRatio();
+    this.size.width = rect.width * dpr;
+    this.size.height = rect.height * dpr;
 
     // Since position or size may have changed, request a re-capture
     if (!options?.suppressReRender) {

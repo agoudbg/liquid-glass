@@ -1,6 +1,7 @@
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
 import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
+import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
@@ -224,7 +225,8 @@ export function createLiquidGlassRenderer(
 
   function resize(): void {
     if (!gl) return;
-    const dpr = window.devicePixelRatio || 1;
+    // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
+    const dpr = getSafeDevicePixelRatio();
     const scale = dpr * state.renderScale;
 
     // Calculate CSS pixel dimensions (logical size)
@@ -400,7 +402,8 @@ export function createLiquidGlassRenderer(
     }
 
     // 1. Prepare physical size parameters - UNIFIED scale factor
-    const dpr = window.devicePixelRatio || 1;
+    // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
+    const dpr = getSafeDevicePixelRatio();
     const scale = dpr * state.renderScale;
     const physicalWidth = gl.drawingBufferWidth;
     const physicalHeight = gl.drawingBufferHeight;

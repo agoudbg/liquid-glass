@@ -97,6 +97,15 @@ export class LiquidRendererManager extends EventEmitter {
   // Theme color detection thresholds
   public themeColorThresholds: ThemeColorThresholds = { ...DEFAULT_THEME_COLOR_THRESHOLDS };
 
+  // Throttling for full composite rendering (for nested LiquidGlass updates to parent)
+  private fullCompositeThrottleMs = 300; // Minimum time between composite updates
+
+  private lastFullCompositeTime = 0;
+
+  private pendingFullComposite = false;
+
+  private fullCompositeTimeoutId: number | null = null;
+
   // Event listener cleanup
   private cleanupFunctions: Array<() => void> = [];
 
@@ -862,6 +871,46 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   public renderFullComposite() {
+    const now = performance.now();
+    const timeSinceLastComposite = now - this.lastFullCompositeTime;
+
+    // Throttle: if we've rendered recently, schedule for later
+    if (timeSinceLastComposite < this.fullCompositeThrottleMs) {
+      // Mark as pending - will be rendered after throttle period
+      if (!this.pendingFullComposite) {
+        this.pendingFullComposite = true;
+
+        // Clear any existing timeout
+        if (this.fullCompositeTimeoutId !== null) {
+          clearTimeout(this.fullCompositeTimeoutId);
+        }
+
+        // Schedule the final frame after throttle period
+        const remainingTime = this.fullCompositeThrottleMs - timeSinceLastComposite;
+        this.fullCompositeTimeoutId = window.setTimeout(() => {
+          this.fullCompositeTimeoutId = null;
+          this.pendingFullComposite = false;
+          this.doRenderFullComposite();
+        }, remainingTime) as unknown as number;
+      }
+      return;
+    }
+
+    // Not throttled - render immediately
+    this.pendingFullComposite = false;
+    if (this.fullCompositeTimeoutId !== null) {
+      clearTimeout(this.fullCompositeTimeoutId);
+      this.fullCompositeTimeoutId = null;
+    }
+    this.doRenderFullComposite();
+  }
+
+  /**
+   * Internal method that actually performs the full composite render
+   */
+  private doRenderFullComposite() {
+    this.lastFullCompositeTime = performance.now();
+
     // MEMORY FIX: Use getSafeDevicePixelRatio() to prevent OOM on mobile
     const dpr = getSafeDevicePixelRatio();
 
@@ -935,6 +984,12 @@ export class LiquidRendererManager extends EventEmitter {
 
     // Clean up listeners
     this.cleanupListeners();
+
+    // Clear any pending full composite timeout
+    if (this.fullCompositeTimeoutId !== null) {
+      clearTimeout(this.fullCompositeTimeoutId);
+      this.fullCompositeTimeoutId = null;
+    }
 
     if (this.renderer) {
       this.renderer.dispose();

@@ -1,9 +1,9 @@
+import type { ExternalMaterialConfig } from '../types/ExternalMaterial';
 import {
   AutomaticBackgroundColorMode,
   LiquidRendererMaterialElementTransform,
   LiquidRendererMaterialGlassAttributions,
 } from '../types/LiquidGlass';
-import type { ExternalMaterialConfig } from '../types/ExternalMaterial';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 

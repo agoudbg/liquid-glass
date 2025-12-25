@@ -1,15 +1,16 @@
 import {
-  computed, onUnmounted, ref, shallowRef, watch, type Ref, type ShallowRef,
+  computed, onUnmounted, type Ref, ref, type ShallowRef,
+  shallowRef, watch,
 } from 'vue';
 
 import type { LiquidRendererManager } from '../core/LiquidRendererManager';
 import type { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
-import type { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 import type {
   ExternalMaterialConfig,
   ExternalMaterialFeedback,
   ProxyTargetInterface,
 } from '../types/ExternalMaterial';
+import type { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 
 export interface UseMaterialDelegationOptions {
   /** The material element instance */

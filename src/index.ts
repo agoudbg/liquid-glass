@@ -13,3 +13,6 @@ export {
 };
 
 export * from './types/LiquidGlass';
+export * from './types/ExternalMaterial';
+export { useMaterialDelegation } from './composables/useMaterialDelegation';
+export { useExternalRenderer } from './composables/useExternalRenderer';

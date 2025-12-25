@@ -28,6 +28,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     translateY: 0,
   };
 
+  /**
+   * When true, this material's glass rendering is delegated to a proxy LiquidGlass.
+   * The parent manager should skip rendering for this material.
+   */
+  public isDelegatedToProxy = false;
+
   constructor(manager: LiquidRendererManager, element: HTMLElement, options: LiquidRendererMaterialElementOptions) {
     super();
     this.manager = manager;

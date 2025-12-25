@@ -1,10 +1,10 @@
 <template>
   <h2>LiquidGlass Demo</h2>
   <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :debug="false" :render-precision="0.8">
+    <LiquidGlass class="liquid-glass-container" :scrollable="true" :debug="false" :render-precision="0.8">
       <div style="width: 120%; height: 120%">
         <div class="single-glass-layout">
-          <LiquidGlass :scrollable="true">
+          <LiquidGlass :scrollable="true" ref="scrollableLiquidGlass">
             <div style="width: 2800px;">
               <LiquidGlassDebugger v-if="showDebug" />
               <LgBackdropConverter :capture-lib="'html-to-image'">
@@ -42,7 +42,7 @@
         </div>
 
         <div class="demo-material" :position="demoMaterial0Position">
-          <LiquidGlassMaterial :radius="20" ref="demoMaterial0">
+          <LiquidGlassMaterial :radius="20" ref="demoMaterial0" :proxy-target="scrollableLiquidGlassProxy">
             <div class="demo-card">
               <h3>Glass card</h3>
               <button @click="updateDemoMaterial0Position()">Click</button>
@@ -100,6 +100,7 @@ import {
   LiquidGlass,
   LiquidGlassDebugger,
   LiquidGlassMaterial,
+  ProxyTargetInterface,
 } from './index';
 
 const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
@@ -112,6 +113,14 @@ watch(showDebug, (newVal) => {
 const demoMaterial0Position = ref<number>(0);
 const demoMaterial0 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
 const demoMaterial1 = ref<InstanceType<typeof LiquidGlassMaterial> | null>(null);
+
+// Reference to the scrollable LiquidGlass for proxy delegation
+const scrollableLiquidGlass = ref<InstanceType<typeof LiquidGlass> | null>(null);
+
+// Computed proxy interface from the scrollable LiquidGlass
+const scrollableLiquidGlassProxy = computed<ProxyTargetInterface | null>(
+  () => scrollableLiquidGlass.value?.proxyInterface ?? null,
+);
 
 const demoMaterial1Helper = reactive({
   x: 300,

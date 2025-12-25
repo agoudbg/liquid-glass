@@ -14,6 +14,7 @@ import {
   computed, onMounted, onUnmounted, ref, watch,
 } from 'vue';
 
+import { useExternalRenderer } from '../composables/useExternalRenderer';
 import {
   provideLiquidContext, provideLiquidDepth, useLiquidContext, useLiquidDepth,
 } from '../core/LiquidContext';
@@ -61,6 +62,20 @@ const manager: LiquidRendererManager = new LiquidRendererManager({
 provideLiquidContext(manager);
 provideLiquidDepth(depth);
 
+const container = ref<HTMLElement | null>(null);
+
+// Setup external renderer for cross-component render delegation
+// This allows external materials (from parent LiquidGlass) to delegate
+// their glass rendering to this component
+const {
+  proxyInterface,
+  externalMaterials,
+  calculateCanvasCoords,
+} = useExternalRenderer({
+  manager,
+  container,
+});
+
 const canvasZIndex = computed(() => (props.zIndex !== undefined
   ? props.zIndex - 1
   : 9999 - depth * 2));
@@ -83,8 +98,6 @@ watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEf
     themeColorThresholds: props.themeColorThresholds,
   });
 });
-
-const container = ref<HTMLElement | null>(null);
 
 const currentRenderMode = ref(manager.renderMode);
 manager.on('optionsChanged', () => {
@@ -170,6 +183,32 @@ onMounted(() => {
 
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
+});
+
+// Expose the proxy interface for cross-component render delegation
+// External materials can use this interface to delegate their glass rendering
+defineExpose({
+  /**
+   * Proxy interface for cross-component render delegation.
+   * Pass this to a LiquidGlassMaterial's `proxyTarget` prop to have
+   * this LiquidGlass render the glass effect for that material.
+   */
+  proxyInterface,
+
+  /**
+   * The current external materials being rendered by this LiquidGlass
+   */
+  externalMaterials,
+
+  /**
+   * Calculate canvas coordinates for an external material configuration
+   */
+  calculateCanvasCoords,
+
+  /**
+   * The LiquidRendererManager instance for this LiquidGlass
+   */
+  manager,
 });
 
 </script>

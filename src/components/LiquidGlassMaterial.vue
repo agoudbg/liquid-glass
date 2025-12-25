@@ -10,12 +10,14 @@
 
 <script lang="ts" setup>
 import {
-  computed, onMounted, onUnmounted, ref,
+  computed, onMounted, onUnmounted, ref, shallowRef,
   watch,
 } from 'vue';
 
+import { useMaterialDelegation } from '../composables/useMaterialDelegation';
 import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
+import type { ProxyTargetInterface } from '../types/ExternalMaterial';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 
 type InteractionConfig = {
@@ -56,6 +58,13 @@ const props = defineProps<{
   isMoveable?: boolean;
   illuminationAngle?: number;
   illuminationIntensity?: number;
+  /**
+   * Proxy target for cross-component render delegation.
+   * When set, this material's glass effect will be rendered by the target LiquidGlass
+   * instead of its parent. Useful when this material is visually positioned over
+   * a nested LiquidGlass component.
+   */
+  proxyTarget?: ProxyTargetInterface | null;
 }>();
 
 const defaultInteraction: InteractionConfig = {
@@ -82,7 +91,7 @@ const interaction = computed<InteractionConfig>(() => ({
 }));
 
 const materialElement = ref<HTMLElement | null>(null);
-const materialManager = ref<LiquidRendererMaterialElement | null>(null);
+const materialManager = shallowRef<LiquidRendererMaterialElement | null>(null);
 
 const INTERACTIVE_TAGS = new Set([
   'A',
@@ -202,6 +211,74 @@ manager.on('optionsChanged', () => {
   renderMode.value = manager.renderMode;
 });
 
+// Setup delegation composable for cross-component render delegation
+const getGlassAttributes = () => {
+  const attrs = materialManager.value?.glassAttributes;
+  return {
+    thickness: attrs?.thickness ?? props.thickness ?? 10,
+    refractIndex: attrs?.refractIndex ?? props.refractIndex ?? 1.1,
+    refractIntensity: attrs?.refractIntensity ?? props.refractIntensity ?? 0.5,
+    blur: attrs?.blur ?? props.blur ?? 0,
+    dispersion: attrs?.dispersion ?? props.dispersion ?? 0.01,
+    radius: attrs?.radius ?? props.radius,
+    radiusTR: attrs?.radiusTR ?? props.radiusTR ?? props.radius,
+    radiusBR: attrs?.radiusBR ?? props.radiusBR ?? props.radius,
+    radiusBL: attrs?.radiusBL ?? props.radiusBL ?? props.radius,
+    radiusTL: attrs?.radiusTL ?? props.radiusTL ?? props.radius,
+  };
+};
+
+const getTransform = () => materialManager.value?.transform ?? {
+  scaleX: 1,
+  scaleY: 1,
+  translateX: 0,
+  translateY: 0,
+};
+
+const {
+  isDelegating,
+  setProxyTarget,
+  proxyFeedback,
+  updateDelegation,
+} = useMaterialDelegation({
+  materialElement: materialManager,
+  element: materialElement,
+  parentManager: manager,
+  getGlassAttributes,
+  getTransform,
+});
+
+// Watch for proxyTarget prop changes
+watch(() => props.proxyTarget, (newTarget) => {
+  setProxyTarget(newTarget ?? null);
+}, { immediate: true });
+
+// Apply feedback from proxy target for theme colors
+watch(proxyFeedback, (feedback) => {
+  if (feedback && isDelegating.value) {
+    // Override automatic background color with feedback from proxy
+    switch (feedback.themeColorMode) {
+      case 'ultra_light':
+        calculatedBackgroundColor.value = '#ffffff33';
+        calculatedForegroundColor.value = '#000000';
+        break;
+      case 'light':
+        calculatedBackgroundColor.value = '#ffffff99';
+        calculatedForegroundColor.value = '#000000';
+        break;
+      case 'ultra_dark':
+        calculatedBackgroundColor.value = '#00000022';
+        calculatedForegroundColor.value = '#ffffff';
+        break;
+      case 'dark':
+        calculatedBackgroundColor.value = '#00000066';
+        calculatedForegroundColor.value = '#ffffff';
+        break;
+      default:
+    }
+  }
+});
+
 onMounted(() => {
   // Register self as a material element
   if (materialElement.value) {
@@ -222,6 +299,11 @@ onMounted(() => {
     materialManager.value.on('backgroundColorModeChanged', () => {
       updateBackgroundColor();
     });
+
+    // Initialize proxy target if provided
+    if (props.proxyTarget) {
+      setProxyTarget(props.proxyTarget);
+    }
   }
 });
 
@@ -788,10 +870,23 @@ watch(() => [
       illuminationAngle: props.illuminationAngle,
       illuminationIntensity: props.illuminationIntensity,
     });
+
+    // Update delegation when glass attributes change
+    updateDelegation();
   }
 });
 
-defineExpose({ updating, startUpdating, stopUpdating });
+defineExpose({
+  updating,
+  startUpdating,
+  stopUpdating,
+  /** Whether this material is delegating its rendering to a proxy target */
+  isDelegating,
+  /** Force update the delegation state */
+  updateDelegation,
+  /** Set or clear the proxy target */
+  setProxyTarget,
+});
 
 </script>
 

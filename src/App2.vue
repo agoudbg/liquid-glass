@@ -83,7 +83,7 @@
           </LgBackdropConverter>
         </LiquidGlass>
       </div>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 </template>

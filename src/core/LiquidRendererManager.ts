@@ -755,6 +755,18 @@ export class LiquidRendererManager extends EventEmitter {
     // PERFORMANCE OPTIMIZATION: Update existing materials instead of remove+add
     const currentMaterialIds = new Set<string>();
     this.registeredMaterialElements.forEach((element) => {
+      // Skip materials that are delegating their rendering to a proxy target
+      // These materials will be rendered by a child LiquidGlass instead
+      if (element.isDelegatedToProxy) {
+        this.log('debug', `Skipping material ${element.materialId} - delegated to proxy`);
+        // If this material was previously added, remove it from the renderer
+        if (this.addedMaterialIds.has(element.materialId)) {
+          this.renderer!.removeMaterial(element.materialId);
+          this.addedMaterialIds.delete(element.materialId);
+        }
+        return; // Skip to next material
+      }
+
       const { glassAttributes, position, size } = element;
       const { transform } = element;
 

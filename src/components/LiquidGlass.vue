@@ -150,7 +150,7 @@ onMounted(() => {
     // Materials rendering is the final step after backdrop capture, so we update parent here
     // This covers both backdrop changes and scroll-only changes (which skip backdrop capture)
     if (backdropManager.value) {
-      manager.renderFullComposite();
+      manager.renderFullComposite(manager.lastTextureDirtyReason);
     }
   });
 
@@ -177,7 +177,7 @@ onMounted(() => {
       watchResize: false, // Don't watch resize - manager handles via RAF
       watchNodeChanges: true, // Only structural changes
     });
-    manager.renderFullComposite();
+    manager.renderFullComposite('structural');
   }
 });
 

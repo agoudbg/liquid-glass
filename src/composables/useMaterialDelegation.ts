@@ -241,7 +241,7 @@ export function useMaterialDelegation(
     materialElement.value.isDelegatedToProxy = skip;
 
     // Request re-render so parent updates its material list
-    parentManager.markTextureDirty();
+    parentManager.markTextureDirty('external');
   };
 
   /**

@@ -187,7 +187,7 @@ export class ExternalMaterialElement extends EventEmitter {
    */
   public setTransform(transform: LiquidRendererMaterialElementTransform) {
     this.transform = transform;
-    this.manager.markTextureDirty();
+    this.manager.markTextureDirty('material_interaction');
   }
 
   /**

@@ -56,3 +56,72 @@ export function clampCanvasDimensions(width: number, height: number): { width: n
 
   return { width: clampedWidth, height: clampedHeight };
 }
+
+/**
+ * Parse a CSS transform string into a 2D matrix [a, b, c, d, e, f].
+ * Handles both `matrix(a, b, c, d, e, f)` and `matrix3d(...)` formats.
+ * Returns the identity matrix [1, 0, 0, 1, 0, 0] if parsing fails or transform is 'none'.
+ */
+export function parseCSSTransformMatrix(
+  transformString: string,
+): [number, number, number, number, number, number] {
+  const identity: [number, number, number, number, number, number] = [1, 0, 0, 1, 0, 0];
+
+  if (!transformString || transformString === 'none') {
+    return identity;
+  }
+
+  // Try to match matrix(a, b, c, d, e, f)
+  const matrix2dMatch = transformString.match(
+    /^matrix\(\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^,]+),\s*([^)]+)\s*\)$/,
+  );
+  if (matrix2dMatch) {
+    const values = matrix2dMatch.slice(1).map(Number);
+    if (values.every((v) => !Number.isNaN(v))) {
+      return values as [number, number, number, number, number, number];
+    }
+  }
+
+  // Try to match matrix3d(...) - extract the 2D portion
+  const matrix3dMatch = transformString.match(/^matrix3d\((.+)\)$/);
+  if (matrix3dMatch) {
+    const values = matrix3dMatch[1].split(',').map((s) => parseFloat(s.trim()));
+    // 4x4 matrix in column-major order:
+    // [m11, m21, m31, m41, m12, m22, m32, m42, m13, m23, m33, m43, m14, m24, m34, m44]
+    // The 2D portion is:
+    // a = m11 (index 0), b = m21 (index 1), c = m12 (index 4), d = m22 (index 5)
+    // e = m14 (index 12), f = m24 (index 13)
+    if (values.length >= 16 && values.every((v) => !Number.isNaN(v))) {
+      return [values[0], values[1], values[4], values[5], values[12], values[13]];
+    }
+  }
+
+  return identity;
+}
+
+/**
+ * Compute the inverse of a 2D transform matrix.
+ * Given matrix [a, b, c, d, e, f], returns the inverse matrix.
+ * Returns identity if the matrix is singular (determinant = 0).
+ */
+export function invertMatrix2D(
+  matrix: [number, number, number, number, number, number],
+): [number, number, number, number, number, number] {
+  const [a, b, c, d, e, f] = matrix;
+  const det = a * d - b * c;
+
+  if (Math.abs(det) < 1e-10) {
+    // Singular matrix, return identity
+    return [1, 0, 0, 1, 0, 0];
+  }
+
+  const invDet = 1 / det;
+  return [
+    d * invDet,
+    -b * invDet,
+    -c * invDet,
+    a * invDet,
+    (c * f - d * e) * invDet,
+    (b * e - a * f) * invDet,
+  ];
+}

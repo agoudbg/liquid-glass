@@ -1,6 +1,7 @@
 import {
-  AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialElementTransform, LiquidRendererMaterialGlassAttributions,
+  AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialElementTransform, LiquidRendererMaterialGlassAttributions, TextureDirtyReason,
 } from '../types/LiquidGlass';
+import { parseCSSTransformMatrix } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -87,7 +88,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     this.manager.log('debug', 'MaterialElement initialized without individual observers');
   }
 
-  public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
+  public updatePositionAndSize(options?: { suppressReRender?: boolean; reason?: TextureDirtyReason }) {
     const rect = this.element.getBoundingClientRect();
     const {
       translateX, translateY, scaleX, scaleY,
@@ -95,6 +96,19 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
     const safeScaleX = scaleX === 0 ? 1 : scaleX;
     const safeScaleY = scaleY === 0 ? 1 : scaleY;
+
+    // Extract the CSS transform matrix from the element's computed style
+    // This captures the full transform including skew/rotation applied via CSS or animation
+    const computedStyle = window.getComputedStyle(this.element);
+    const cssTransform = computedStyle.transform;
+    const cssMatrix = parseCSSTransformMatrix(cssTransform);
+
+    // Merge the CSS matrix with any programmatic transform from interaction
+    // The interaction transform (translateX, translateY, scaleX, scaleY) is applied on top
+    // We need to compose the matrices: cssMatrix * interactionMatrix
+    // For now, we store the CSS matrix and let the renderer use it for shape distortion
+    // while keeping the interaction transform separate for position calculations
+    this.transform.matrix = cssMatrix;
 
     // Remove current transform offsets so the renderer does not double-apply them.
     // Because scaling occurs around the element's origin (default center), add back
@@ -117,13 +131,13 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     this.initializeGlassAttributes(this.options);
 
     if (!options?.suppressReRender) {
-      this.sendReRenderRequest();
+      this.sendReRenderRequest(options?.reason ?? 'layout');
     }
   }
 
-  public sendReRenderRequest() {
+  public sendReRenderRequest(reason: TextureDirtyReason = 'material_interaction') {
     this.manager.log('debug', 'Requesting re-render for material element:', this.element);
-    this.manager.markTextureDirty();
+    this.manager.markTextureDirty(reason);
   }
 
   /**
@@ -152,7 +166,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public setTransform(transform: LiquidRendererMaterialElementTransform) {
     this.transform = transform;
     this.manager.log('debug', 'Material element transform set to:', transform, 'for element:', this.element);
-    this.sendReRenderRequest();
+    this.sendReRenderRequest('material_interaction');
   }
 
   /**

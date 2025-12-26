@@ -128,7 +128,7 @@ export function useExternalRenderer(
     }
 
     // Trigger re-render
-    manager.markTextureDirty();
+    manager.markTextureDirty('external');
   };
 
   /**
@@ -148,7 +148,7 @@ export function useExternalRenderer(
     manager.log('debug', `[ExternalRenderer] Unregistered external material: ${id}`);
 
     // Trigger re-render
-    manager.markTextureDirty();
+    manager.markTextureDirty('external');
   };
 
   /**

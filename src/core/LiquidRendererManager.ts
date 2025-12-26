@@ -1,7 +1,7 @@
 import { toCanvas } from 'html-to-image';
 
 import {
-  AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions, ThemeColorThresholds,
+  AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions, TextureDirtyReason, ThemeColorThresholds,
 } from '../types/LiquidGlass';
 import { clampCanvasDimensions, getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
@@ -81,6 +81,8 @@ export class LiquidRendererManager extends EventEmitter {
 
   private isTextureDirty = false;
 
+  public lastTextureDirtyReason: TextureDirtyReason = 'unknown';
+
   private isRunning = false;
 
   private lastContainerScrollWidth = 0;
@@ -100,9 +102,20 @@ export class LiquidRendererManager extends EventEmitter {
   // Throttling for full composite rendering (for nested LiquidGlass updates to parent)
   private fullCompositeThrottleMs = 300; // Minimum time between composite updates
 
+  private compositeThrottleMsByReason: Record<TextureDirtyReason, number> = {
+    material_interaction: 480,
+    scroll: 180,
+    layout: 160,
+    structural: 140,
+    external: 260,
+    unknown: 300,
+  };
+
   private lastFullCompositeTime = 0;
 
   private pendingFullComposite = false;
+
+  private pendingCompositeReason: TextureDirtyReason | null = null;
 
   private fullCompositeTimeoutId: number | null = null;
 
@@ -285,7 +298,7 @@ export class LiquidRendererManager extends EventEmitter {
       this.isScrollDirty = false; // Layout update includes scroll update
       // Layout change requires backdrop recapture and material re-render
       this.hasPendingBackdropRenderRequest = true;
-      this.isTextureDirty = true; // Layout change requires re-render
+      this.markTextureDirty('layout'); // Layout change requires re-render
     }
 
     // Handle scroll changes (scroll position changed, but layout didn't)
@@ -304,7 +317,7 @@ export class LiquidRendererManager extends EventEmitter {
 
       this.isScrollDirty = false;
       // Scroll change requires material re-render (to update positions)
-      this.isTextureDirty = true;
+      this.markTextureDirty('scroll');
     }
 
     // Ensure canvases stay in sync with container size to avoid stretched backdrops
@@ -359,8 +372,9 @@ export class LiquidRendererManager extends EventEmitter {
   /**
    * Mark texture as dirty (need to re-render WebGL)
    */
-  public markTextureDirty() {
+  public markTextureDirty(reason: TextureDirtyReason = 'unknown') {
     this.isTextureDirty = true;
+    this.lastTextureDirtyReason = reason;
   }
 
   public registerBackdropElement(element: LiquidRendererBackdropElement) {
@@ -413,7 +427,7 @@ export class LiquidRendererManager extends EventEmitter {
     this.emit('materialElementChanged', this.registeredMaterialElements);
 
     // Re-render materials when elements change
-    this.markTextureDirty();
+    this.markTextureDirty('structural');
   }
 
   /**
@@ -436,6 +450,20 @@ export class LiquidRendererManager extends EventEmitter {
     };
     window.addEventListener('resize', windowResizeHandler);
     this.cleanupFunctions.push(() => window.removeEventListener('resize', windowResizeHandler));
+
+    // Parent/viewport scroll can shift the container without resizing it, so watch window scroll
+    // and mark layout dirty using an RAF gate to avoid excessive work while scrolling.
+    let windowScrollScheduled = false;
+    const windowScrollHandler = () => {
+      if (windowScrollScheduled) return;
+      windowScrollScheduled = true;
+      requestAnimationFrame(() => {
+        windowScrollScheduled = false;
+        this.markLayoutDirty();
+      });
+    };
+    window.addEventListener('scroll', windowScrollHandler, { passive: true });
+    this.cleanupFunctions.push(() => window.removeEventListener('scroll', windowScrollHandler));
 
     // Content scroll tracking - directly listen to the content element
     // This is important for scrollable mode to update material positions
@@ -860,7 +888,7 @@ export class LiquidRendererManager extends EventEmitter {
 
       this.isRenderingMaterials = false;
 
-      this.renderFullComposite();
+      this.renderFullComposite(this.lastTextureDirtyReason);
 
       // If there was a pending request, trigger another render
       if (this.hasPendingMaterialsRenderRequest) {
@@ -870,46 +898,70 @@ export class LiquidRendererManager extends EventEmitter {
     });
   }
 
-  public renderFullComposite() {
+  private getCompositeThrottleMs(reason: TextureDirtyReason) {
+    return this.compositeThrottleMsByReason[reason] ?? this.fullCompositeThrottleMs;
+  }
+
+  public renderFullComposite(reason: TextureDirtyReason = this.lastTextureDirtyReason) {
+    const resolvedReason: TextureDirtyReason = reason ?? this.lastTextureDirtyReason ?? 'unknown';
+
     const now = performance.now();
+    const throttleMs = this.getCompositeThrottleMs(resolvedReason);
     const timeSinceLastComposite = now - this.lastFullCompositeTime;
 
-    // Throttle: if we've rendered recently, schedule for later
-    if (timeSinceLastComposite < this.fullCompositeThrottleMs) {
-      // Mark as pending - will be rendered after throttle period
-      if (!this.pendingFullComposite) {
-        this.pendingFullComposite = true;
-
-        // Clear any existing timeout
-        if (this.fullCompositeTimeoutId !== null) {
-          clearTimeout(this.fullCompositeTimeoutId);
-        }
-
-        // Schedule the final frame after throttle period
-        const remainingTime = this.fullCompositeThrottleMs - timeSinceLastComposite;
-        this.fullCompositeTimeoutId = window.setTimeout(() => {
-          this.fullCompositeTimeoutId = null;
-          this.pendingFullComposite = false;
-          this.doRenderFullComposite();
-        }, remainingTime) as unknown as number;
+    // If a higher-priority event (non-interaction) arrives while an interaction render is pending,
+    // flush immediately so structural/layout updates are not delayed by interaction throttling.
+    const isInteractionPending = this.pendingCompositeReason === 'material_interaction';
+    const isHighPriority = resolvedReason !== 'material_interaction';
+    if (isHighPriority && this.pendingFullComposite && isInteractionPending) {
+      if (this.fullCompositeTimeoutId !== null) {
+        clearTimeout(this.fullCompositeTimeoutId);
+        this.fullCompositeTimeoutId = null;
       }
+      this.pendingFullComposite = false;
+      this.pendingCompositeReason = null;
+      this.doRenderFullComposite(resolvedReason);
+      return;
+    }
+
+    // Throttle: if we've rendered recently, schedule for later
+    if (timeSinceLastComposite < throttleMs) {
+      this.pendingFullComposite = true;
+      this.pendingCompositeReason = resolvedReason;
+
+      // Clear any existing timeout to ensure trailing execution uses the latest request
+      if (this.fullCompositeTimeoutId !== null) {
+        clearTimeout(this.fullCompositeTimeoutId);
+      }
+
+      const remainingTime = throttleMs - timeSinceLastComposite;
+      this.fullCompositeTimeoutId = window.setTimeout(() => {
+        this.fullCompositeTimeoutId = null;
+        this.pendingFullComposite = false;
+        const reasonToUse = this.pendingCompositeReason ?? resolvedReason;
+        this.pendingCompositeReason = null;
+        this.doRenderFullComposite(reasonToUse);
+      }, remainingTime) as unknown as number;
       return;
     }
 
     // Not throttled - render immediately
     this.pendingFullComposite = false;
+    this.pendingCompositeReason = null;
     if (this.fullCompositeTimeoutId !== null) {
       clearTimeout(this.fullCompositeTimeoutId);
       this.fullCompositeTimeoutId = null;
     }
-    this.doRenderFullComposite();
+    this.doRenderFullComposite(resolvedReason);
   }
 
   /**
    * Internal method that actually performs the full composite render
    */
-  private doRenderFullComposite() {
+  private doRenderFullComposite(reason: TextureDirtyReason = 'unknown') {
     this.lastFullCompositeTime = performance.now();
+
+    this.log('debug', `Rendering full composite (reason=${reason})`);
 
     // MEMORY FIX: Use getSafeDevicePixelRatio() to prevent OOM on mobile
     const dpr = getSafeDevicePixelRatio();

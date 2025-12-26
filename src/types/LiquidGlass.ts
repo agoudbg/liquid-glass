@@ -89,7 +89,22 @@ export interface LiquidRendererMaterialElementTransform {
   scaleY: number;
   translateX: number;
   translateY: number;
+  /**
+   * Full CSS 2D transform matrix components [a, b, c, d, e, f].
+   * Corresponds to matrix(a, b, c, d, e, f) or the 2D portion of a 3D matrix.
+   * If undefined, a matrix will be computed from scale/translate values.
+   * The matrix is used by the shader for transform-aware rendering.
+   */
+  matrix?: [number, number, number, number, number, number];
 }
+
+export type TextureDirtyReason =
+  | 'layout'
+  | 'scroll'
+  | 'material_interaction'
+  | 'structural'
+  | 'external'
+  | 'unknown';
 
 export interface LiquidRendererBackdropCapturedEvent {
   canvas: OffscreenCanvas;

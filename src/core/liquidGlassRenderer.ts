@@ -193,6 +193,9 @@ export function createLiquidGlassRenderer(
       'uRefractIntensity',
       'uBlur',
       'uDispersion',
+      'uTransformMatrix',
+      'uTransformMatrixInv1',
+      'uTransformMatrixInv2',
     ];
     uniformNames.forEach((name) => {
       state.uniforms[name] = gl.getUniformLocation(program, name);
@@ -324,9 +327,53 @@ export function createLiquidGlassRenderer(
     // Set resolution to physical canvas dimensions
     gl.uniform2f(state.uniforms.uResolution, physicalWidth, physicalHeight);
 
-    // Calculate material dimensions in physical pixels
-    const w = material.config.width * scale * transform.scaleX;
-    const h = material.config.height * scale * transform.scaleY;
+    // Extract the 2x2 transformation matrix from the full CSS matrix
+    // The CSS matrix is [a, b, c, d, e, f] representing:
+    // | a  c  e |
+    // | b  d  f |
+    // | 0  0  1 |
+    // For the shader, we need the 2x2 portion [a, b, c, d] and its inverse
+    let a = transform.scaleX;
+    let b = 0;
+    let c = 0;
+    let d = transform.scaleY;
+
+    // If a full CSS matrix is provided, use it instead
+    if (transform.matrix) {
+      [a, b, c, d] = transform.matrix;
+    }
+
+    // Note: WebGL Y-axis is flipped (bottom-left origin), so we need to flip the Y components
+    // The matrix in CSS space is [a, b, c, d], but in WebGL space we flip Y:
+    // - b stays as is (relates to y input)
+    // - c stays as is (affects x output from y input)
+    // - For the shader, we just pass the matrix as-is since the coordinate system
+    //   is handled in the shader by the uCenter calculation
+
+    // Pass the transform matrix to the shader [a, b, c, d]
+    gl.uniform4f(state.uniforms.uTransformMatrix, a, b, c, d);
+
+    // Compute the inverse of the 2x2 matrix for the shader
+    // The inverse of [a, b; c, d] is (1/det) * [d, -b; -c, a]
+    const det = a * d - b * c;
+    if (Math.abs(det) > 1e-10) {
+      const invDet = 1 / det;
+      const invA = d * invDet;
+      const invB = -b * invDet;
+      const invC = -c * invDet;
+      const invD = a * invDet;
+      gl.uniform2f(state.uniforms.uTransformMatrixInv1, invA, invC);
+      gl.uniform2f(state.uniforms.uTransformMatrixInv2, invB, invD);
+    } else {
+      // Singular matrix, use identity
+      gl.uniform2f(state.uniforms.uTransformMatrixInv1, 1, 0);
+      gl.uniform2f(state.uniforms.uTransformMatrixInv2, 0, 1);
+    }
+
+    // For the size uniform, we pass the original (untransformed) half-size
+    // The shader will apply the transform via the matrix
+    const w = material.config.width * scale;
+    const h = material.config.height * scale;
 
     // position is the CENTER of the material in CSS pixels
     const centerXCss = material.position.x + transform.translateX;
@@ -338,21 +385,22 @@ export function createLiquidGlassRenderer(
 
     gl.uniform2f(state.uniforms.uCenter, physicalCenterX, physicalCenterY);
 
-    // Shader expects half-width and half-height
+    // Shader expects half-width and half-height in untransformed space
     gl.uniform2f(state.uniforms.uSize, w / 2, h / 2);
 
     const baseRadius = material.config.radius;
-    const radiusScale = Math.min(transform.scaleX, transform.scaleY);
+    // For radius, we don't scale by transform - let the matrix handle the distortion
+    // The radius values are in untransformed space
 
     gl.uniform4f(
       state.uniforms.uRadius,
-      (material.config.radiusTR ?? baseRadius) * scale * radiusScale,
-      (material.config.radiusBR ?? baseRadius) * scale * radiusScale,
-      (material.config.radiusBL ?? baseRadius) * scale * radiusScale,
-      (material.config.radiusTL ?? baseRadius) * scale * radiusScale,
+      (material.config.radiusTR ?? baseRadius) * scale,
+      (material.config.radiusBR ?? baseRadius) * scale,
+      (material.config.radiusBL ?? baseRadius) * scale,
+      (material.config.radiusTL ?? baseRadius) * scale,
     );
 
-    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * scale * radiusScale);
+    gl.uniform1f(state.uniforms.uThickness, material.config.thickness * scale);
     gl.uniform1f(state.uniforms.uRefractIndex, material.config.refractIndex);
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
     gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
@@ -461,19 +509,70 @@ export function createLiquidGlassRenderer(
       const transform = material.transform ?? identityTransform;
 
       // A. Calculate scissor rectangle in physical pixels
+      // For transformed shapes, we need to compute the axis-aligned bounding box (AABB)
+      // of the transformed rectangle
+
+      // Extract transform matrix components
+      let a = transform.scaleX;
+      let b = 0;
+      let c = 0;
+      let d = transform.scaleY;
+
+      if (transform.matrix) {
+        [a, b, c, d] = transform.matrix;
+      }
+
+      // Half-dimensions in untransformed space
+      const halfW = (material.config.width * scale) / 2;
+      const halfH = (material.config.height * scale) / 2;
+
+      // Transform the four corners of the rectangle to find the AABB
+      // Corners in local space: (-halfW, -halfH), (halfW, -halfH), (halfW, halfH), (-halfW, halfH)
+      // Transform each corner: x' = a*x + c*y, y' = b*x + d*y
+      const corners = [
+        { x: -halfW, y: -halfH },
+        { x: halfW, y: -halfH },
+        { x: halfW, y: halfH },
+        { x: -halfW, y: halfH },
+      ];
+
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      corners.forEach((corner) => {
+        const tx = a * corner.x + c * corner.y;
+        const ty = b * corner.x + d * corner.y;
+        minX = Math.min(minX, tx);
+        maxX = Math.max(maxX, tx);
+        minY = Math.min(minY, ty);
+        maxY = Math.max(maxY, ty);
+      });
+
+      const aabbWidth = maxX - minX;
+      const aabbHeight = maxY - minY;
+
       // position is the CENTER of the material in CSS pixels
-      const w = material.config.width * scale * transform.scaleX;
-      const h = material.config.height * scale * transform.scaleY;
-      // Convert center to left edge: centerX - width/2
       const centerXCss = material.position.x + transform.translateX;
       const centerYCss = material.position.y + transform.translateY;
-      const x = centerXCss * scale - w / 2;
+
+      // Calculate scissor rect position (left edge in physical pixels)
+      const centerXPhysical = centerXCss * scale;
+      const centerYPhysical = centerYCss * scale;
+      const x = centerXPhysical + minX; // minX is negative for left edge
       // WebGL Y-axis: origin is bottom-left, so flip Y
-      // bottomY = physicalHeight - centerY_physical - height/2
-      const y = physicalHeight - centerYCss * scale - h / 2;
+      const y = physicalHeight - centerYPhysical - maxY;
 
       // B. Apply scissor rect immediately before drawing this material
-      gl.scissor(x, y, w, h);
+      // Add a small margin to prevent clipping artifacts at edges
+      const margin = 2;
+      gl.scissor(
+        Math.floor(x - margin),
+        Math.floor(y - margin),
+        Math.ceil(aabbWidth + margin * 2),
+        Math.ceil(aabbHeight + margin * 2),
+      );
 
       // C. Update uniforms with the same scale and draw immediately
       updateUniforms(material, scale, physicalWidth, physicalHeight);

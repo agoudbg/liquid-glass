@@ -5,7 +5,7 @@
         <div class="left">
           <div class="button">
             <LiquidGlassMaterial :blur="1" :radius="20">
-              <span>Home</span>
+              <span>H</span>
             </LiquidGlassMaterial>
           </div>
         </div>

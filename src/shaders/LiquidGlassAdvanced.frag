@@ -17,7 +17,16 @@ uniform float uRefractIntensity; // Scales refraction offset
 uniform float uBlur;             // LOD bias for mipmap-based blur
 uniform float uDispersion;       // Chromatic aberration strength (0.0 to 0.05)
 
-float sdfRect(vec2 p, vec4 r) {
+// Transform matrix components [a, b, c, d] (2x2 portion) for shape distortion
+// The full CSS matrix is matrix(a, b, c, d, e, f) where:
+// a = scaleX * cos(rotation), b = scaleX * sin(rotation) + skewY
+// c = -scaleY * sin(rotation) + skewX, d = scaleY * cos(rotation)
+// We use the inverse of this matrix to transform coordinates before SDF computation
+uniform vec4 uTransformMatrix; // [a, b, c, d] - the 2x2 transformation part
+uniform vec2 uTransformMatrixInv1; // [invA, invB] - first row of inverse
+uniform vec2 uTransformMatrixInv2; // [invC, invD] - second row of inverse
+
+float sdfRect(vec2 p, vec4 r, vec2 halfSize) {
   // p is relative to center; y is up.
   float rad;
   if (p.x >= 0.0) {
@@ -25,7 +34,7 @@ float sdfRect(vec2 p, vec4 r) {
   } else {
     rad = (p.y >= 0.0) ? r.w : r.z; // left side: top vs bottom
   }
-  vec2 q = abs(p) - uSize + rad;
+  vec2 q = abs(p) - halfSize + rad;
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
 }
 
@@ -33,7 +42,15 @@ void main() {
   vec2 fragCoord = vTextureCoord * uResolution;
   vec2 p = fragCoord - uCenter;
 
-  float sd = sdfRect(p, uRadius);
+  // Apply inverse transform to get coordinates in untransformed space
+  // This makes the SDF calculation match the CSS-transformed shape
+  // p_untransformed = inverse(transformMatrix) * p
+  vec2 pUntransformed = vec2(
+    uTransformMatrixInv1.x * p.x + uTransformMatrixInv1.y * p.y,
+    uTransformMatrixInv2.x * p.x + uTransformMatrixInv2.y * p.y
+  );
+
+  float sd = sdfRect(pUntransformed, uRadius, uSize);
   
   // Outside glass region: discard to allow other materials to show
   if (sd >= 0.0) {
@@ -42,13 +59,22 @@ void main() {
   
   vec2 uv = vTextureCoord;
 
-  float sdX = sdfRect(p + vec2(1.0, 0.0), uRadius);
-  float sdY = sdfRect(p + vec2(0.0, 1.0), uRadius);
+  // Calculate gradient for normal computation in untransformed space
+  float sdX = sdfRect(pUntransformed + vec2(1.0, 0.0), uRadius, uSize);
+  float sdY = sdfRect(pUntransformed + vec2(0.0, 1.0), uRadius, uSize);
 
   float n_cos = max(uThickness + sd, 0.0) / uThickness;
   float n_cos2 = n_cos * n_cos;
   float n_sin = sqrt(1.0 - n_cos2);
   vec3 normal = normalize(vec3((sdX - sd) * n_cos, (sdY - sd) * n_cos, n_sin));
+
+  // Transform the normal back to screen space using the transform matrix
+  // This ensures refraction direction matches the visual shape
+  vec2 normalXY = vec2(
+    uTransformMatrix.x * normal.x + uTransformMatrix.z * normal.y,
+    uTransformMatrix.y * normal.x + uTransformMatrix.w * normal.y
+  );
+  normal = normalize(vec3(normalXY, normal.z));
 
   vec3 refract_vec = refract(vec3(0.0, 0.0, -1.0), normal, 1.0 / uRefractIndex);
 

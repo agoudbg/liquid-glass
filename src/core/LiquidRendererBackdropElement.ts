@@ -94,10 +94,10 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.position.x = x - this.manager.position.x + this.manager.scroll.x;
     this.position.y = y - this.manager.position.y + this.manager.scroll.y;
 
-    // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
-    const dpr = getSafeDevicePixelRatio();
-    this.size.width = rect.width * dpr;
-    this.size.height = rect.height * dpr;
+    // MEMORY FIX: Use effective pixel scale (safe DPR * render precision) for consistent sizing
+    const pixelScale = getSafeDevicePixelRatio() * this.manager.getRenderPrecision();
+    this.size.width = rect.width * pixelScale;
+    this.size.height = rect.height * pixelScale;
 
     // Since position or size may have changed, request a re-capture
     if (!options?.suppressReRender) {

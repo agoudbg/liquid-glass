@@ -43,7 +43,7 @@ const parentDepth = useLiquidDepth(-1);
 const depth = (parentDepth ?? -1) + 1;
 
 // Try to get parent LiquidRendererManager from context
-let parentManager = null;
+let parentManager: LiquidRendererManager | null = null;
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 try {
   parentManager = useLiquidContext();
@@ -51,10 +51,14 @@ try {
   // No parent context found
 }
 
+// Inherit renderPrecision from parent manager if not explicitly set
+// This ensures nested LiquidGlass components use consistent pixel scaling
+const effectiveRenderPrecision = props.renderPrecision ?? (parentManager?.getRenderPrecision() ?? 0);
+
 // Initialize the LiquidRendererManager
 const manager: LiquidRendererManager = new LiquidRendererManager({
   debug: props.debug ?? false,
-  renderPrecision: props.renderPrecision ?? 0,
+  renderPrecision: effectiveRenderPrecision,
   renderMode: props.renderMode ?? 'uniform',
   powerEfficientMode: props.powerEfficientMode ?? false,
 });
@@ -89,9 +93,11 @@ manager.on('fallbackModeChanged', onFallbackModeChanged);
 isFallbackMode.value = manager.isFallbackMode;
 
 watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode, props.scrollable, props.themeColorThresholds], () => {
+  // Use effectiveRenderPrecision which inherits from parent if not set
+  const newRenderPrecision = props.renderPrecision ?? (parentManager?.getRenderPrecision() ?? 0);
   manager.setOptions({
     debug: props.debug,
-    renderPrecision: props.renderPrecision,
+    renderPrecision: newRenderPrecision,
     renderMode: props.renderMode,
     powerEfficientMode: props.powerEfficientMode,
     scrollable: props.scrollable,
@@ -120,7 +126,7 @@ onMounted(() => {
     {
       container: container.value ?? undefined,
       debug: props.debug ?? false,
-      renderPrecision: props.renderPrecision ?? 0,
+      renderPrecision: effectiveRenderPrecision,
       renderMode: props.renderMode ?? 'uniform',
       powerEfficientMode: props.powerEfficientMode ?? false,
       requireFullRender: !!backdropManager.value,
@@ -135,8 +141,10 @@ onMounted(() => {
         uniformCanvas.value.width = manager.materialsCanvas.width;
         uniformCanvas.value.height = manager.materialsCanvas.height;
 
-        uniformCanvas.value.style.width = `${manager.size.width}px`;
-        uniformCanvas.value.style.height = `${manager.size.height}px`;
+        // Use actualCssSize which accounts for canvas dimension clamping on mobile
+        // This ensures CSS dimensions match the actual physical canvas content
+        uniformCanvas.value.style.width = `${manager.actualCssSize.width}px`;
+        uniformCanvas.value.style.height = `${manager.actualCssSize.height}px`;
 
         const ctx = uniformCanvas.value.getContext('2d');
         if (ctx) {

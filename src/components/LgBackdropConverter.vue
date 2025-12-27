@@ -18,6 +18,7 @@ const props = defineProps<{
   zIndex?: number;
 }>();
 
+const manager = useLiquidContext();
 const backdropElement = ref<HTMLElement | null>(null);
 const backdropManager = ref<LiquidRendererBackdropElement | null>(null);
 let resizeObserver: ResizeObserver | null = null;
@@ -25,8 +26,8 @@ let childResizeObserver: ResizeObserver | null = null;
 let mutationObserver: MutationObserver | null = null;
 let imgLoadCleanups: Array<() => void> = [];
 
-// MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
-const defaultPixelRatio = getSafeDevicePixelRatio();
+// Compute effective pixel ratio dynamically to pick up renderPrecision changes
+const getEffectivePixelRatio = () => getSafeDevicePixelRatio() * manager.getRenderPrecision();
 
 const triggerBackdropCapture = () => {
   if (!backdropManager.value) return;
@@ -75,13 +76,14 @@ const drawBackdrop = async () => {
   if (!element) return;
 
   const captureLib = props.captureLib || 'html-to-image';
+  // Get effective pixel ratio at capture time to ensure it's up-to-date
+  const effectivePixelRatio = getEffectivePixelRatio();
 
   if (captureLib === 'html-to-image') {
     // Use html-to-image to capture the backdrop
     const { toCanvas } = await import('html-to-image');
     const canvas = await toCanvas(element, {
-      // pixelRatio: window.devicePixelRatio || 1,
-      pixelRatio: defaultPixelRatio,
+      pixelRatio: effectivePixelRatio,
       width: element.scrollWidth,
       height: element.scrollHeight,
     });
@@ -96,7 +98,7 @@ const drawBackdrop = async () => {
     // Use html2canvas to capture the backdrop
     const html2canvas = (await import('html2canvas')).default;
     const canvas = await html2canvas(element, {
-      scale: defaultPixelRatio,
+      scale: effectivePixelRatio,
       width: element.scrollWidth,
       height: element.scrollHeight,
       onclone(document) {
@@ -118,8 +120,6 @@ const drawBackdrop = async () => {
 };
 
 onMounted(() => {
-  const manager = useLiquidContext();
-
   // Register self as a backdrop element
   if (backdropElement.value) {
     backdropManager.value = new LiquidRendererBackdropElement(manager, backdropElement.value, {

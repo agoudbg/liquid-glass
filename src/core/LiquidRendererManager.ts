@@ -59,6 +59,13 @@ export class LiquidRendererManager extends EventEmitter {
 
   public scrollBarSize = { width: 0, height: 0 };
 
+  /**
+   * The actual CSS size for uniform canvas display.
+   * When canvas dimensions are clamped on mobile, this reflects the clamped size
+   * to ensure proper alignment between CSS layout and physical canvas pixels.
+   */
+  public actualCssSize = { width: 0, height: 0 };
+
   // Performance optimization: persistent canvas for WebGL backdrop conversion
   private backdropCanvasForGL: HTMLCanvasElement | null = null;
 
@@ -198,6 +205,13 @@ export class LiquidRendererManager extends EventEmitter {
     if (options.renderPrecision !== undefined) {
       this.renderPrecision = options.renderPrecision;
       this.log('debug', `Render precision set to: ${this.renderPrecision}`);
+
+      // Propagate scale change to renderer and trigger reflow so canvas sizes stay in sync
+      if (this.renderer) {
+        this.renderer.setRenderScale(this.getRenderPrecision());
+      }
+      this.markLayoutDirty();
+      this.isBackdropDirty = true;
     }
 
     if (options.renderMode !== undefined) {
@@ -277,6 +291,8 @@ export class LiquidRendererManager extends EventEmitter {
       this.lastContainerScrollHeight = currentScrollHeight;
     }
 
+    const deviceScale = this.getDeviceScale();
+
     // Handle layout changes (resize, DOM changes)
     if (this.isLayoutDirty) {
       this.log('debug', 'RAF: Layout dirty, recalculating positions');
@@ -323,10 +339,9 @@ export class LiquidRendererManager extends EventEmitter {
     // Ensure canvases stay in sync with container size to avoid stretched backdrops
     // Use this.size which represents the full content size (important for scrollable mode)
     // This must happen AFTER updateContainerPositionAndSize() so this.size is up-to-date
-    // MEMORY FIX: Use getSafeDevicePixelRatio() and clampCanvasDimensions() to prevent OOM on mobile
-    const dpr = getSafeDevicePixelRatio();
-    const rawWidth = Math.round(this.size.width * dpr);
-    const rawHeight = Math.round(this.size.height * dpr);
+    // MEMORY FIX: Use getSafeDevicePixelRatio() * renderPrecision and clampCanvasDimensions() to prevent OOM on mobile
+    const rawWidth = Math.round(this.size.width * deviceScale);
+    const rawHeight = Math.round(this.size.height * deviceScale);
     const { width: expectedBackdropWidth, height: expectedBackdropHeight } = clampCanvasDimensions(rawWidth, rawHeight);
     if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
       const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
@@ -526,6 +541,12 @@ export class LiquidRendererManager extends EventEmitter {
     this.backdropCanvas.width = newWidth;
     this.backdropCanvas.height = newHeight;
 
+    // Update actualCssSize to reflect the clamped physical size back to CSS pixels
+    // This ensures uniform canvas CSS dimensions match the actual rendered content
+    const deviceScale = this.getDeviceScale();
+    this.actualCssSize.width = newWidth / deviceScale;
+    this.actualCssSize.height = newHeight / deviceScale;
+
     // Resize materials canvas and dispose renderer if the size changes
     if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {
       if (this.renderer) {
@@ -577,11 +598,11 @@ export class LiquidRendererManager extends EventEmitter {
       el.updatePositionAndSize({ suppressReRender: true });
     });
 
-    // MEMORY FIX: Use getSafeDevicePixelRatio() and clampCanvasDimensions() to prevent OOM on mobile
-    const dpr = getSafeDevicePixelRatio();
+    // MEMORY FIX: Use getSafeDevicePixelRatio() * renderPrecision and clampCanvasDimensions() to prevent OOM on mobile
+    const deviceScale = this.getDeviceScale();
     // Use this.size which represents the full content size (scrollWidth/scrollHeight for scrollable mode)
-    const rawWidth = Math.round(this.size.width * dpr);
-    const rawHeight = Math.round(this.size.height * dpr);
+    const rawWidth = Math.round(this.size.width * deviceScale);
+    const rawHeight = Math.round(this.size.height * deviceScale);
     const { width: newWidth, height: newHeight } = clampCanvasDimensions(rawWidth, rawHeight);
 
     // Check if canvas needs resizing
@@ -602,7 +623,7 @@ export class LiquidRendererManager extends EventEmitter {
 
     ctx.save();
 
-    ctx.scale(dpr, dpr);
+    ctx.scale(deviceScale, deviceScale);
 
     const style = getComputedStyle(this.container);
     const { backgroundColor, backgroundImage } = style;
@@ -658,12 +679,8 @@ export class LiquidRendererManager extends EventEmitter {
       if (size.width > 0 && size.height > 0) {
         const drawX = Math.round(position.x);
         const drawY = Math.round(position.y);
-        // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR
-        const safeDpr = getSafeDevicePixelRatio();
-        // Use the canvas's actual dimensions divided by DPR to get CSS pixel size
-        // This ensures the captured content is drawn at its natural size without compression
-        const drawW = Math.round(canvas.width / safeDpr);
-        const drawH = Math.round(canvas.height / safeDpr);
+        const drawW = Math.round(canvas.width / deviceScale);
+        const drawH = Math.round(canvas.height / deviceScale);
 
         this.log('debug', `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height})`);
 
@@ -963,14 +980,14 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.log('debug', `Rendering full composite (reason=${reason})`);
 
-    // MEMORY FIX: Use getSafeDevicePixelRatio() to prevent OOM on mobile
-    const dpr = getSafeDevicePixelRatio();
+    // MEMORY FIX: Use getSafeDevicePixelRatio() * renderPrecision to prevent OOM on mobile
+    const deviceScale = this.getDeviceScale();
 
     // For nested LiquidGlass, we need to pass only the viewport area to parent
     // This is crucial for scrollable mode - parent should see what's visible, not the entire content
     const fullCanvas = new OffscreenCanvas(
-      this.viewportSize.width * dpr,
-      this.viewportSize.height * dpr,
+      this.viewportSize.width * deviceScale,
+      this.viewportSize.height * deviceScale,
     );
     const fullCtx = fullCanvas.getContext('2d');
     if (!fullCtx) {
@@ -982,14 +999,14 @@ export class LiquidRendererManager extends EventEmitter {
     if (this.backdropCanvas.width && this.backdropCanvas.height) {
       fullCtx.drawImage(
         this.backdropCanvas,
-        this.scroll.x * dpr,
-        this.scroll.y * dpr,
-        this.viewportSize.width * dpr,
-        this.viewportSize.height * dpr,
+        this.scroll.x * deviceScale,
+        this.scroll.y * deviceScale,
+        this.viewportSize.width * deviceScale,
+        this.viewportSize.height * deviceScale,
         0,
         0,
-        this.viewportSize.width * dpr,
-        this.viewportSize.height * dpr,
+        this.viewportSize.width * deviceScale,
+        this.viewportSize.height * deviceScale,
       );
     }
 
@@ -997,14 +1014,14 @@ export class LiquidRendererManager extends EventEmitter {
     if (this.materialsCanvas.width && this.materialsCanvas.height) {
       fullCtx.drawImage(
         this.materialsCanvas,
-        this.scroll.x * dpr,
-        this.scroll.y * dpr,
-        this.viewportSize.width * dpr,
-        this.viewportSize.height * dpr,
+        this.scroll.x * deviceScale,
+        this.scroll.y * deviceScale,
+        this.viewportSize.width * deviceScale,
+        this.viewportSize.height * deviceScale,
         0,
         0,
-        this.viewportSize.width * dpr,
-        this.viewportSize.height * dpr,
+        this.viewportSize.width * deviceScale,
+        this.viewportSize.height * deviceScale,
       );
     }
 
@@ -1069,6 +1086,10 @@ export class LiquidRendererManager extends EventEmitter {
 
   public getRenderPrecision() {
     return this.renderPrecision === 0 ? 1 : this.renderPrecision;
+  }
+
+  private getDeviceScale() {
+    return getSafeDevicePixelRatio() * this.getRenderPrecision();
   }
 
   public updateFallbackMode() {

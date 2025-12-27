@@ -265,31 +265,33 @@ export function createLiquidGlassRenderer(
   function resize(): void {
     if (!gl) return;
     // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
+    // The backdrop canvas is scaled by deviceScale = safeDpr * renderPrecision.
+    // We need to use the same scale here so that textureResolution / deviceScale = CSS pixels.
     const dpr = getSafeDevicePixelRatio();
-    const scale = dpr * state.renderScale;
+    const deviceScale = dpr * state.renderScale;
 
     // Calculate CSS pixel dimensions (logical size)
-    // textureResolution stores the backdrop's physical pixel dimensions
-    // We need to convert back to CSS pixels, then apply our scale
+    // textureResolution stores the backdrop's physical pixel dimensions (already scaled by deviceScale)
+    // We need to convert back to CSS pixels using the same scale factor
     let cssWidth: number;
     let cssHeight: number;
 
     if (state.textureResolution.width > 1 && state.textureResolution.height > 1) {
-      // textureResolution is in physical pixels, convert to CSS pixels
-      cssWidth = state.textureResolution.width / dpr;
-      cssHeight = state.textureResolution.height / dpr;
+      // textureResolution is in physical pixels (scaled by deviceScale), convert back to CSS pixels
+      cssWidth = state.textureResolution.width / deviceScale;
+      cssHeight = state.textureResolution.height / deviceScale;
     } else {
-      cssWidth = canvas.clientWidth || canvas.width / dpr;
-      cssHeight = canvas.clientHeight || canvas.height / dpr;
+      cssWidth = canvas.clientWidth || canvas.width / deviceScale;
+      cssHeight = canvas.clientHeight || canvas.height / deviceScale;
     }
 
     // Store logical resolution (CSS pixels)
     state.logicalResolution.width = cssWidth;
     state.logicalResolution.height = cssHeight;
 
-    // Canvas physical dimensions = CSS pixels * scale
-    const physicalWidth = Math.max(1, Math.round(cssWidth * scale));
-    const physicalHeight = Math.max(1, Math.round(cssHeight * scale));
+    // Canvas physical dimensions = CSS pixels * deviceScale
+    const physicalWidth = Math.max(1, Math.round(cssWidth * deviceScale));
+    const physicalHeight = Math.max(1, Math.round(cssHeight * deviceScale));
 
     // Check if canvas size actually changed
     // Modifying canvas.width/height resets WebGL context, so we need to reinitialize

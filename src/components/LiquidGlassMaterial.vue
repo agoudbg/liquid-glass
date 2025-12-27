@@ -1,3 +1,26 @@
+<!--
+  LiquidGlassMaterial.vue - Glass material component with refraction effects
+
+  Features:
+  - WebGL-powered glass refraction and distortion
+  - Touch/pointer interaction with physics-based animation
+  - Automatic theme color detection (light/dark mode)
+  - Cross-component render delegation via proxyTarget
+  - Fallback mode for devices without WebGL support
+
+  @slot default - Content to display inside the glass material
+    @binding updating - Whether the material is currently updating
+    @binding startUpdating - Function to start updating the material
+    @binding stopUpdating - Function to stop updating the material
+
+  @example
+  <LiquidGlassMaterial :radius="20" :thickness="10">
+    <div class="card-content">
+      <h3>Glass Card</h3>
+      <p>This content has a glass effect behind it</p>
+    </div>
+  </LiquidGlassMaterial>
+-->
 <template>
   <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode"
     :allowing-color-transition="allowingColorTransition" :disable-interactions="disableInteractions"
@@ -489,19 +512,6 @@ const stepAnimation = (timestamp: number) => {
       state.targetScaleY += (cfg.baseScale - state.currentScaleY) * reboundFactor;
     }
   } else {
-    // if (i++ % 100 === 0) {
-    // console.log('Rebound', {
-    //   currentX: state.currentX,
-    //   currentY: state.currentY,
-    //   originX: state.originX,
-    //   originY: state.originY,
-    //   targetX: state.targetX,
-    //   targetY: state.targetY,
-    //   reboundTargetX: state.reboundTargetX,
-    //   reboundTargetY: state.reboundTargetY,
-    //   triggerRebound: triggerRebound.value,
-    // });
-    // }
     // eslint-disable-next-line no-lonely-if
     if (triggerRebound.value === undefined
       && Math.abs(state.currentX - state.targetX) < 1
@@ -515,39 +525,11 @@ const stepAnimation = (timestamp: number) => {
     ) {
       triggerRebound.value = true;
 
-      // console.log('Rebound', {
-      //   currentX: state.currentX,
-      //   currentY: state.currentY,
-      //   originX: state.originX,
-      //   originY: state.originY,
-      //   targetX: state.targetX,
-      //   targetY: state.targetY,
-      //   reboundTargetX: state.reboundTargetX,
-      //   reboundTargetY: state.reboundTargetY,
-      //   triggerRebound: triggerRebound.value,
-      // });
-
-      // console.log('Setting triggerRebound to true');
-
-      // if (triggerRebound.value) {
       state.reboundTargetX = state.targetX / 1.5;
       state.reboundTargetY = state.targetY / 1.5;
 
       state.targetX = state.reboundTargetX;
       state.targetY = state.reboundTargetY;
-
-      // triggerRebound.value = false;
-
-      // console.log('New target after rebound:', {
-      //   // currentX: state.currentX,
-      //   // currentY: state.currentY,
-      //   // originX: state.originX,
-      //   // originY: state.originY,
-      //   // targetX: state.targetX,
-      //   // targetY: state.targetY,
-      //   reboundTargetX: state.reboundTargetX,
-      //   reboundTargetY: state.reboundTargetY,
-      //   // triggerRebound: triggerRebound.value,
       // });
       // // }
     }
@@ -587,7 +569,6 @@ const stepAnimation = (timestamp: number) => {
         && Math.abs(state.currentY - state.reboundTargetY) < 0.5));
 
   if (atRest) {
-    // console.log('Animation at rest #rebound:', triggerRebound.value, 'interacting:', state.interacting);
     if (!state.interacting) {
       if (triggerRebound.value) {
         triggerRebound.value = false;
@@ -600,10 +581,8 @@ const stepAnimation = (timestamp: number) => {
       }
     } else if (triggerRebound.value) {
       triggerRebound.value = undefined;
-      // console.log('Resetting triggerRebound to false');
     } else {
       triggerRebound.value = undefined;
-      // console.log('Resetting triggerRebound to undefined');
     }
   }
 

@@ -1,8 +1,21 @@
+/**
+ * @fileoverview Backdrop element wrapper for LiquidGlass rendering.
+ *
+ * This class manages a single backdrop element (HTML content or custom canvas)
+ * that provides the background texture for the liquid glass refraction effect.
+ */
+
 import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType } from '../types/LiquidGlass';
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
+/**
+ * Represents a backdrop element registered with the LiquidRendererManager.
+ * Handles position tracking, canvas capture, and recapture coordination.
+ *
+ * @emits requestBackdropCapture - When the element needs to be recaptured
+ */
 export class LiquidRendererBackdropElement extends EventEmitter {
   public manager: LiquidRendererManager;
 

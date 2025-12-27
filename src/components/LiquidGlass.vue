@@ -1,3 +1,23 @@
+<!--
+  LiquidGlass.vue - Main container component for Liquid Glass effects
+
+  This component provides:
+  - A rendering context for child LiquidGlassMaterial components
+  - Backdrop capture coordination via LgBackdropConverter/LgBackdropCanvas
+  - Scroll handling for scrollable content areas
+  - Nested LiquidGlass support with automatic render precision inheritance
+  - Cross-component render delegation via proxyInterface
+
+  @example
+  <LiquidGlass :scrollable="true" :render-precision="0.8">
+    <LgBackdropConverter>
+      <YourBackdropContent />
+    </LgBackdropConverter>
+    <LiquidGlassMaterial :radius="20">
+      <YourGlassContent />
+    </LiquidGlassMaterial>
+  </LiquidGlass>
+-->
 <template>
   <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
     <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">

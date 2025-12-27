@@ -1,3 +1,19 @@
+<!--
+  LgBackdropCanvas.vue - Custom canvas drawing for backdrop effects
+
+  This component allows developers to provide a custom drawing function
+  that renders content to a canvas, which serves as the backdrop for
+  LiquidGlassMaterial refraction effects.
+
+  @example
+  <LgBackdropCanvas :draw="drawFunction" />
+
+  // In your component:
+  const drawFunction: CustomDrawCallback = (ctx, width, height) => {
+    ctx.fillStyle = 'blue';
+    ctx.fillRect(0, 0, width, height);
+  };
+-->
 <script setup lang="ts">
 import {
   onMounted, onUnmounted, ref, watch,
@@ -7,8 +23,11 @@ import { useLiquidContext } from '../core/LiquidContext';
 import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropElement';
 import { CustomDrawCallback } from '../types/LiquidGlass';
 
+/** Props for the LgBackdropCanvas component */
 const props = defineProps<{
+  /** Custom drawing function that renders backdrop content */
   draw: CustomDrawCallback;
+  /** Z-index for backdrop layer ordering */
   zIndex?: number;
 }>();
 

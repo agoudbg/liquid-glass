@@ -1,3 +1,11 @@
+/**
+ * @fileoverview Material element wrapper for LiquidGlass rendering.
+ *
+ * This class manages a single material element (a glass panel) that displays
+ * the liquid glass refraction effect. It tracks the element's position, size,
+ * and transform, and communicates with the LiquidRendererManager for rendering.
+ */
+
 import {
   AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialElementTransform, LiquidRendererMaterialGlassAttributions, TextureDirtyReason,
 } from '../types/LiquidGlass';
@@ -5,6 +13,12 @@ import { parseCSSTransformMatrix } from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
+/**
+ * Represents a glass material element registered with the LiquidRendererManager.
+ * Handles position tracking, glass attribute management, and theme color detection.
+ *
+ * @emits backgroundColorModeChanged - When the detected theme color changes
+ */
 export class LiquidRendererMaterialElement extends EventEmitter {
   public manager: LiquidRendererManager;
 

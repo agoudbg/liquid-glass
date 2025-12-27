@@ -1,3 +1,15 @@
+/**
+ * @fileoverview WebGL2-based Liquid Glass renderer.
+ *
+ * This module provides a factory function `createLiquidGlassRenderer` that creates
+ * a WebGL2 renderer for the liquid glass effect. It handles:
+ * - Material management (add, update, remove, position, transform)
+ * - Background texture management
+ * - Shader-based refraction and distortion effects
+ * - Theme color detection from backdrop pixels
+ * - Canvas resizing with proper DPR handling
+ */
+
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
 import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';

@@ -1,5 +1,14 @@
+/**
+ * @fileoverview Type definitions for the Liquid Glass component library.
+ *
+ * This module exports all TypeScript interfaces and types used throughout
+ * the liquid glass rendering pipeline.
+ */
+
+/** Render mode for glass materials */
 export type RenderMode = 'uniform' | 'dedicated';
 
+/** Callback function for custom canvas drawing */
 export type CustomDrawCallback = (ctx: OffscreenCanvasRenderingContext2D, w: number, h: number) => void;
 
 /**

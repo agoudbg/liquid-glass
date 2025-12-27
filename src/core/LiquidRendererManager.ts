@@ -9,9 +9,26 @@ import { createLiquidGlassRenderer, DEFAULT_THEME_COLOR_THRESHOLDS, LiquidGlassR
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
 import { LiquidRendererMaterialElement } from './LiquidRendererMaterialElement';
 
+/**
+ * Central manager for the Liquid Glass rendering pipeline.
+ *
+ * Responsibilities:
+ * - Manages the lifecycle of backdrop and material elements
+ * - Coordinates backdrop capture and WebGL material rendering
+ * - Handles scroll and resize events with debouncing/throttling
+ * - Provides composite rendering for nested LiquidGlass components
+ *
+ * @emits backdropCaptured - When backdrop canvas is captured
+ * @emits materialsRendered - When materials are rendered to canvas
+ * @emits fullCanvasRendered - When composite canvas is ready (for nested components)
+ * @emits fallbackModeChanged - When fallback mode status changes
+ * @emits optionsChanged - When manager options are updated
+ */
 export class LiquidRendererManager extends EventEmitter {
+  /** Enable debug logging */
   public debug = false;
 
+  /** The container element for the LiquidGlass instance */
   public container: HTMLElement;
 
   public content: HTMLElement;
@@ -691,13 +708,6 @@ export class LiquidRendererManager extends EventEmitter {
           drawW,
           drawH,
         );
-
-        // Debug: Draw a border around the backdrop item
-        // if (this.debug) {
-        //   ctx.strokeStyle = 'yellow';
-        //   ctx.lineWidth = 2 / dpr;
-        //   ctx.strokeRect(drawX, drawY, drawW, drawH);
-        // }
       }
     });
 
@@ -841,7 +851,7 @@ export class LiquidRendererManager extends EventEmitter {
         height: size.height,
       };
 
-      this.log('info', 'Material config for element:', {
+      this.log('debug', 'Material config for element:', {
         scroll: this.scroll,
         position,
         pPosition: this.position,

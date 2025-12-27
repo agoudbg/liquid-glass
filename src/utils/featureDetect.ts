@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Feature detection and device capability utilities.
+ *
+ * This module provides utilities for:
+ * - WebGL support detection
+ * - Mobile device detection
+ * - Safe DPR (Device Pixel Ratio) calculation to prevent OOM on mobile
+ * - Canvas dimension clamping for memory safety
+ * - CSS transform matrix parsing and inversion
+ */
+
+/**
+ * Check if WebGL2 is supported in the current browser.
+ * @returns true if WebGL2 is available
+ */
 export function isWebGLSupported(): boolean {
   try {
     const canvas = document.createElement('canvas');

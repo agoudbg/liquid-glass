@@ -1,3 +1,27 @@
+<!--
+  LgBackdropConverter.vue - Converts HTML content to canvas for backdrop effects
+
+  This component captures its slotted HTML content and converts it to a canvas
+  that serves as the backdrop for LiquidGlassMaterial refraction effects.
+  
+  Features:
+  - Supports both html-to-image and html2canvas libraries
+  - Automatic recapture on resize, mutation, and image load
+  - Manual recapture via slot-exposed requestBackdropRedraw function
+
+  @slot default - Content to capture as backdrop
+    @binding request-backdrop-redraw - Function to manually trigger recapture
+
+  @example
+  <LgBackdropConverter capture-lib="html-to-image">
+    <template #default="{ requestBackdropRedraw }">
+      <div class="backdrop-content">
+        <img src="background.jpg" />
+        <button @click="requestBackdropRedraw">Refresh</button>
+      </div>
+    </template>
+  </LgBackdropConverter>
+-->
 <template>
   <div class="liquid-glass-backdrop-converter" ref="backdropElement">
     <slot :request-backdrop-redraw="requestBackdropRedraw"></slot>

@@ -532,6 +532,12 @@ export class LiquidRendererManager extends EventEmitter {
   private resizeInternalCanvases(newWidth: number, newHeight: number) {
     if (newWidth <= 0 || newHeight <= 0) return;
 
+    // Always update actualCssSize to reflect the (potentially clamped) physical size back to CSS pixels
+    // This ensures uniform canvas CSS dimensions match the actual rendered content
+    const deviceScale = this.getDeviceScale();
+    this.actualCssSize.width = newWidth / deviceScale;
+    this.actualCssSize.height = newHeight / deviceScale;
+
     const backdropChanged = this.backdropCanvas.width !== newWidth || this.backdropCanvas.height !== newHeight;
 
     if (!backdropChanged) return;
@@ -540,12 +546,6 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.backdropCanvas.width = newWidth;
     this.backdropCanvas.height = newHeight;
-
-    // Update actualCssSize to reflect the clamped physical size back to CSS pixels
-    // This ensures uniform canvas CSS dimensions match the actual rendered content
-    const deviceScale = this.getDeviceScale();
-    this.actualCssSize.width = newWidth / deviceScale;
-    this.actualCssSize.height = newHeight / deviceScale;
 
     // Resize materials canvas and dispose renderer if the size changes
     if (this.materialsCanvas.width !== newWidth || this.materialsCanvas.height !== newHeight) {

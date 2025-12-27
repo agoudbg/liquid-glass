@@ -15,7 +15,7 @@ import {
 } from 'vue';
 
 import { useMaterialDelegation } from '../composables/useMaterialDelegation';
-import { useLiquidContext } from '../core/LiquidContext';
+import { useLiquidContext, useLiquidDepth } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import type { ProxyTargetInterface } from '../types/ExternalMaterial';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
@@ -152,6 +152,15 @@ const borderRadius = computed(() => {
 });
 
 const manager = useLiquidContext();
+const depth = useLiquidDepth(0);
+
+// Calculate depth-aware z-index for the material
+// Material z-index should be: 10000 - depth * 2
+// This ensures parent materials (depth 0) have z-index 10000,
+// and child materials (depth 1) have z-index 9998, etc.
+// This is 1 higher than the parent's canvas z-index (9999 - depth * 2)
+// but lower than the grandparent's canvas
+const materialZIndex = computed(() => 10000 - depth * 2);
 
 const isFallbackMode = ref<boolean>(false);
 const onFallbackModeChanged = (fallback: boolean) => {
@@ -343,9 +352,18 @@ const materialStyle = computed(() => {
   const {
     currentX, currentY, currentScaleX, currentScaleY,
   } = interactionState.value;
-  return {
+
+  // Base style with transform
+  const style: Record<string, string | number> = {
     transform: `translate3d(${currentX}px, ${currentY}px, 0) scale(${currentScaleX}, ${currentScaleY})`,
   };
+
+  // Apply depth-aware z-index only in uniform render mode
+  if (renderMode.value === 'uniform') {
+    style.zIndex = materialZIndex.value;
+  }
+
+  return style;
 });
 
 const highlightVisible = computed(() => interactionState.value.highlightVisible && !isFallbackMode.value);
@@ -931,9 +949,8 @@ defineExpose({
   transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
 }
 
-.liquid-glass-material[render-mode="uniform"] {
-  z-index: 10000;
-}
+/* Note: z-index for uniform render mode is now set dynamically via materialStyle
+   to support depth-aware z-index for nested LiquidGlass components */
 
 .liquid-glass-material[is-fallback-mode="true"] {
   backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);

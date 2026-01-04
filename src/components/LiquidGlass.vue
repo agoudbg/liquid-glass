@@ -213,6 +213,23 @@ onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
 });
 
+/**
+ * Force a complete refresh of the rendering pipeline.
+ * This will recalculate all positions, visibility, and re-render everything.
+ */
+const refresh = () => manager.refresh();
+
+/**
+ * Update visibility and opacity for all registered elements.
+ * Call this when you've changed opacity/visibility CSS properties.
+ */
+const refreshVisibility = () => manager.refreshVisibility();
+
+/**
+ * Mark the layout as dirty to trigger position/size recalculation.
+ */
+const markLayoutDirty = () => manager.markLayoutDirty();
+
 // Expose the proxy interface for cross-component render delegation
 // External materials can use this interface to delegate their glass rendering
 defineExpose({
@@ -237,6 +254,29 @@ defineExpose({
    * The LiquidRendererManager instance for this LiquidGlass
    */
   manager,
+
+  /**
+   * Force a complete refresh of the rendering pipeline.
+   * This will recalculate all positions, visibility, and re-render everything.
+   * @example
+   * liquidGlassRef.value?.refresh()
+   */
+  refresh,
+
+  /**
+   * Update visibility and opacity for all registered elements.
+   * Call this when you've changed opacity/visibility CSS properties.
+   * @example
+   * liquidGlassRef.value?.refreshVisibility()
+   */
+  refreshVisibility,
+
+  /**
+   * Mark the layout as dirty to trigger position/size recalculation on next frame.
+   * @example
+   * liquidGlassRef.value?.markLayoutDirty()
+   */
+  markLayoutDirty,
 });
 
 </script>

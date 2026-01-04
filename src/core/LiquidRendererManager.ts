@@ -394,6 +394,45 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   /**
+   * Force a complete refresh of the rendering pipeline.
+   * This will:
+   * 1. Recalculate positions and sizes of all elements
+   * 2. Recompute visibility/opacity for all elements
+   * 3. Re-capture all backdrop elements
+   * 4. Re-render all materials
+   *
+   * Use this method when you've made changes that affect visibility,
+   * opacity, or layout that the manager can't automatically detect.
+   */
+  public refresh() {
+    this.log('debug', 'Forcing complete refresh');
+    this.markLayoutDirty();
+    this.markTextureDirty('structural');
+  }
+
+  /**
+   * Update visibility and opacity for all registered elements.
+   * Call this when you've changed opacity/visibility CSS properties
+   * and need to sync the glass rendering.
+   */
+  public refreshVisibility() {
+    this.log('debug', 'Refreshing visibility for all elements');
+
+    // Update visibility for all backdrop elements
+    this.registeredBackdropElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
+
+    // Update visibility for all material elements
+    this.registeredMaterialElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
+
+    // Mark texture dirty to trigger re-render with updated opacity values
+    this.markTextureDirty('layout');
+  }
+
+  /**
    * Mark scroll as dirty (scroll position changed, but layout didn't)
    * This is a lighter update than layout dirty - we only need to update material positions
    */

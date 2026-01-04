@@ -7,6 +7,7 @@
 
 import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType } from '../types/LiquidGlass';
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
+import { ComputedVisibility, computeElementVisibility } from '../utils/opacity';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -37,6 +38,12 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   public position = { x: 0, y: 0 };
 
   public size = { width: 0, height: 0 };
+
+  /**
+   * Cached computed visibility (opacity and hidden state).
+   * Updated during position/size updates.
+   */
+  public visibility: ComputedVisibility = { state: 'visible', opacity: 1 };
 
   constructor(manager: LiquidRendererManager, element: HTMLElement, options?: LiquidRendererBackdropElementOptions) {
     super();
@@ -111,6 +118,9 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     const pixelScale = getSafeDevicePixelRatio() * this.manager.getRenderPrecision();
     this.size.width = rect.width * pixelScale;
     this.size.height = rect.height * pixelScale;
+
+    // Compute cumulative opacity from element up to LiquidGlass container
+    this.visibility = computeElementVisibility(this.element, this.manager.container);
 
     // Since position or size may have changed, request a re-capture
     if (!options?.suppressReRender) {

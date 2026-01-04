@@ -686,7 +686,15 @@ export class LiquidRendererManager extends EventEmitter {
     this.log('debug', `Drawing ${sortedElements.length} backdrop elements, scroll: (${this.scroll.x}, ${this.scroll.y})`);
 
     sortedElements.forEach((element, index) => {
-      const { position, size, canvas } = element;
+      const {
+        position, size, canvas, visibility,
+      } = element;
+
+      // Skip rendering if element is hidden (opacity: 0, visibility: hidden, or display: none)
+      if (visibility.state === 'hidden') {
+        this.log('debug', `  [${index}] Skipping backdrop element - hidden`);
+        return;
+      }
 
       if (!canvas) {
         this.log('warn', 'Backdrop element has no canvas to draw:', element.element);
@@ -699,7 +707,13 @@ export class LiquidRendererManager extends EventEmitter {
         const drawW = Math.round(canvas.width / deviceScale);
         const drawH = Math.round(canvas.height / deviceScale);
 
-        this.log('debug', `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height})`);
+        this.log('debug', `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height}) opacity=${visibility.opacity}`);
+
+        // Apply opacity if not fully opaque
+        if (visibility.opacity < 1) {
+          ctx.save();
+          ctx.globalAlpha = visibility.opacity;
+        }
 
         ctx.drawImage(
           canvas,
@@ -708,6 +722,11 @@ export class LiquidRendererManager extends EventEmitter {
           drawW,
           drawH,
         );
+
+        // Restore global alpha if modified
+        if (visibility.opacity < 1) {
+          ctx.restore();
+        }
       }
     });
 
@@ -832,7 +851,18 @@ export class LiquidRendererManager extends EventEmitter {
       }
 
       const { glassAttributes, position, size } = element;
-      const { transform } = element;
+      const { transform, visibility } = element;
+
+      // Skip rendering if element is hidden (opacity: 0, visibility: hidden, or display: none)
+      if (visibility.state === 'hidden') {
+        this.log('debug', `Skipping material ${element.materialId} - element is hidden`);
+        // If this material was previously added, remove it from the renderer
+        if (this.addedMaterialIds.has(element.materialId)) {
+          this.renderer!.removeMaterial(element.materialId);
+          this.addedMaterialIds.delete(element.materialId);
+        }
+        return; // Skip to next material
+      }
 
       currentMaterialIds.add(element.materialId);
 
@@ -849,6 +879,7 @@ export class LiquidRendererManager extends EventEmitter {
         radiusTL: glassAttributes.radiusTL,
         width: size.width,
         height: size.height,
+        opacity: visibility.opacity,
       };
 
       this.log('debug', 'Material config for element:', {

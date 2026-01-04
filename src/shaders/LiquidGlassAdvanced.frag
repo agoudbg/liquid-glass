@@ -16,6 +16,7 @@ uniform float uRefractIndex;     // Index of refraction
 uniform float uRefractIntensity; // Scales refraction offset
 uniform float uBlur;             // LOD bias for mipmap-based blur
 uniform float uDispersion;       // Chromatic aberration strength (0.0 to 0.05)
+uniform float uOpacity;          // Material opacity (0.0 to 1.0)
 
 // Transform matrix components [a, b, c, d] (2x2 portion) for shape distortion
 // The full CSS matrix is matrix(a, b, c, d, e, f) where:
@@ -113,4 +114,9 @@ void main() {
     
     fragColor = vec4(r, g, b, a);
   }
+
+  // Apply material opacity
+  fragColor.a *= uOpacity;
+  // Premultiplied alpha: multiply RGB by alpha for proper blending
+  fragColor.rgb *= fragColor.a;
 }

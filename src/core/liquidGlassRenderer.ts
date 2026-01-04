@@ -52,6 +52,7 @@ export type LiquidGlassConfig = {
   radiusTL?: number
   width: number
   height: number
+  opacity?: number // Material opacity (0.0 to 1.0)
 }
 
 export type GlassMaterialInstance = {
@@ -205,6 +206,7 @@ export function createLiquidGlassRenderer(
       'uRefractIntensity',
       'uBlur',
       'uDispersion',
+      'uOpacity',
       'uTransformMatrix',
       'uTransformMatrixInv1',
       'uTransformMatrixInv2',
@@ -419,6 +421,7 @@ export function createLiquidGlassRenderer(
     gl.uniform1f(state.uniforms.uRefractIntensity, material.config.refractIntensity);
     gl.uniform1f(state.uniforms.uBlur, material.config.blur ?? 0);
     gl.uniform1f(state.uniforms.uDispersion, material.config.dispersion ?? 0.01);
+    gl.uniform1f(state.uniforms.uOpacity, material.config.opacity ?? 1.0);
   }
 
   function computeThemeColors(): ThemeColorMap {
@@ -520,6 +523,12 @@ export function createLiquidGlassRenderer(
     // 3. Core loop - render each material with its own scissor rect
     gl.bindVertexArray(state.vao);
     state.materials.forEach((material) => {
+      // Skip rendering if opacity is 0 (hidden element)
+      const opacity = material.config.opacity ?? 1.0;
+      if (opacity <= 0) {
+        return; // Skip this material entirely
+      }
+
       const transform = material.transform ?? identityTransform;
 
       // A. Calculate scissor rectangle in physical pixels

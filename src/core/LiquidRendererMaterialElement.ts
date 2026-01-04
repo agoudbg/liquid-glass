@@ -10,6 +10,7 @@ import {
   AutomaticBackgroundColorMode, LiquidRendererMaterialElementOptions, LiquidRendererMaterialElementTransform, LiquidRendererMaterialGlassAttributions, TextureDirtyReason,
 } from '../types/LiquidGlass';
 import { parseCSSTransformMatrix } from '../utils/featureDetect';
+import { ComputedVisibility, computeElementVisibility } from '../utils/opacity';
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
@@ -48,6 +49,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
    * The parent manager should skip rendering for this material.
    */
   public isDelegatedToProxy = false;
+
+  /**
+   * Cached computed visibility (opacity and hidden state).
+   * Updated during position/size updates.
+   */
+  public visibility: ComputedVisibility = { state: 'visible', opacity: 1 };
 
   constructor(manager: LiquidRendererManager, element: HTMLElement, options: LiquidRendererMaterialElementOptions) {
     super();
@@ -140,6 +147,9 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
     this.size.width = width;
     this.size.height = height;
+
+    // Compute cumulative opacity from element up to LiquidGlass container
+    this.visibility = computeElementVisibility(this.element, this.manager.container);
 
     // Since position or size may have changed, re-calculate recommended attributes
     this.initializeGlassAttributes(this.options);

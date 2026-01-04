@@ -3,7 +3,7 @@
 
   This component captures its slotted HTML content and converts it to a canvas
   that serves as the backdrop for LiquidGlassMaterial refraction effects.
-  
+
   Features:
   - Supports both html-to-image and html2canvas libraries
   - Automatic recapture on resize, mutation, and image load

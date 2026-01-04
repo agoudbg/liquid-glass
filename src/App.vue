@@ -42,7 +42,8 @@
         </div>
 
         <div class="demo-material" :position="demoMaterial0Position">
-          <LiquidGlassMaterial :radius="20" ref="demoMaterial0" :proxy-target="scrollableLiquidGlassProxy">
+          <LiquidGlassMaterial :radius="20" ref="demoMaterial0" :proxy-target="scrollableLiquidGlassProxy"
+            :interaction="{ activeScale: 1.1 }">
             <div class="demo-card">
               <h3>Glass card</h3>
               <button @click="updateDemoMaterial0Position()">Click</button>
@@ -388,7 +389,6 @@ html {
   border-radius: 18px;
   padding: 20px;
   color: #0b0e1a;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
 .multi-glass-container {

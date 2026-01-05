@@ -29,7 +29,7 @@
                         Show Susu
                       </label>
                     </div>
-                    <img src="/susu.webp" v-if="showImage" />
+                    <img src="./assets/susu.webp" v-if="showImage" />
                   </div>
                 </template>
               </LgBackdropConverter>

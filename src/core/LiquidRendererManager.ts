@@ -892,9 +892,9 @@ export class LiquidRendererManager extends EventEmitter {
       const { glassAttributes, position, size } = element;
       const { transform, visibility } = element;
 
-      // Skip rendering if element is hidden (opacity: 0, visibility: hidden, or display: none)
-      if (visibility.state === 'hidden') {
-        this.log('debug', `Skipping material ${element.materialId} - element is hidden`);
+      // Skip rendering if visibility is not yet initialized or element is hidden
+      if (!visibility || visibility.state === 'hidden') {
+        this.log('debug', `Skipping material ${element.materialId} - element is hidden or not initialized`);
         // If this material was previously added, remove it from the renderer
         if (this.addedMaterialIds.has(element.materialId)) {
           this.renderer!.removeMaterial(element.materialId);

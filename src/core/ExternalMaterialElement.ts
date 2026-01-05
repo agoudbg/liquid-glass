@@ -42,6 +42,9 @@ export class ExternalMaterialElement extends EventEmitter {
   /** Mark this as an external (virtual) material element */
   public isExternalMaterial = true;
 
+  /** Visibility state for external materials (always visible with full opacity) */
+  public visibility = { state: 'visible' as const, opacity: 1 };
+
   /** Callback to emit feedback to the delegating material */
   private feedbackCallback: ((mode: AutomaticBackgroundColorMode) => void) | null = null;
 

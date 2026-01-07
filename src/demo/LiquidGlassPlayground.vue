@@ -95,6 +95,7 @@ import { createLiquidGlassRenderer, type LiquidGlassConfig, type LiquidGlassRend
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let renderer: LiquidGlassRenderer | null = null;
+let animationFrameId: number | null = null;
 const MATERIAL_ID = 'playground-glass';
 const renderPrecision = ref(1.0);
 
@@ -156,20 +157,66 @@ function handleResize() {
   renderer?.resize();
 }
 
+// Render loop
+function startRenderLoop() {
+  function renderFrame() {
+    renderer?.render();
+    animationFrameId = requestAnimationFrame(renderFrame);
+  }
+  renderFrame();
+}
+
+function stopRenderLoop() {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+}
+
+function initRenderer() {
+  if (!canvasRef.value) return;
+
+  // Ensure canvas has proper dimensions before initializing
+  const rect = canvasRef.value.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) {
+    // Retry initialization after a short delay
+    requestAnimationFrame(initRenderer);
+    return;
+  }
+
+  // Dispose existing renderer if any
+  renderer?.dispose();
+
+  renderer = createLiquidGlassRenderer(canvasRef.value, { renderScale: renderPrecision.value });
+  if (!renderer) {
+    console.error('[Playground] Failed to create renderer');
+    return;
+  }
+
+  // Center position based on canvas size
+  position.x = rect.width / 2;
+  position.y = rect.height / 2;
+
+  renderer.addMaterial(MATERIAL_ID, { ...params }, position);
+  loadBackground(bgImageSrc);
+  startRenderLoop();
+  console.log('[Playground] Renderer initialized, canvas size:', rect.width, rect.height);
+}
+
 watch(params, (next) => renderer?.updateMaterial(MATERIAL_ID, { ...next }), { deep: true });
 watch(renderPrecision, (scale) => renderer?.setRenderScale(scale));
 
 onMounted(() => {
-  if (!canvasRef.value) return;
-  renderer = createLiquidGlassRenderer(canvasRef.value, { renderScale: renderPrecision.value });
-  if (!renderer) return;
-  renderer.addMaterial(MATERIAL_ID, { ...params }, position);
-  loadBackground(bgImageSrc);
+  // Use requestAnimationFrame to ensure the component is fully laid out
+  requestAnimationFrame(() => {
+    initRenderer();
+  });
   window.addEventListener('resize', handleResize);
   window.addEventListener('mousemove', handleMouseMove);
 });
 
 onUnmounted(() => {
+  stopRenderLoop();
   renderer?.dispose();
   window.removeEventListener('resize', handleResize);
   window.removeEventListener('mousemove', handleMouseMove);
@@ -177,11 +224,13 @@ onUnmounted(() => {
 
 function recreateRenderer() {
   if (!canvasRef.value) return;
+  stopRenderLoop();
   renderer?.dispose();
   renderer = createLiquidGlassRenderer(canvasRef.value, { renderScale: renderPrecision.value });
   if (!renderer) return;
   renderer.addMaterial(MATERIAL_ID, { ...params }, position);
   loadBackground(bgImageSrc);
+  startRenderLoop();
   console.log('Re-created renderer');
 }
 </script>

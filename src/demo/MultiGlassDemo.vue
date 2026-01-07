@@ -17,6 +17,7 @@ import { createLiquidGlassRenderer, type LiquidGlassRenderer } from '../core/liq
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let renderer: LiquidGlassRenderer | null = null;
+let animationFrameId: number | null = null;
 
 // Glass configurations for multiple instances (using relative values for responsiveness)
 const glassConfigs = [
@@ -94,13 +95,41 @@ function handleResize() {
   updateLayout();
 }
 
-onMounted(() => {
+// Render loop
+function startRenderLoop() {
+  function renderFrame() {
+    renderer?.render();
+    animationFrameId = requestAnimationFrame(renderFrame);
+  }
+  renderFrame();
+}
+
+function stopRenderLoop() {
+  if (animationFrameId !== null) {
+    cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+}
+
+function initRenderer() {
   if (!canvasRef.value) return;
 
-  renderer = createLiquidGlassRenderer(canvasRef.value);
-  if (!renderer) return;
-
+  // Ensure canvas has proper dimensions before initializing
   const { width, height } = canvasRef.value.getBoundingClientRect();
+  if (width === 0 || height === 0) {
+    // Retry initialization after a short delay
+    requestAnimationFrame(initRenderer);
+    return;
+  }
+
+  // Dispose existing renderer if any
+  renderer?.dispose();
+
+  renderer = createLiquidGlassRenderer(canvasRef.value);
+  if (!renderer) {
+    console.error('[MultiGlassDemo] Failed to create renderer');
+    return;
+  }
 
   // Add all glass materials
   glassConfigs.forEach((config) => {
@@ -125,11 +154,20 @@ onMounted(() => {
   });
 
   loadBackground(bgImageSrc);
+  startRenderLoop();
+  console.log('[MultiGlassDemo] Renderer initialized, canvas size:', width, height);
+}
 
+onMounted(() => {
+  // Use requestAnimationFrame to ensure the component is fully laid out
+  requestAnimationFrame(() => {
+    initRenderer();
+  });
   window.addEventListener('resize', handleResize);
 });
 
 onUnmounted(() => {
+  stopRenderLoop();
   renderer?.dispose();
   window.removeEventListener('resize', handleResize);
 });

@@ -38,7 +38,7 @@ import { LiquidRendererBackdropElement } from '../core/LiquidRendererBackdropEle
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 
 const props = defineProps<{
-  captureLib: 'html-to-image' | 'html2canvas';
+  captureLib?: 'html-to-image' | 'html2canvas';
   zIndex?: number;
 }>();
 

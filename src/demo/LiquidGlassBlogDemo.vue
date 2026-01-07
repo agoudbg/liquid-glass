@@ -201,6 +201,10 @@ const galleryColors = [
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
+* {
+  font-size: 16px;
+}
+
 .blog-container {
   height: 100%;
   background: #0a0a0a;

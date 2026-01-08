@@ -129,10 +129,14 @@ export class LiquidRendererManager extends EventEmitter {
   private viewportMode = false;
 
   // Buffer around viewport for viewport mode (in CSS pixels)
-  private viewportBuffer = 200;
+  // This is 1 screen height above and below the viewport (configurable)
+  private viewportBufferScreens = 1; // Number of screens to buffer above/below
 
   // Current viewport origin in content coordinates (where the canvas starts)
   private viewportOrigin = { x: 0, y: 0 };
+
+  // Track the last capture region to know when to re-capture
+  private lastCaptureOrigin = { x: 0, y: 0 };
 
   // Track if we need to re-capture backdrop due to viewport shift
   private lastViewportOriginX = 0;
@@ -363,17 +367,22 @@ export class LiquidRendererManager extends EventEmitter {
       this.scroll.x = this.content.scrollLeft || 0;
       this.scroll.y = this.content.scrollTop || 0;
 
-      // In viewport mode (sticky canvas), every scroll requires re-capture
-      // because the visible content has changed
+      // In viewport mode, check if we need to re-capture based on scroll distance
       if (this.viewportMode) {
-        // Update viewport origin to match scroll position
-        this.updateViewportMode();
+        // Only re-capture if scrolled past the buffer threshold
+        if (this.needsBackdropRecapture()) {
+          this.log('debug', 'RAF: Scroll exceeded buffer threshold, re-capturing backdrop');
 
-        // Always re-capture backdrop in viewport mode since visible area changed
-        this.hasPendingBackdropRenderRequest = true;
-        this.isBackdropDirty = true;
-        this.lastViewportOriginX = this.viewportOrigin.x;
-        this.lastViewportOriginY = this.viewportOrigin.y;
+          // Recalculate viewport origin for new capture
+          this.recalculateViewportOrigin();
+
+          this.hasPendingBackdropRenderRequest = true;
+          this.isBackdropDirty = true;
+
+          // Update last capture origin after triggering re-capture
+          this.lastCaptureOrigin.x = this.viewportOrigin.x;
+          this.lastCaptureOrigin.y = this.viewportOrigin.y;
+        }
       }
 
       // Only update material positions (they need scroll offset for correct rendering)
@@ -492,8 +501,9 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   /**
-   * Update viewport mode state and calculate viewport origin.
-   * Called during layout updates and scroll handling.
+   * Update viewport mode state. Called during layout updates.
+   * Note: viewportOrigin is only updated when re-capture is triggered,
+   * not on every scroll. This is handled by recalculateViewportOrigin().
    */
   private updateViewportMode() {
     const wasViewportMode = this.viewportMode;
@@ -501,18 +511,15 @@ export class LiquidRendererManager extends EventEmitter {
 
     if (this.viewportMode !== wasViewportMode) {
       this.log('debug', `Viewport mode ${this.viewportMode ? 'enabled' : 'disabled'}`);
-      // Mode changed - need full re-render
+      // Mode changed - need full re-render and recalculate origin
+      this.recalculateViewportOrigin();
       this.hasPendingBackdropRenderRequest = true;
       this.isBackdropDirty = true;
+      // Reset capture origin when mode changes
+      this.lastCaptureOrigin = { ...this.viewportOrigin };
     }
 
-    if (this.viewportMode) {
-      // STICKY CANVAS MODE: viewportOrigin equals scroll position
-      // The canvas uses CSS sticky positioning to stay in the viewport.
-      // All coordinates are relative to the current scroll position.
-      this.viewportOrigin.x = this.scroll.x;
-      this.viewportOrigin.y = this.scroll.y;
-    } else {
+    if (!this.viewportMode) {
       // Not in viewport mode - origin is always 0,0
       this.viewportOrigin.x = 0;
       this.viewportOrigin.y = 0;
@@ -520,18 +527,68 @@ export class LiquidRendererManager extends EventEmitter {
   }
 
   /**
+   * Recalculate viewport origin based on current scroll position.
+   * Called when we need to re-capture the backdrop (threshold exceeded or mode changed).
+   */
+  private recalculateViewportOrigin() {
+    if (!this.viewportMode) {
+      this.viewportOrigin.x = 0;
+      this.viewportOrigin.y = 0;
+      return;
+    }
+
+    // BUFFERED VIEWPORT MODE:
+    // Capture N screens above the current viewport.
+    // viewportOrigin is where the canvas content starts (scroll - buffer).
+    const bufferHeight = this.viewportSize.height * this.viewportBufferScreens;
+
+    // Origin is scroll position minus buffer, clamped to 0
+    this.viewportOrigin.x = 0; // Horizontal scrolling not typically an issue
+    this.viewportOrigin.y = Math.max(0, this.scroll.y - bufferHeight);
+
+    this.log('debug', `Recalculated viewport origin: (${this.viewportOrigin.x}, ${this.viewportOrigin.y})`);
+  }
+
+  /**
+   * Check if we need to re-capture the backdrop based on scroll position.
+   * Returns true if the current scroll has moved outside the safe zone.
+   */
+  private needsBackdropRecapture(): boolean {
+    if (!this.viewportMode) return false;
+
+    const bufferHeight = this.viewportSize.height * this.viewportBufferScreens;
+
+    // Safe zone: we have buffer above and below the viewport
+    // We should re-capture when scroll gets close to the edge of the captured region
+    // Trigger re-capture when we've scrolled through 50% of the buffer
+    const triggerThreshold = bufferHeight * 0.5;
+
+    // If scroll.y is more than threshold away from last capture center, recapture
+    const lastCaptureCenterY = this.lastCaptureOrigin.y + bufferHeight;
+    const currentCenterY = this.scroll.y;
+    const distanceFromCenter = Math.abs(currentCenterY - lastCaptureCenterY);
+
+    return distanceFromCenter > triggerThreshold;
+  }
+
+  /**
    * Get the canvas dimensions for the current mode.
-   * In viewport mode, this is viewport size (no buffer needed with sticky).
+   * In viewport mode, this is viewport + buffer screens above and below.
    * Otherwise full content size (with clamping).
    */
   private getCanvasDimensions(): { width: number; height: number } {
     const deviceScale = this.getDeviceScale();
 
     if (this.viewportMode) {
-      // STICKY CANVAS MODE: canvas covers exactly the viewport
-      // With sticky positioning, the canvas stays in view, so we only need viewport size
+      // BUFFERED VIEWPORT MODE:
+      // Canvas covers viewport + N screens above + N screens below
+      // Total = (1 + 2*bufferScreens) * viewportHeight
+      const totalScreens = 1 + 2 * this.viewportBufferScreens;
       const canvasWidth = this.viewportSize.width;
-      const canvasHeight = this.viewportSize.height;
+      const canvasHeight = Math.min(
+        this.viewportSize.height * totalScreens,
+        this.size.height, // Don't exceed content size
+      );
 
       return {
         width: Math.round(canvasWidth * deviceScale),

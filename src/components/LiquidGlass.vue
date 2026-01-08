@@ -166,14 +166,30 @@ onMounted(() => {
         uniformCanvas.value.style.width = `${manager.actualCssSize.width}px`;
         uniformCanvas.value.style.height = `${manager.actualCssSize.height}px`;
 
-        // VIEWPORT MODE: Position canvas at current scroll position using transform
+        // VIEWPORT MODE: Use fixed positioning relative to the container
         // In viewport mode, the canvas represents only the visible viewport area.
-        // We use transform to position it at the scroll offset.
-        if (manager.isInViewportMode()) {
-          const viewportOrigin = manager.getViewportOrigin();
-          uniformCanvas.value.style.transform = `translate(${viewportOrigin.x}px, ${viewportOrigin.y}px)`;
+        // We use fixed positioning so Canvas doesn't affect scroll height.
+        const isViewportMode = manager.isInViewportMode();
+        uniformCanvas.value.classList.toggle('viewport-mode', isViewportMode);
+
+        if (isViewportMode) {
+          // Position fixed canvas at the container's position in the viewport
+          const containerRect = container.value?.getBoundingClientRect();
+          if (containerRect) {
+            // The canvas content starts at viewportOrigin, but we're displaying at current scroll.
+            // We need to offset the canvas position by the difference between scroll and viewportOrigin.
+            const viewportOrigin = manager.getViewportOrigin();
+            const scrollOffset = manager.scroll.y - viewportOrigin.y;
+
+            // Canvas should be positioned above the container by scrollOffset
+            uniformCanvas.value.style.top = `${containerRect.top - scrollOffset}px`;
+            uniformCanvas.value.style.left = `${containerRect.left}px`;
+          }
+          uniformCanvas.value.style.transform = '';
         } else {
           uniformCanvas.value.style.transform = '';
+          uniformCanvas.value.style.top = '0';
+          uniformCanvas.value.style.left = '0';
         }
 
         const ctx = uniformCanvas.value.getContext('2d');
@@ -324,7 +340,12 @@ defineExpose({
   z-index: 9999;
   pointer-events: none;
   transition: visibility 0.2s ease, opacity 0.2s ease;
-  /* Ensure will-change for smooth transform updates in viewport mode */
+}
+
+/* In viewport mode, use fixed positioning relative to the container
+   to prevent Canvas from affecting scroll height */
+.liquid-glass-uniform-canvas.viewport-mode {
+  position: fixed;
   will-change: transform;
 }
 

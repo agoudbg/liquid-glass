@@ -7,46 +7,73 @@
  * - Safe DPR (Device Pixel Ratio) calculation to prevent OOM on mobile
  * - Canvas dimension clamping for memory safety
  * - CSS transform matrix parsing and inversion
+ *
+ * @module utils/featureDetect
  */
+
+// =============================================================================
+// WebGL Feature Detection
+// =============================================================================
 
 /**
  * Check if WebGL2 is supported in the current browser.
- * @returns true if WebGL2 is available
+ * The Liquid Glass renderer requires WebGL2 for advanced shader features.
+ *
+ * @returns true if WebGL2 is available, false otherwise
+ *
+ * @example
+ * if (!isWebGLSupported()) {
+ *   // Fall back to CSS backdrop-filter
+ * }
  */
 export function isWebGLSupported(): boolean {
   try {
     const canvas = document.createElement('canvas');
-
-    // Prefer WebGL2 (our renderer requires it). Fallback to WebGL1 only if nothing else is available.
-    const hasWebGL2 = typeof WebGL2RenderingContext !== 'undefined' && canvas.getContext('webgl2');
+    const hasWebGL2 = typeof WebGL2RenderingContext !== 'undefined'
+      && canvas.getContext('webgl2');
     return Boolean(hasWebGL2);
   } catch {
     return false;
   }
 }
 
+// =============================================================================
+// Device Detection
+// =============================================================================
+
 /**
- * Detect if the current device is a mobile device (iOS, Android, etc.)
+ * Detect if the current device is a mobile device (iOS, Android, etc.).
+ * Used for memory-safe rendering adjustments.
+ *
+ * @returns true if running on a mobile device
  */
 export function isMobileDevice(): boolean {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 }
 
+// =============================================================================
+// Mobile Memory Safety Constants
+// =============================================================================
+
 /**
  * Maximum canvas dimension for mobile devices to prevent OOM crashes.
- * iOS WebKit has strict memory limits, and large canvases can cause crashes.
+ * iOS WebKit has strict memory limits (~100MB for canvas backing store).
+ * A 2048x2048 canvas at 2x DPR uses ~64MB.
  */
 export const MAX_CANVAS_DIMENSION_MOBILE = 2048;
 
 /**
  * Maximum device pixel ratio for mobile devices.
  * High DPR (3x on iPhone Pro) combined with large canvases causes OOM.
+ * Clamping to 1.5x provides good quality while staying memory-safe.
  */
 export const MAX_DPR_MOBILE = 1.5;
 
 /**
  * Get a safe device pixel ratio that won't cause OOM on mobile.
  * On mobile devices with DPR > 2, we clamp to MAX_DPR_MOBILE.
+ *
+ * @returns Safe DPR value for canvas sizing
  */
 export function getSafeDevicePixelRatio(): number {
   const dpr = window.devicePixelRatio || 1;
@@ -58,24 +85,47 @@ export function getSafeDevicePixelRatio(): number {
 
 /**
  * Clamp canvas dimensions to safe limits on mobile devices.
- * Returns clamped { width, height } values.
+ * Prevents canvas allocation failures on memory-constrained devices.
+ *
+ * @param width - Requested canvas width in pixels
+ * @param height - Requested canvas height in pixels
+ * @returns Clamped dimensions that are safe to allocate
  */
-export function clampCanvasDimensions(width: number, height: number): { width: number; height: number } {
+export function clampCanvasDimensions(
+  width: number,
+  height: number,
+): { width: number; height: number } {
   if (!isMobileDevice()) {
     return { width, height };
   }
 
   const maxDim = MAX_CANVAS_DIMENSION_MOBILE;
-  const clampedWidth = Math.min(width, maxDim);
-  const clampedHeight = Math.min(height, maxDim);
-
-  return { width: clampedWidth, height: clampedHeight };
+  return {
+    width: Math.min(width, maxDim),
+    height: Math.min(height, maxDim),
+  };
 }
+
+// =============================================================================
+// CSS Transform Matrix Utilities
+// =============================================================================
 
 /**
  * Parse a CSS transform string into a 2D matrix [a, b, c, d, e, f].
- * Handles both `matrix(a, b, c, d, e, f)` and `matrix3d(...)` formats.
- * Returns the identity matrix [1, 0, 0, 1, 0, 0] if parsing fails or transform is 'none'.
+ *
+ * Handles both formats:
+ * - `matrix(a, b, c, d, e, f)` - Standard 2D transform
+ * - `matrix3d(...)` - 3D transform (extracts 2D portion)
+ *
+ * The matrix represents the transform:
+ * ```
+ * | a c e |   | x |
+ * | b d f | × | y |
+ * | 0 0 1 |   | 1 |
+ * ```
+ *
+ * @param transformString - CSS transform value from getComputedStyle
+ * @returns 2D matrix [a, b, c, d, e, f], or identity if parsing fails
  */
 export function parseCSSTransformMatrix(
   transformString: string,
@@ -116,8 +166,12 @@ export function parseCSSTransformMatrix(
 
 /**
  * Compute the inverse of a 2D transform matrix.
- * Given matrix [a, b, c, d, e, f], returns the inverse matrix.
- * Returns identity if the matrix is singular (determinant = 0).
+ *
+ * Given matrix [a, b, c, d, e, f], computes the matrix that undoes the transform.
+ * Used for converting screen coordinates back to element coordinates.
+ *
+ * @param matrix - 2D transform matrix [a, b, c, d, e, f]
+ * @returns Inverse matrix, or identity if the matrix is singular
  */
 export function invertMatrix2D(
   matrix: [number, number, number, number, number, number],
@@ -125,8 +179,8 @@ export function invertMatrix2D(
   const [a, b, c, d, e, f] = matrix;
   const det = a * d - b * c;
 
+  // Singular matrix (determinant ≈ 0) has no inverse
   if (Math.abs(det) < 1e-10) {
-    // Singular matrix, return identity
     return [1, 0, 0, 1, 0, 0];
   }
 

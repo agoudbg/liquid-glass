@@ -1,3 +1,22 @@
+/**
+ * useExternalRenderer.ts - 外部材质渲染器组合式函数
+ * ==================================================
+ *
+ * 当一个来自父级 LiquidGlass 的 Material 定位在当前（子级）LiquidGlass 上方时，
+ * 这个 composable 负责：
+ *
+ * 1. 接收来自委托 Material 的配置信息
+ * 2. 创建虚拟的 ExternalMaterialElement 实例
+ * 3. 将它们注册到 Manager 中进行 WebGL 渲染
+ *
+ * 这是材质委托机制的"接收端"，与 useMaterialDelegation（发送端）配合使用。
+ *
+ * 架构说明：
+ * - proxyInterface: 暴露给外部 Material 的接口
+ * - ExternalMaterialElement: 虚拟材质元素，行为类似真实 Material
+ * - feedbackCallbacks: 将主题颜色等信息反馈给委托的 Material
+ */
+
 import { onUnmounted, reactive, type Ref } from 'vue';
 
 import { ExternalMaterialElement } from '../core/ExternalMaterialElement';
@@ -8,6 +27,8 @@ import type {
   ExternalMaterialFeedback,
   ProxyTargetInterface,
 } from '../types/ExternalMaterial';
+
+// ===== 类型定义 =====
 
 export interface UseExternalRendererOptions {
   /** The LiquidRendererManager instance for this LiquidGlass */
@@ -28,6 +49,8 @@ export interface UseExternalRendererReturn {
   calculateCanvasCoords: (config: ExternalMaterialConfig) => ExternalMaterialCanvasCoords;
 }
 
+// ===== 主函数 =====
+
 /**
  * Composable for LiquidGlass to handle rendering external materials (from parent containers).
  *
@@ -42,6 +65,8 @@ export function useExternalRenderer(
 ): UseExternalRendererReturn {
   const { manager, container } = options;
 
+  // ===== 状态存储 =====
+
   // Store for external material configs
   const externalMaterials = reactive(new Map<string, ExternalMaterialConfig>());
 
@@ -50,6 +75,8 @@ export function useExternalRenderer(
 
   // Callbacks for feedback to materials
   const feedbackCallbacks = new Map<string, Set<(feedback: ExternalMaterialFeedback) => void>>();
+
+  // ===== 工具函数 =====
 
   /**
    * Get the container's bounding rect
@@ -67,8 +94,11 @@ export function useExternalRenderer(
     y: manager.scroll.y,
   });
 
+  // ===== 材质注册管理 =====
+
   /**
-   * Register a new external material
+   * Register a new external material.
+   * Creates a virtual ExternalMaterialElement and registers it with the manager.
    */
   const registerExternalMaterial = (id: string, config: ExternalMaterialConfig) => {
     externalMaterials.set(id, config);
@@ -95,7 +125,8 @@ export function useExternalRenderer(
   };
 
   /**
-   * Update an existing external material
+   * Update an existing external material's configuration.
+   * Merges the update with existing config and triggers re-render.
    */
   const updateExternalMaterial = (id: string, data: Partial<ExternalMaterialConfig>) => {
     const existing = externalMaterials.get(id);
@@ -132,7 +163,8 @@ export function useExternalRenderer(
   };
 
   /**
-   * Unregister an external material
+   * Unregister an external material.
+   * Cleans up the virtual element and removes it from the manager.
    */
   const unregisterExternalMaterial = (id: string) => {
     externalMaterials.delete(id);
@@ -151,8 +183,11 @@ export function useExternalRenderer(
     manager.markTextureDirty('external');
   };
 
+  // ===== 反馈订阅 =====
+
   /**
-   * Subscribe to feedback for a material
+   * Subscribe to feedback for a material.
+   * Returns an unsubscribe function.
    */
   const onMaterialFeedback = (
     id: string,
@@ -175,8 +210,11 @@ export function useExternalRenderer(
     };
   };
 
+  // ===== 坐标计算 =====
+
   /**
-   * Calculate canvas coordinates for an external material
+   * Calculate canvas coordinates for an external material.
+   * Converts viewport coordinates to container-relative canvas coordinates.
    */
   const calculateCanvasCoords = (config: ExternalMaterialConfig): ExternalMaterialCanvasCoords => {
     const containerRect = getContainerRect();
@@ -238,7 +276,9 @@ export function useExternalRenderer(
     };
   };
 
-  // Build the proxy interface
+  // ===== 代理接口 =====
+
+  // Build the proxy interface that external materials will use
   const proxyInterface: ProxyTargetInterface = {
     registerExternalMaterial,
     updateExternalMaterial,
@@ -247,6 +287,8 @@ export function useExternalRenderer(
     getScrollPosition,
     onMaterialFeedback,
   };
+
+  // ===== 清理 =====
 
   // Cleanup on unmount
   onUnmounted(() => {
@@ -258,6 +300,8 @@ export function useExternalRenderer(
     externalMaterials.clear();
     feedbackCallbacks.clear();
   });
+
+  // ===== 返回接口 =====
 
   return {
     proxyInterface,

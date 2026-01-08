@@ -8,6 +8,40 @@
   - Nested LiquidGlass support with automatic render precision inheritance
   - Cross-component render delegation via proxyInterface
 
+  Architecture:
+  ```
+  <LiquidGlass> (this component)
+    │
+    ├─ LiquidRendererManager (core rendering engine)
+    │   ├─ Backdrop elements (LgBackdropConverter, LgBackdropCanvas)
+    │   ├─ Material elements (LiquidGlassMaterial)
+    │   └─ WebGL renderer (liquidGlassRenderer)
+    │
+    ├─ uniformCanvas (displays WebGL-rendered glass effects)
+    │
+    └─ slot (your content)
+        ├─ LgBackdropConverter (captures DOM as texture)
+        └─ LiquidGlassMaterial (displays glass effect)
+  ```
+
+  Render Modes:
+  - 'uniform': Single canvas for all materials (default, better performance)
+  - 'dedicated': Each material has its own canvas (more flexible positioning)
+
+  Props:
+  - debug: Enable debug logging
+  - renderPrecision: Quality scale (0-1, affects canvas resolution)
+  - renderMode: 'uniform' | 'dedicated'
+  - powerEfficientMode: Pause rendering when window loses focus
+  - scrollable: Enable scroll handling
+  - zIndex: Custom z-index for the canvas
+  - themeColorThresholds: Custom thresholds for automatic theme detection
+
+  @slot default - Content to render inside the LiquidGlass container
+    - LgBackdropConverter: Wrap content to be used as backdrop texture
+    - LgBackdropCanvas: Draw custom content as backdrop
+    - LiquidGlassMaterial: Display glass effect panels
+
   @example
   <LiquidGlass :scrollable="true" :render-precision="0.8">
     <LgBackdropConverter>

@@ -8,6 +8,33 @@
  * - Shader-based refraction and distortion effects
  * - Theme color detection from backdrop pixels
  * - Canvas resizing with proper DPR handling
+ *
+ * Architecture:
+ * ```
+ * createLiquidGlassRenderer(canvas)
+ *         |
+ *    [WebGL2 Context]
+ *         |
+ *    setupProgram() ──> Compile vertex/fragment shaders
+ *         |
+ *    setupGeometry() ──> Create fullscreen quad VAO
+ *         |
+ *    setBackground() ──> Upload backdrop texture
+ *         |
+ *    render() ──> For each material:
+ *                   1. Set scissor rect (clip to material bounds)
+ *                   2. Update uniforms (position, size, refraction params)
+ *                   3. Draw quad (shader samples backdrop with refraction)
+ * ```
+ *
+ * Key Shader Effects (see LiquidGlassAdvanced.frag):
+ * - SDF Rounded Rectangle: Smooth anti-aliased edges with per-corner radii
+ * - Refraction: Pixel displacement based on surface normal
+ * - Blur: Multi-sample Gaussian blur of backdrop
+ * - Dispersion: Chromatic aberration (color separation)
+ * - Specular Highlights: Simulated light reflections on glass surface
+ *
+ * @module liquidGlassRenderer
  */
 
 import vertexShaderSource from '../shaders/LiquidGlass.vert?raw';
@@ -15,9 +42,17 @@ import fragmentShaderSource from '../shaders/LiquidGlassAdvanced.frag?raw';
 import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 
+// ============================================================================
+// TYPE DEFINITIONS
+// ============================================================================
+
+/** Type for texture source (what can be uploaded to WebGL) */
 type TexImageSource = HTMLImageElement | HTMLCanvasElement | ImageBitmap;
 
+/** Theme color classification based on backdrop luminance */
 export type ThemeColor = 'black' | 'ultra_black' | 'white' | 'ultra_white';
+
+/** Map of material IDs to their detected theme colors */
 export type ThemeColorMap = Record<string, ThemeColor>;
 
 /**
@@ -33,65 +68,128 @@ export interface ThemeColorThresholds {
   ultraLightMin: number;
 }
 
+/** Default threshold values for theme detection */
 export const DEFAULT_THEME_COLOR_THRESHOLDS: ThemeColorThresholds = {
   ultraDarkMax: 25,
   darkMax: 85,
   ultraLightMin: 230,
 };
 
+/**
+ * Configuration for a glass material's appearance.
+ */
 export type LiquidGlassConfig = {
+  /** Glass thickness (affects refraction depth) */
   thickness: number
+  /** Index of refraction (1.0 = no refraction, higher = more bending) */
   refractIndex: number
+  /** Intensity of the refraction effect (0.0 to 1.0+) */
   refractIntensity: number
+  /** Background blur amount (0 = sharp, higher = more blur) */
   blur: number
-  dispersion: number // Chromatic aberration strength (0.0 to 0.05)
+  /** Chromatic aberration strength (0.0 to 0.05) */
+  dispersion: number
+  /** Default corner radius (used if specific corners not set) */
   radius: number
+  /** Top-right corner radius (optional) */
   radiusTR?: number
+  /** Bottom-right corner radius (optional) */
   radiusBR?: number
+  /** Bottom-left corner radius (optional) */
   radiusBL?: number
+  /** Top-left corner radius (optional) */
   radiusTL?: number
+  /** Material width in CSS pixels */
   width: number
+  /** Material height in CSS pixels */
   height: number
-  opacity?: number // Material opacity (0.0 to 1.0)
+  /** Material opacity (0.0 = invisible, 1.0 = fully visible) */
+  opacity?: number
 }
 
+/**
+ * Internal representation of a glass material instance.
+ */
 export type GlassMaterialInstance = {
+  /** Unique identifier */
   id: string
+  /** Glass configuration */
   config: LiquidGlassConfig
-  position: { x: number; y: number } // Absolute pixel position (CSS pixels, Top-Left origin)
+  /** Center position in CSS pixels (relative to canvas origin) */
+  position: { x: number; y: number }
+  /** Transform state (scale, translate, CSS matrix) */
   transform: LiquidRendererMaterialElementTransform
 }
 
+/**
+ * Public interface for the Liquid Glass renderer.
+ */
 export type LiquidGlassRenderer = {
+  /** Add a new material to the renderer */
   addMaterial: (
     id: string,
     config: LiquidGlassConfig,
     position: { x: number; y: number },
     transform?: LiquidRendererMaterialElementTransform,
   ) => void
+  /** Update an existing material's configuration */
   updateMaterial: (id: string, config: Partial<LiquidGlassConfig>) => void
+  /** Remove a material from the renderer */
   removeMaterial: (id: string) => void
+  /** Set a material's position */
   setMaterialPosition: (id: string, x: number, y: number) => void
+  /** Set a material's transform */
   setMaterialTransform: (id: string, transform: LiquidRendererMaterialElementTransform) => void
+  /** Set the background texture for refraction */
   setBackground: (source: TexImageSource) => void
   /**
-   * Trigger a render pass. If collectThemes is true, returns the inferred theme color per material.
-   * This call does not start or stop the internal render loop.
+   * Trigger a render pass.
+   * @param options.collectThemes If true, returns detected theme colors per material
+   * @returns Map of material IDs to theme colors (if collectThemes is true)
    */
   render: (options?: { collectThemes?: boolean }) => ThemeColorMap | null
   /**
-   * Compute the theme colors without issuing a draw. Uses the last captured backdrop pixels.
+   * Compute theme colors without rendering.
+   * Uses the last captured backdrop pixels.
    */
   getThemeColors: () => ThemeColorMap
   /**
    * Update the theme color detection thresholds.
    */
   setThemeThresholds: (thresholds: Partial<ThemeColorThresholds>) => void
+  /** Set the render scale (quality vs performance tradeoff) */
   setRenderScale: (scale: number) => void
+  /** Resize the renderer to match canvas dimensions */
   resize: () => void
+  /** Dispose of WebGL resources */
   dispose: () => void
 }
 
+// ============================================================================
+// FACTORY FUNCTION
+// ============================================================================
+
+/**
+ * Create a new Liquid Glass WebGL2 renderer.
+ *
+ * This factory function initializes WebGL2 context, compiles shaders,
+ * sets up geometry, and returns an API object for managing materials
+ * and triggering renders.
+ *
+ * @param canvas - The HTMLCanvasElement to render to
+ * @param options - Optional configuration
+ * @param options.renderScale - Quality scale (0.05 to 1.0, default 1.0)
+ * @param options.themeThresholds - Custom thresholds for theme detection
+ * @returns LiquidGlassRenderer API object, or null if WebGL2 not supported
+ *
+ * @example
+ * const renderer = createLiquidGlassRenderer(canvas, { renderScale: 1.0 });
+ * if (renderer) {
+ *   renderer.setBackground(backdropCanvas);
+ *   renderer.addMaterial('glass1', config, { x: 100, y: 100 });
+ *   renderer.render();
+ * }
+ */
 export function createLiquidGlassRenderer(
   canvas: HTMLCanvasElement,
   options?: { renderScale?: number; themeThresholds?: Partial<ThemeColorThresholds> },
@@ -131,6 +229,7 @@ export function createLiquidGlassRenderer(
     } as ThemeColorThresholds,
   };
 
+  /** Default identity transform (no transformation) */
   const identityTransform: LiquidRendererMaterialElementTransform = {
     scaleX: 1,
     scaleY: 1,
@@ -138,6 +237,17 @@ export function createLiquidGlassRenderer(
     translateY: 0,
   };
 
+  // ============================================================================
+  // SHADER COMPILATION
+  // ============================================================================
+
+  /**
+   * Compile a single GLSL shader.
+   *
+   * @param source - GLSL source code
+   * @param type - gl.VERTEX_SHADER or gl.FRAGMENT_SHADER
+   * @returns Compiled shader, or null on error
+   */
   function compileShader(source: string, type: number) {
     if (!gl) return null;
     const shader = gl.createShader(type);
@@ -152,6 +262,13 @@ export function createLiquidGlassRenderer(
     return shader;
   }
 
+  /**
+   * Create and link a WebGL program from vertex and fragment shaders.
+   *
+   * @param vertexShader - Compiled vertex shader
+   * @param fragmentShader - Compiled fragment shader
+   * @returns Linked program, or null on error
+   */
   function createProgram(vertexShader: WebGLShader, fragmentShader: WebGLShader) {
     if (!gl) return null;
     const program = gl.createProgram();
@@ -167,6 +284,21 @@ export function createLiquidGlassRenderer(
     return program;
   }
 
+  // ============================================================================
+  // TEXTURE MANAGEMENT
+  // ============================================================================
+
+  /**
+   * Create a WebGL texture from an image source.
+   *
+   * Configures the texture for:
+   * - Linear mipmap filtering (smooth scaling)
+   * - Clamp-to-edge wrapping (no repeating)
+   * - Y-axis flip (WebGL vs Canvas coordinate mismatch)
+   *
+   * @param unit - Texture unit to bind to (0 = background)
+   * @param source - Image/canvas/bitmap to upload
+   */
   function createTexture(unit: number, source: TexImageSource) {
     if (!gl) return;
     gl.activeTexture(gl.TEXTURE0 + unit);
@@ -182,6 +314,15 @@ export function createLiquidGlassRenderer(
     state.hasTexture = true;
   }
 
+  // ============================================================================
+  // PROGRAM AND GEOMETRY SETUP
+  // ============================================================================
+
+  /**
+   * Set up the WebGL program with shaders and uniforms.
+   *
+   * @returns True if successful, false on error
+   */
   function setupProgram(): boolean {
     if (!gl) return false;
     const vertexShader = compileShader(vertexShaderSource, gl.VERTEX_SHADER);
@@ -229,6 +370,13 @@ export function createLiquidGlassRenderer(
     return true;
   }
 
+  /**
+   * Set up the fullscreen quad geometry (VAO/VBO).
+   *
+   * Creates a simple quad that covers the entire clip space (-1 to 1).
+   * The fragment shader does all the work of determining which material
+   * (if any) each pixel belongs to.
+   */
   function setupGeometry(): void {
     if (!gl || !state.program) return;
 
@@ -259,8 +407,15 @@ export function createLiquidGlassRenderer(
     gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 5 * 4, 3 * 4);
   }
 
+  // ============================================================================
+  // CANVAS RESIZING
+  // ============================================================================
+
   /**
-   * Force reinitialize WebGL resources. Call this after canvas size changes or context loss.
+   * Force reinitialize WebGL resources.
+   *
+   * Call this after canvas size changes or context loss.
+   * Re-creates the program, geometry, and re-uploads the texture.
    */
   function reinitializeWebGL(): void {
     const programOk = setupProgram();
@@ -276,6 +431,19 @@ export function createLiquidGlassRenderer(
     }
   }
 
+  /**
+   * Resize the renderer to match the canvas/texture dimensions.
+   *
+   * This method:
+   * 1. Calculates CSS pixel dimensions from texture resolution
+   * 2. Computes physical pixel dimensions (CSS × deviceScale)
+   * 3. Updates canvas dimensions if changed
+   * 4. Reinitializes WebGL if canvas size changed (context reset)
+   * 5. Updates viewport
+   *
+   * Note: Changing canvas.width/height resets the WebGL context,
+   * so we only do it when necessary and reinitialize everything.
+   */
   function resize(): void {
     if (!gl) return;
     // MEMORY FIX: Use getSafeDevicePixelRatio() for consistent DPR across all components
@@ -322,12 +490,28 @@ export function createLiquidGlassRenderer(
     gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
   }
 
+  // ============================================================================
+  // UNIFORM UPDATES
+  // ============================================================================
+
   /**
-   * Update uniforms for a material.
-   * @param material The material instance
-   * @param scale The unified scale factor (dpr * renderScale)
-   * @param physicalWidth The physical canvas width (gl.drawingBufferWidth)
-   * @param physicalHeight The physical canvas height (gl.drawingBufferHeight)
+   * Update shader uniforms for a specific material.
+   *
+   * This sets all the per-material uniforms needed by the shader:
+   * - Resolution, center, size, radii (geometry)
+   * - Thickness, refractIndex, refractIntensity, blur, dispersion (effect params)
+   * - Transform matrix and inverse (for skew/rotation support)
+   * - Opacity (for transparency)
+   *
+   * Coordinate System Notes:
+   * - Input position is material CENTER in CSS pixels (top-left origin)
+   * - We convert to physical pixels and flip Y for WebGL (bottom-left origin)
+   * - Transform matrix is extracted from CSS and applied in shader
+   *
+   * @param material - The material instance
+   * @param scale - Unified scale factor (dpr × renderScale)
+   * @param physicalWidth - Canvas physical width (gl.drawingBufferWidth)
+   * @param physicalHeight - Canvas physical height (gl.drawingBufferHeight)
    */
   function updateUniforms(
     material: GlassMaterialInstance,
@@ -424,6 +608,25 @@ export function createLiquidGlassRenderer(
     gl.uniform1f(state.uniforms.uOpacity, material.config.opacity ?? 1.0);
   }
 
+  // ============================================================================
+  // THEME COLOR DETECTION
+  // ============================================================================
+
+  /**
+   * Compute theme colors for all materials based on backdrop luminance.
+   *
+   * For each material, we sample the backdrop pixels beneath it and
+   * calculate the average luminance. Based on configurable thresholds:
+   * - ultra_black: Very dark (luma ≤ ultraDarkMax)
+   * - black: Dark (luma ≤ darkMax)
+   * - ultra_white: Very light (luma ≥ ultraLightMin)
+   * - white: Light (default)
+   *
+   * This is used by components to automatically adjust text/icon colors
+   * for good contrast against the glass background.
+   *
+   * @returns Map of material IDs to their detected theme colors
+   */
   function computeThemeColors(): ThemeColorMap {
     if (!state.backgroundPixelData) return {};
 
@@ -494,6 +697,31 @@ export function createLiquidGlassRenderer(
     return result;
   }
 
+  // ============================================================================
+  // RENDER LOOP
+  // ============================================================================
+
+  /**
+   * Render all materials to the canvas.
+   *
+   * Render Pipeline:
+   * 1. Clear canvas with transparent color
+   * 2. Set up blending for transparency
+   * 3. For each material:
+   *    a. Calculate axis-aligned bounding box (AABB) in physical pixels
+   *    b. Set scissor rect to clip rendering to material bounds
+   *    c. Update uniforms with material configuration
+   *    d. Draw fullscreen quad (shader handles all the magic)
+   * 4. Optionally compute theme colors from backdrop pixels
+   *
+   * Performance Notes:
+   * - Each material is a separate draw call (necessary for scissor clipping)
+   * - Scissor test prevents overdraw outside material bounds
+   * - The manager calls this method; we don't have an internal RAF loop
+   *
+   * @param collectThemes - If true, compute and return theme colors
+   * @returns Theme color map if collectThemes is true, otherwise null
+   */
   function render(collectThemes = false): ThemeColorMap | null {
     if (!gl) return null;
     if (!state.program || !state.vao || !state.hasTexture) {
@@ -614,6 +842,11 @@ export function createLiquidGlassRenderer(
     return themes;
   }
 
+  // ============================================================================
+  // INITIALIZATION
+  // ============================================================================
+
+  // Compile shaders and set up initial state
   const ok = setupProgram();
   if (!ok) return null;
   setupGeometry();
@@ -622,7 +855,14 @@ export function createLiquidGlassRenderer(
   // The Manager controls when to call render() to avoid timing issues
   // and duplicate rendering with the internal loop.
 
+  // ============================================================================
+  // PUBLIC API
+  // ============================================================================
+
   return {
+    /**
+     * Add a new glass material to the renderer.
+     */
     addMaterial(
       id: string,
       config: LiquidGlassConfig,
@@ -636,15 +876,27 @@ export function createLiquidGlassRenderer(
         transform: { ...transform },
       });
     },
+
+    /**
+     * Update an existing material's configuration (partial update).
+     */
     updateMaterial(id: string, configPartial: Partial<LiquidGlassConfig>) {
       const material = state.materials.get(id);
       if (material) {
         material.config = { ...material.config, ...configPartial };
       }
     },
+
+    /**
+     * Remove a material from the renderer.
+     */
     removeMaterial(id: string) {
       state.materials.delete(id);
     },
+
+    /**
+     * Set a material's center position (in CSS pixels).
+     */
     setMaterialPosition(id: string, x: number, y: number) {
       const material = state.materials.get(id);
       if (material) {
@@ -655,12 +907,23 @@ export function createLiquidGlassRenderer(
         }
       }
     },
+
+    /**
+     * Set a material's transform (scale, translate, matrix).
+     */
     setMaterialTransform(id: string, transform: LiquidRendererMaterialElementTransform) {
       const material = state.materials.get(id);
       if (material) {
         material.transform = { ...transform };
       }
     },
+
+    /**
+     * Set the background texture for refraction.
+     *
+     * This also caches the pixel data for theme color detection
+     * and stores the source for re-upload after context reset.
+     */
     setBackground(source: TexImageSource) {
       // Cache the source for re-upload after context reset
       state.lastBackgroundSource = source;
@@ -692,23 +955,47 @@ export function createLiquidGlassRenderer(
         }
       }
     },
+
+    /**
+     * Trigger a render pass.
+     */
     render(options?: { collectThemes?: boolean }) {
       return render(options?.collectThemes ?? false);
     },
+
+    /**
+     * Compute theme colors without rendering.
+     */
     getThemeColors() {
       return computeThemeColors();
     },
+
+    /**
+     * Update theme color detection thresholds.
+     */
     setThemeThresholds(thresholds: Partial<ThemeColorThresholds>) {
       state.themeThresholds = {
         ...state.themeThresholds,
         ...thresholds,
       };
     },
+
+    /**
+     * Set the render quality scale (affects resolution).
+     */
     setRenderScale(scale: number) {
       state.renderScale = Math.max(0.05, scale);
       resize();
     },
+
+    /**
+     * Resize the renderer to match canvas dimensions.
+     */
     resize,
+
+    /**
+     * Dispose of WebGL resources.
+     */
     dispose() {
       if (state.animationId) {
         cancelAnimationFrame(state.animationId);

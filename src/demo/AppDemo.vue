@@ -2,88 +2,88 @@
   <div class="app-demo-wrapper">
     <h2>LiquidGlass Demo</h2>
     <div class="single-glass-container">
-    <LiquidGlass class="liquid-glass-container" :scrollable="true" :debug="false" :render-precision="0.8">
-      <div style="width: 120%; height: 120%">
-        <div class="single-glass-layout">
-          <LiquidGlass :scrollable="true" ref="scrollableLiquidGlass">
-            <div style="width: 2800px;">
-              <LiquidGlassDebugger v-if="showDebug" />
-              <LgBackdropConverter :capture-lib="'html-to-image'">
-                <template #default="{ requestBackdropRedraw }">
-                  <div class="demo-backdrop">
-                    <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
-                    <div class="demo-tiles">
-                      <div class="demo-tile">Color</div>
-                      <div class="demo-tile">Noise</div>
-                      <div class="demo-tile">Texture</div>
-                      <div class="demo-tile">Shape</div>
-                    </div>
-                    <LiquidGlassMaterial :radius="20" ref="demoMaterial9">
-                      <div class="demo-card">
-                        <h3>Glass card</h3>
-                        <button @click="updateDemoMaterial0Position()">Click</button>
+      <LiquidGlass class="liquid-glass-container" :scrollable="true" :debug="false" :render-precision="0.8">
+        <div style="width: 120%; height: 120%">
+          <div class="single-glass-layout">
+            <LiquidGlass :scrollable="true" ref="scrollableLiquidGlass">
+              <div style="width: 2800px;">
+                <LiquidGlassDebugger v-if="showDebug" />
+                <LgBackdropConverter :capture-lib="'html-to-image'">
+                  <template #default="{ requestBackdropRedraw }">
+                    <div class="demo-backdrop">
+                      <div class="demo-pill"><input class="inputs" value="Input" @input="requestBackdropRedraw()"></div>
+                      <div class="demo-tiles">
+                        <div class="demo-tile">Color</div>
+                        <div class="demo-tile">Noise</div>
+                        <div class="demo-tile">Texture</div>
+                        <div class="demo-tile">Shape</div>
                       </div>
-                    </LiquidGlassMaterial>
-                    <div>
-                      <label>
-                        <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
-                        Show Susu
-                      </label>
+                      <LiquidGlassMaterial :radius="20" ref="demoMaterial9">
+                        <div class="demo-card">
+                          <h3>Glass card</h3>
+                          <button @click="updateDemoMaterial0Position()">Click</button>
+                        </div>
+                      </LiquidGlassMaterial>
+                      <div>
+                        <label>
+                          <input type="checkbox" v-model="showImage" @change="requestBackdropRedraw()" />
+                          Show Susu
+                        </label>
+                      </div>
+                      <img src="../assets/susu.webp" v-if="showImage" />
                     </div>
-                    <img src="../assets/susu.webp" v-if="showImage" />
-                  </div>
-                </template>
-              </LgBackdropConverter>
-            </div>
-          </LiquidGlass>
+                  </template>
+                </LgBackdropConverter>
+              </div>
+            </LiquidGlass>
+          </div>
+
+          <div class="canvas-container">
+            <LgBackdropCanvas :draw="drawBlueRect" />
+          </div>
+
+          <div class="demo-material" :position="demoMaterial0Position">
+            <LiquidGlassMaterial :radius="20" ref="demoMaterial0" :proxy-target="scrollableLiquidGlassProxy"
+              :interaction="{ activeScale: 1.1 }">
+              <div class="demo-card">
+                <h3>Glass card</h3>
+                <button @click="updateDemoMaterial0Position()">Click</button>
+              </div>
+            </LiquidGlassMaterial>
+          </div>
+
+          <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
+            <LiquidGlassMaterial :radius="28" :radiusBR="60" :dispersion="0.1" :blur="0" :thickness="28"
+              ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
+              <div class="demo-card">
+                <span>Drag or Resize</span>
+              </div>
+            </LiquidGlassMaterial>
+
+            <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
+          </div>
         </div>
+      </LiquidGlass>
+    </div>
 
-        <div class="canvas-container">
-          <LgBackdropCanvas :draw="drawBlueRect" />
-        </div>
+    <div class="settings">
+      <label>
+        <input type="checkbox" v-model="showDebug" />
+        Show Debugger
+      </label>
+    </div>
 
-        <div class="demo-material" :position="demoMaterial0Position">
-          <LiquidGlassMaterial :radius="20" ref="demoMaterial0" :proxy-target="scrollableLiquidGlassProxy"
-            :interaction="{ activeScale: 1.1 }">
-            <div class="demo-card">
-              <h3>Glass card</h3>
-              <button @click="updateDemoMaterial0Position()">Click</button>
-            </div>
-          </LiquidGlassMaterial>
-        </div>
+    <div class="playground-container">
+      <h2>Playground</h2>
+      <LiquidGlassPlayground />
+    </div>
 
-        <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
-          <LiquidGlassMaterial :radius="28" :radiusBR="60" :dispersion="0.1" :blur="0" :thickness="28"
-            ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
-            <div class="demo-card">
-              <span>Drag or Resize</span>
-            </div>
-          </LiquidGlassMaterial>
+    <div class="spacer"></div>
 
-          <div class="demo-material-2__resize-handle" @pointerdown.stop="onDemoMaterial1ResizeStart"></div>
-        </div>
-      </div>
-    </LiquidGlass>
-  </div>
-
-  <div class="settings">
-    <label>
-      <input type="checkbox" v-model="showDebug" />
-      Show Debugger
-    </label>
-  </div>
-
-  <div class="playground-container">
-    <h2>Playground</h2>
-    <LiquidGlassPlayground />
-  </div>
-
-  <div class="spacer"></div>
-
-  <div class="multi-glass-container">
-    <h2>Multi-Glass Demo</h2>
-    <MultiGlassDemo />
-  </div>
+    <div class="multi-glass-container">
+      <h2>Multi-Glass Demo</h2>
+      <MultiGlassDemo />
+    </div>
   </div>
 </template>
 
@@ -93,8 +93,6 @@ import {
   watch,
 } from 'vue';
 
-import LiquidGlassPlayground from './LiquidGlassPlayground.vue';
-import MultiGlassDemo from './MultiGlassDemo.vue';
 import {
   CustomDrawCallback,
   LgBackdropCanvas,
@@ -104,6 +102,8 @@ import {
   LiquidGlassMaterial,
   ProxyTargetInterface,
 } from '../index';
+import LiquidGlassPlayground from './LiquidGlassPlayground.vue';
+import MultiGlassDemo from './MultiGlassDemo.vue';
 
 const showDebug = ref<boolean>(localStorage.getItem('liquid-glass-debugger-open') === 'true');
 const showImage = ref<boolean>(false);

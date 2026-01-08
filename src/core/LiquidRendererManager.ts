@@ -3,7 +3,9 @@ import { toCanvas } from 'html-to-image';
 import {
   AutomaticBackgroundColorMode, LiquidRendererBackdropCapturedEvent, LiquidRendererFullCanvasRenderedEvent, LiquidRendererManagerOptions, TextureDirtyReason, ThemeColorThresholds,
 } from '../types/LiquidGlass';
-import { clampCanvasDimensions, getSafeDevicePixelRatio } from '../utils/featureDetect';
+import {
+  clampCanvasDimensions, getSafeDevicePixelRatio, isMobileDevice, MAX_CANVAS_DIMENSION_MOBILE,
+} from '../utils/featureDetect';
 import { EventEmitter } from './EventEmitter';
 import { createLiquidGlassRenderer, DEFAULT_THEME_COLOR_THRESHOLDS, LiquidGlassRenderer } from './liquidGlassRenderer';
 import { LiquidRendererBackdropElement } from './LiquidRendererBackdropElement';
@@ -119,6 +121,23 @@ export class LiquidRendererManager extends EventEmitter {
 
   // Scrollable mode
   public scrollable = false;
+
+  // Viewport Mode (Mobile Optimization):
+  // When enabled, Canvas is sized to viewport + buffer instead of full content.
+  // This prevents Canvas size from exceeding mobile limits (2048px).
+  // The canvas origin tracks scroll position, and all coordinates are viewport-relative.
+  private viewportMode = false;
+
+  // Buffer around viewport for viewport mode (in CSS pixels)
+  private viewportBuffer = 200;
+
+  // Current viewport origin in content coordinates (where the canvas starts)
+  private viewportOrigin = { x: 0, y: 0 };
+
+  // Track if we need to re-capture backdrop due to viewport shift
+  private lastViewportOriginX = 0;
+
+  private lastViewportOriginY = 0;
 
   // Theme color detection thresholds
   public themeColorThresholds: ThemeColorThresholds = { ...DEFAULT_THEME_COLOR_THRESHOLDS };
@@ -308,14 +327,15 @@ export class LiquidRendererManager extends EventEmitter {
       this.lastContainerScrollHeight = currentScrollHeight;
     }
 
-    const deviceScale = this.getDeviceScale();
-
     // Handle layout changes (resize, DOM changes)
     if (this.isLayoutDirty) {
       this.log('debug', 'RAF: Layout dirty, recalculating positions');
 
       // Update container first - this updates this.size with the correct full content size
       this.updateContainerPositionAndSize();
+
+      // Update viewport mode state (this may enable/disable viewport mode based on content size)
+      this.updateViewportMode();
 
       // Recalculate all backdrop positions so their capture callbacks re-run when layout changes
       this.registeredBackdropElements.forEach((el) => {
@@ -343,6 +363,19 @@ export class LiquidRendererManager extends EventEmitter {
       this.scroll.x = this.content.scrollLeft || 0;
       this.scroll.y = this.content.scrollTop || 0;
 
+      // In viewport mode (sticky canvas), every scroll requires re-capture
+      // because the visible content has changed
+      if (this.viewportMode) {
+        // Update viewport origin to match scroll position
+        this.updateViewportMode();
+
+        // Always re-capture backdrop in viewport mode since visible area changed
+        this.hasPendingBackdropRenderRequest = true;
+        this.isBackdropDirty = true;
+        this.lastViewportOriginX = this.viewportOrigin.x;
+        this.lastViewportOriginY = this.viewportOrigin.y;
+      }
+
       // Only update material positions (they need scroll offset for correct rendering)
       this.registeredMaterialElements.forEach((el) => {
         el.updatePositionAndSize({ suppressReRender: true });
@@ -353,13 +386,9 @@ export class LiquidRendererManager extends EventEmitter {
       this.markTextureDirty('scroll');
     }
 
-    // Ensure canvases stay in sync with container size to avoid stretched backdrops
-    // Use this.size which represents the full content size (important for scrollable mode)
-    // This must happen AFTER updateContainerPositionAndSize() so this.size is up-to-date
-    // MEMORY FIX: Use getSafeDevicePixelRatio() * renderPrecision and clampCanvasDimensions() to prevent OOM on mobile
-    const rawWidth = Math.round(this.size.width * deviceScale);
-    const rawHeight = Math.round(this.size.height * deviceScale);
-    const { width: expectedBackdropWidth, height: expectedBackdropHeight } = clampCanvasDimensions(rawWidth, rawHeight);
+    // Ensure canvases stay in sync with the expected dimensions
+    // In viewport mode, canvas is viewport-sized; otherwise full content size (clamped)
+    const { width: expectedBackdropWidth, height: expectedBackdropHeight } = this.getCanvasDimensions();
     if (expectedBackdropWidth > 0 && expectedBackdropHeight > 0) {
       const sizeMismatch = this.backdropCanvas.width !== expectedBackdropWidth
         || this.backdropCanvas.height !== expectedBackdropHeight;
@@ -430,6 +459,90 @@ export class LiquidRendererManager extends EventEmitter {
 
     // Mark texture dirty to trigger re-render with updated opacity values
     this.markTextureDirty('layout');
+  }
+
+  /**
+   * Check if viewport mode should be enabled.
+   * Viewport mode is auto-enabled when:
+   * 1. Device is mobile AND
+   * 2. Content size exceeds mobile canvas limits
+   */
+  private shouldUseViewportMode(): boolean {
+    if (!isMobileDevice()) return false;
+
+    const deviceScale = this.getDeviceScale();
+    const contentWidth = this.size.width * deviceScale;
+    const contentHeight = this.size.height * deviceScale;
+
+    return contentWidth > MAX_CANVAS_DIMENSION_MOBILE || contentHeight > MAX_CANVAS_DIMENSION_MOBILE;
+  }
+
+  /**
+   * Check if currently in viewport mode
+   */
+  public isInViewportMode(): boolean {
+    return this.viewportMode;
+  }
+
+  /**
+   * Get the current viewport origin (canvas origin in content coordinates)
+   */
+  public getViewportOrigin(): { x: number; y: number } {
+    return { ...this.viewportOrigin };
+  }
+
+  /**
+   * Update viewport mode state and calculate viewport origin.
+   * Called during layout updates and scroll handling.
+   */
+  private updateViewportMode() {
+    const wasViewportMode = this.viewportMode;
+    this.viewportMode = this.shouldUseViewportMode();
+
+    if (this.viewportMode !== wasViewportMode) {
+      this.log('debug', `Viewport mode ${this.viewportMode ? 'enabled' : 'disabled'}`);
+      // Mode changed - need full re-render
+      this.hasPendingBackdropRenderRequest = true;
+      this.isBackdropDirty = true;
+    }
+
+    if (this.viewportMode) {
+      // STICKY CANVAS MODE: viewportOrigin equals scroll position
+      // The canvas uses CSS sticky positioning to stay in the viewport.
+      // All coordinates are relative to the current scroll position.
+      this.viewportOrigin.x = this.scroll.x;
+      this.viewportOrigin.y = this.scroll.y;
+    } else {
+      // Not in viewport mode - origin is always 0,0
+      this.viewportOrigin.x = 0;
+      this.viewportOrigin.y = 0;
+    }
+  }
+
+  /**
+   * Get the canvas dimensions for the current mode.
+   * In viewport mode, this is viewport size (no buffer needed with sticky).
+   * Otherwise full content size (with clamping).
+   */
+  private getCanvasDimensions(): { width: number; height: number } {
+    const deviceScale = this.getDeviceScale();
+
+    if (this.viewportMode) {
+      // STICKY CANVAS MODE: canvas covers exactly the viewport
+      // With sticky positioning, the canvas stays in view, so we only need viewport size
+      const canvasWidth = this.viewportSize.width;
+      const canvasHeight = this.viewportSize.height;
+
+      return {
+        width: Math.round(canvasWidth * deviceScale),
+        height: Math.round(canvasHeight * deviceScale),
+      };
+    }
+
+    // Non-viewport mode: full content size (with clamping)
+    const rawWidth = Math.round(this.size.width * deviceScale);
+    const rawHeight = Math.round(this.size.height * deviceScale);
+    return clampCanvasDimensions(rawWidth, rawHeight);
   }
 
   /**
@@ -656,10 +769,9 @@ export class LiquidRendererManager extends EventEmitter {
 
     // MEMORY FIX: Use getSafeDevicePixelRatio() * renderPrecision and clampCanvasDimensions() to prevent OOM on mobile
     const deviceScale = this.getDeviceScale();
-    // Use this.size which represents the full content size (scrollWidth/scrollHeight for scrollable mode)
-    const rawWidth = Math.round(this.size.width * deviceScale);
-    const rawHeight = Math.round(this.size.height * deviceScale);
-    const { width: newWidth, height: newHeight } = clampCanvasDimensions(rawWidth, rawHeight);
+
+    // Use getCanvasDimensions which handles viewport mode appropriately
+    const { width: newWidth, height: newHeight } = this.getCanvasDimensions();
 
     // Check if canvas needs resizing
     this.resizeInternalCanvases(newWidth, newHeight);
@@ -726,7 +838,7 @@ export class LiquidRendererManager extends EventEmitter {
 
     sortedElements.forEach((element, index) => {
       const {
-        position, size, canvas, visibility,
+        position, size, canvas, visibility, viewportCaptureRect,
       } = element;
 
       // Skip rendering if element is hidden (opacity: 0, visibility: hidden, or display: none)
@@ -741,12 +853,45 @@ export class LiquidRendererManager extends EventEmitter {
       }
 
       if (size.width > 0 && size.height > 0) {
-        const drawX = Math.round(position.x);
-        const drawY = Math.round(position.y);
-        const drawW = Math.round(canvas.width / deviceScale);
-        const drawH = Math.round(canvas.height / deviceScale);
+        let drawX = Math.round(position.x);
+        let drawY = Math.round(position.y);
+        let drawW = Math.round(canvas.width / deviceScale);
+        let drawH = Math.round(canvas.height / deviceScale);
 
-        this.log('debug', `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height}) opacity=${visibility.opacity}`);
+        // If the backdrop element used viewport capture, adjust positions
+        // The canvas only contains a portion of the element,
+        // so we need to offset the draw position by the capture rect origin
+        if (viewportCaptureRect) {
+          drawX += viewportCaptureRect.x;
+          drawY += viewportCaptureRect.y;
+          drawW = viewportCaptureRect.width;
+          drawH = viewportCaptureRect.height;
+        }
+
+        // VIEWPORT MODE: Offset by viewport origin
+        // In viewport mode, the canvas represents only a portion of the content.
+        // We need to subtract the viewport origin to get canvas-relative coordinates.
+        if (this.viewportMode) {
+          drawX -= this.viewportOrigin.x;
+          drawY -= this.viewportOrigin.y;
+
+          // Skip if element is completely outside the viewport canvas
+          const canvasWidthCSS = this.backdropCanvas.width / deviceScale;
+          const canvasHeightCSS = this.backdropCanvas.height / deviceScale;
+          if (drawX + drawW < 0 || drawY + drawH < 0 || drawX > canvasWidthCSS || drawY > canvasHeightCSS) {
+            this.log('debug', `  [${index}] Skipping backdrop element - outside viewport canvas`);
+            return;
+          }
+        }
+
+        const vpCaptureTag = viewportCaptureRect ? ' [viewport capture]' : '';
+        const vpModeTag = this.viewportMode ? ' [viewport mode]' : '';
+        this.log(
+          'debug',
+          `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) `
+            + `size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height}) `
+            + `opacity=${visibility.opacity}${vpCaptureTag}${vpModeTag}`,
+        );
 
         // Apply opacity if not fully opaque
         if (visibility.opacity < 1) {
@@ -921,16 +1066,46 @@ export class LiquidRendererManager extends EventEmitter {
         opacity: visibility.opacity,
       };
 
+      // VIEWPORT MODE: Offset material position by viewport origin
+      // In viewport mode, the canvas represents only a portion of the content.
+      // Material positions need to be relative to the canvas origin (viewportOrigin).
+      let materialPosX = position.x + size.width / 2;
+      let materialPosY = position.y + size.height / 2;
+
+      if (this.viewportMode) {
+        materialPosX -= this.viewportOrigin.x;
+        materialPosY -= this.viewportOrigin.y;
+
+        // Skip materials that are completely outside the viewport canvas
+        const canvasWidthCSS = this.backdropCanvas.width / this.getDeviceScale();
+        const canvasHeightCSS = this.backdropCanvas.height / this.getDeviceScale();
+        const halfW = size.width / 2;
+        const halfH = size.height / 2;
+
+        if (materialPosX + halfW < 0 || materialPosY + halfH < 0
+            || materialPosX - halfW > canvasWidthCSS || materialPosY - halfH > canvasHeightCSS) {
+          this.log('debug', `Skipping material ${element.materialId} - outside viewport canvas`);
+          if (this.addedMaterialIds.has(element.materialId)) {
+            this.renderer!.removeMaterial(element.materialId);
+            this.addedMaterialIds.delete(element.materialId);
+          }
+          return;
+        }
+      }
+
       this.log('debug', 'Material config for element:', {
         scroll: this.scroll,
         position,
         pPosition: this.position,
         size,
+        viewportMode: this.viewportMode,
+        viewportOrigin: this.viewportOrigin,
+        materialPosition: { x: materialPosX, y: materialPosY },
       });
 
       const materialPosition = {
-        x: position.x + size.width / 2,
-        y: position.y + size.height / 2,
+        x: materialPosX,
+        y: materialPosY,
       };
 
       if (this.addedMaterialIds.has(element.materialId)) {

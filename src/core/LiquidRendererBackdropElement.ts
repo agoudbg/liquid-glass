@@ -5,7 +5,7 @@
  * that provides the background texture for the liquid glass refraction effect.
  */
 
-import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType } from '../types/LiquidGlass';
+import { CustomDrawCallback, LiquidRendererBackdropElementOptions, LiquidRendererBackdropElementType, ViewportCaptureRect } from '../types/LiquidGlass';
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 import { ComputedVisibility, computeElementVisibility } from '../utils/opacity';
 import { EventEmitter } from './EventEmitter';
@@ -44,6 +44,20 @@ export class LiquidRendererBackdropElement extends EventEmitter {
    * Updated during position/size updates.
    */
   public visibility: ComputedVisibility = { state: 'visible', opacity: 1 };
+
+  /**
+   * The currently captured viewport region (in CSS pixels, relative to element).
+   * When viewport capture is enabled, this defines which portion of the element
+   * has been captured to the canvas. Materials use this to correctly sample textures.
+   * If null, the entire element is captured (original behavior).
+   */
+  public viewportCaptureRect: ViewportCaptureRect | null = null;
+
+  /**
+   * Full size of the element (in CSS pixels) regardless of viewport capture.
+   * Used for coordinate mapping when viewport capture is enabled.
+   */
+  public fullSize = { width: 0, height: 0 };
 
   constructor(manager: LiquidRendererManager, element: HTMLElement, options?: LiquidRendererBackdropElementOptions) {
     super();
@@ -119,6 +133,10 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     this.size.width = rect.width * pixelScale;
     this.size.height = rect.height * pixelScale;
 
+    // Store full size in CSS pixels for viewport capture coordinate mapping
+    this.fullSize.width = rect.width;
+    this.fullSize.height = rect.height;
+
     // Compute cumulative opacity from element up to LiquidGlass container
     this.visibility = computeElementVisibility(this.element, this.manager.container);
 
@@ -149,12 +167,16 @@ export class LiquidRendererBackdropElement extends EventEmitter {
   /**
    * Send a request to the manager to re-run backdrop capture
    */
-  public requestManagerBackdropCapture(canvas: OffscreenCanvas) {
+  public requestManagerBackdropCapture(canvas: OffscreenCanvas, viewportRect?: ViewportCaptureRect) {
     this.manager.log('debug', 'Requesting backdrop capture for element:', this.element);
 
     // Save canvas and mark that content has been captured
     this.canvas = canvas;
     this.hasContent = true;
+
+    // Store viewport capture rect for coordinate mapping
+    // If not provided, assume entire element was captured (null)
+    this.viewportCaptureRect = viewportRect ?? null;
 
     this.isReCapturing = false;
 
@@ -165,6 +187,15 @@ export class LiquidRendererBackdropElement extends EventEmitter {
     } else {
       this.manager.onBackdropElementChange();
     }
+  }
+
+  /**
+   * Set the viewport capture rectangle.
+   * Called by LgBackdropConverter when using viewport-based capture.
+   * @param rect The captured viewport region, or null for full element capture
+   */
+  public setViewportCaptureRect(rect: ViewportCaptureRect | null) {
+    this.viewportCaptureRect = rect;
   }
 
   public async drawUserContentToCanvas(userCanvasCallback?: CustomDrawCallback): Promise<{ canvas: OffscreenCanvas; width: number; height: number; }> {

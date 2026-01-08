@@ -91,8 +91,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 
-import { LgBackdropConverter, LiquidGlass, LiquidGlassDebugger } from '../index';
 import LiquidGlassMaterial from '../components/LiquidGlassMaterial.vue';
+import { LgBackdropConverter, LiquidGlass, LiquidGlassDebugger } from '../index';
 
 type Post = {
   id: number

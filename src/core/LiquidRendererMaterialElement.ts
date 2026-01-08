@@ -51,6 +51,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public isDelegatedToProxy = false;
 
   /**
+   * Whether the material is currently visible in the viewport.
+   * Used for visibility culling - when false, the material skips rendering operations.
+   */
+  public isInViewport = true;
+
+  /**
    * Cached computed visibility (opacity and hidden state).
    * Updated during position/size updates.
    */
@@ -191,6 +197,33 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     this.transform = transform;
     this.manager.log('debug', 'Material element transform set to:', transform, 'for element:', this.element);
     this.sendReRenderRequest('material_interaction');
+  }
+
+  /**
+   * Set the viewport visibility state for this material.
+   * When false, the material is outside the viewport and should skip rendering.
+   * @param inViewport Whether the material is currently in viewport
+   * @param requestUpdate Whether to request a manager update when entering viewport
+   */
+  public setViewportVisibility(inViewport: boolean, requestUpdate = true) {
+    const wasInViewport = this.isInViewport;
+    this.isInViewport = inViewport;
+
+    if (inViewport && !wasInViewport && requestUpdate) {
+      // Material just entered viewport - request position update and re-render
+      this.manager.log('debug', 'Material entered viewport, requesting update:', this.element);
+      this.updatePositionAndSize({ suppressReRender: false, reason: 'layout' });
+    } else if (!inViewport && wasInViewport) {
+      this.manager.log('debug', 'Material left viewport:', this.element);
+    }
+  }
+
+  /**
+   * Check if this material should be rendered.
+   * Returns false if the material is outside viewport or delegated to proxy.
+   */
+  public shouldRender(): boolean {
+    return this.isInViewport && !this.isDelegatedToProxy;
   }
 
   /**

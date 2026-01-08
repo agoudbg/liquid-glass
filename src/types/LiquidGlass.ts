@@ -128,3 +128,43 @@ export interface LiquidRendererFullCanvasRenderedEvent {
 }
 
 export type AutomaticBackgroundColorMode = 'light' | 'dark' | 'ultra_light' | 'ultra_dark';
+
+/**
+ * Configuration for viewport-based backdrop capture optimization.
+ * Used by LgBackdropConverter to capture only visible areas + buffer.
+ */
+export interface ViewportCaptureConfig {
+  /**
+   * Vertical buffer (in pixels) to capture above and below the visible area.
+   * Helps prevent visible tearing during fast scrolling.
+   * @default 200
+   */
+  bufferY?: number;
+  /**
+   * Horizontal buffer (in pixels) to capture left and right of the visible area.
+   * Useful for horizontal scrolling scenarios.
+   * @default 0
+   */
+  bufferX?: number;
+  /**
+   * Whether to enable viewport-based capture optimization.
+   * When false, captures the entire element (original behavior).
+   * @default true
+   */
+  enabled?: boolean;
+}
+
+/**
+ * Represents the currently captured viewport region within a backdrop element.
+ * Used to coordinate between backdrop capture and material rendering.
+ */
+export interface ViewportCaptureRect {
+  /** X offset of the captured region relative to element's top-left (in CSS pixels) */
+  x: number;
+  /** Y offset of the captured region relative to element's top-left (in CSS pixels) */
+  y: number;
+  /** Width of the captured region (in CSS pixels) */
+  width: number;
+  /** Height of the captured region (in CSS pixels) */
+  height: number;
+}

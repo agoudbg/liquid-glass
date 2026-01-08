@@ -157,6 +157,7 @@ const doubled = computed(() => count.value * 2)</code></pre>
           </div>
         </LiquidGlassMaterial>
       </Transition>
+      <LiquidGlassDebugger />
     </LiquidGlass>
   </div>
 </template>
@@ -164,6 +165,7 @@ const doubled = computed(() => count.value * 2)</code></pre>
 <script setup lang="ts">
 import { ref } from 'vue';
 
+import { LiquidGlassDebugger } from '..';
 import LgBackdropConverter from '../components/LgBackdropConverter.vue';
 import LiquidGlass from '../components/LiquidGlass.vue';
 import LiquidGlassMaterial from '../components/LiquidGlassMaterial.vue';

@@ -166,6 +166,16 @@ onMounted(() => {
         uniformCanvas.value.style.width = `${manager.actualCssSize.width}px`;
         uniformCanvas.value.style.height = `${manager.actualCssSize.height}px`;
 
+        // VIEWPORT MODE: Position canvas at current scroll position using transform
+        // In viewport mode, the canvas represents only the visible viewport area.
+        // We use transform to position it at the scroll offset.
+        if (manager.isInViewportMode()) {
+          const viewportOrigin = manager.getViewportOrigin();
+          uniformCanvas.value.style.transform = `translate(${viewportOrigin.x}px, ${viewportOrigin.y}px)`;
+        } else {
+          uniformCanvas.value.style.transform = '';
+        }
+
         const ctx = uniformCanvas.value.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
@@ -314,6 +324,8 @@ defineExpose({
   z-index: 9999;
   pointer-events: none;
   transition: visibility 0.2s ease, opacity 0.2s ease;
+  /* Ensure will-change for smooth transform updates in viewport mode */
+  will-change: transform;
 }
 
 .liquid-glass-uniform-canvas[is-fallback-mode="true"] {

@@ -1,3 +1,22 @@
+/**
+ * useMaterialDelegation.ts - 材质渲染委托组合式函数
+ * ===================================================
+ *
+ * 当一个 LiquidGlassMaterial 视觉上位于嵌套的 LiquidGlass 上方时，
+ * 父级 LiquidGlass 不应该渲染该材质的玻璃效果，而是应该由子级
+ * LiquidGlass（已经拥有正确的背景纹理）作为代理来渲染。
+ *
+ * 使用场景：
+ * - 固定定位的工具栏覆盖在可滚动的 LiquidGlass 区域上
+ * - 弹出层/模态框需要使用底层 LiquidGlass 的背景进行折射
+ *
+ * 工作流程：
+ * 1. Material 通过 proxyTarget 指定代理 LiquidGlass
+ * 2. 代理接收材质配置并在其渲染管线中渲染玻璃效果
+ * 3. 代理返回主题颜色等反馈信息给 Material
+ * 4. RAF 循环持续同步 Material 的位置变化
+ */
+
 import {
   computed, onUnmounted, type Ref, ref, type ShallowRef,
   shallowRef, watch,
@@ -11,6 +30,8 @@ import type {
   ProxyTargetInterface,
 } from '../types/ExternalMaterial';
 import type { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
+
+// ===== 类型定义 =====
 
 export interface UseMaterialDelegationOptions {
   /** The material element instance */
@@ -54,6 +75,8 @@ export interface UseMaterialDelegationReturn {
   updateDelegation: () => void;
 }
 
+// ===== 主函数 =====
+
 /**
  * Composable for materials that delegate their glass rendering to another LiquidGlass instance.
  *
@@ -72,7 +95,7 @@ export function useMaterialDelegation(
     getTransform,
   } = options;
 
-  // State
+  // ===== 状态变量 =====
   const proxyTarget = shallowRef<ProxyTargetInterface | null>(null);
   const isDelegating = ref(false);
   const proxyFeedback = ref<ExternalMaterialFeedback | null>(null);
@@ -84,6 +107,8 @@ export function useMaterialDelegation(
   // RAF loop for position sync
   let rafId: number | null = null;
   let lastClientRect: DOMRect | null = null;
+
+  // ===== 配置构建 =====
 
   /**
    * Build the config payload to send to the proxy target
@@ -123,6 +148,8 @@ export function useMaterialDelegation(
     };
   };
 
+  // ===== 位置同步 RAF 循环 =====
+
   /**
    * Check if the bounding rect has changed significantly
    */
@@ -139,7 +166,9 @@ export function useMaterialDelegation(
   };
 
   /**
-   * RAF loop for syncing position with proxy target
+   * RAF loop for syncing position with proxy target.
+   * Continuously checks if the material's position has changed and
+   * updates the proxy target accordingly.
    */
   const syncLoop = () => {
     if (!isDelegating.value || !proxyTarget.value || !element.value) {
@@ -164,23 +193,21 @@ export function useMaterialDelegation(
     rafId = requestAnimationFrame(syncLoop);
   };
 
-  /**
-   * Start the position sync loop
-   */
+  /** Start the position sync loop */
   const startSyncLoop = () => {
     if (rafId !== null) return;
     rafId = requestAnimationFrame(syncLoop);
   };
 
-  /**
-   * Stop the position sync loop
-   */
+  /** Stop the position sync loop */
   const stopSyncLoop = () => {
     if (rafId !== null) {
       cancelAnimationFrame(rafId);
       rafId = null;
     }
   };
+
+  // ===== 代理目标管理 =====
 
   /**
    * Handle feedback from proxy target
@@ -190,7 +217,8 @@ export function useMaterialDelegation(
   };
 
   /**
-   * Set or clear the proxy target
+   * Set or clear the proxy target.
+   * This is the main entry point for establishing delegation.
    */
   const setProxyTarget = (target: ProxyTargetInterface | null) => {
     // Clean up previous target
@@ -231,8 +259,11 @@ export function useMaterialDelegation(
     }
   };
 
+  // ===== 父级管理器通知 =====
+
   /**
-   * Tell the parent manager to skip or include this material in rendering
+   * Tell the parent manager to skip or include this material in rendering.
+   * When delegating, the parent should not render this material's glass effect.
    */
   const markParentToSkip = (skip: boolean) => {
     if (!materialElement.value) return;
@@ -243,6 +274,8 @@ export function useMaterialDelegation(
     // Request re-render so parent updates its material list
     parentManager.markTextureDirty('external');
   };
+
+  // ===== 更新与清理 =====
 
   /**
    * Force update the delegation state (call when config changes)
@@ -256,7 +289,7 @@ export function useMaterialDelegation(
     }
   };
 
-  // Watch for glass attribute changes
+  // Watch for glass attribute changes and update delegation
   const glassAttrsComputed = computed(() => getGlassAttributes());
   watch(glassAttrsComputed, () => {
     updateDelegation();
@@ -272,6 +305,8 @@ export function useMaterialDelegation(
     }
     stopSyncLoop();
   });
+
+  // ===== 返回接口 =====
 
   return {
     isDelegating,

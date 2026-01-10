@@ -8,6 +8,40 @@
   - Nested LiquidGlass support with automatic render precision inheritance
   - Cross-component render delegation via proxyInterface
 
+  Architecture:
+  ```
+  <LiquidGlass> (this component)
+    │
+    ├─ LiquidRendererManager (core rendering engine)
+    │   ├─ Backdrop elements (LgBackdropConverter, LgBackdropCanvas)
+    │   ├─ Material elements (LiquidGlassMaterial)
+    │   └─ WebGL renderer (liquidGlassRenderer)
+    │
+    ├─ uniformCanvas (displays WebGL-rendered glass effects)
+    │
+    └─ slot (your content)
+        ├─ LgBackdropConverter (captures DOM as texture)
+        └─ LiquidGlassMaterial (displays glass effect)
+  ```
+
+  Render Modes:
+  - 'uniform': Single canvas for all materials (default, better performance)
+  - 'dedicated': Each material has its own canvas (more flexible positioning)
+
+  Props:
+  - debug: Enable debug logging
+  - renderPrecision: Quality scale (0-1, affects canvas resolution)
+  - renderMode: 'uniform' | 'dedicated'
+  - powerEfficientMode: Pause rendering when window loses focus
+  - scrollable: Enable scroll handling
+  - zIndex: Custom z-index for the canvas
+  - themeColorThresholds: Custom thresholds for automatic theme detection
+
+  @slot default - Content to render inside the LiquidGlass container
+    - LgBackdropConverter: Wrap content to be used as backdrop texture
+    - LgBackdropCanvas: Draw custom content as backdrop
+    - LiquidGlassMaterial: Display glass effect panels
+
   @example
   <LiquidGlass :scrollable="true" :render-precision="0.8">
     <LgBackdropConverter>
@@ -166,6 +200,32 @@ onMounted(() => {
         uniformCanvas.value.style.width = `${manager.actualCssSize.width}px`;
         uniformCanvas.value.style.height = `${manager.actualCssSize.height}px`;
 
+        // VIEWPORT MODE: Use fixed positioning relative to the container
+        // In viewport mode, the canvas represents only the visible viewport area.
+        // We use fixed positioning so Canvas doesn't affect scroll height.
+        const isViewportMode = manager.isInViewportMode();
+        uniformCanvas.value.classList.toggle('viewport-mode', isViewportMode);
+
+        if (isViewportMode) {
+          // Position fixed canvas at the container's position in the viewport
+          const containerRect = container.value?.getBoundingClientRect();
+          if (containerRect) {
+            // The canvas content starts at viewportOrigin, but we're displaying at current scroll.
+            // We need to offset the canvas position by the difference between scroll and viewportOrigin.
+            const viewportOrigin = manager.getViewportOrigin();
+            const scrollOffset = manager.scroll.y - viewportOrigin.y;
+
+            // Canvas should be positioned above the container by scrollOffset
+            uniformCanvas.value.style.top = `${containerRect.top - scrollOffset}px`;
+            uniformCanvas.value.style.left = `${containerRect.left}px`;
+          }
+          uniformCanvas.value.style.transform = '';
+        } else {
+          uniformCanvas.value.style.transform = '';
+          uniformCanvas.value.style.top = '0';
+          uniformCanvas.value.style.left = '0';
+        }
+
         const ctx = uniformCanvas.value.getContext('2d');
         if (ctx) {
           ctx.clearRect(0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
@@ -314,6 +374,13 @@ defineExpose({
   z-index: 9999;
   pointer-events: none;
   transition: visibility 0.2s ease, opacity 0.2s ease;
+}
+
+/* In viewport mode, use fixed positioning relative to the container
+   to prevent Canvas from affecting scroll height */
+.liquid-glass-uniform-canvas.viewport-mode {
+  position: fixed;
+  will-change: transform;
 }
 
 .liquid-glass-uniform-canvas[is-fallback-mode="true"] {

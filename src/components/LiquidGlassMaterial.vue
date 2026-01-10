@@ -116,6 +116,10 @@ const interaction = computed<InteractionConfig>(() => ({
 const materialElement = ref<HTMLElement | null>(null);
 const materialManager = shallowRef<LiquidRendererMaterialElement | null>(null);
 
+// Visibility culling state - tracks whether material is in viewport
+const isInViewport = ref(true);
+let visibilityObserver: IntersectionObserver | null = null;
+
 const INTERACTIVE_TAGS = new Set([
   'A',
   'BUTTON',
@@ -336,6 +340,33 @@ onMounted(() => {
     if (props.proxyTarget) {
       setProxyTarget(props.proxyTarget);
     }
+
+    // Setup IntersectionObserver for visibility culling
+    // This stops animation and Canvas rendering when material is off-screen
+    visibilityObserver = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        const wasInViewport = isInViewport.value;
+        isInViewport.value = entry.isIntersecting;
+
+        // Update material element's viewport visibility state
+        if (materialManager.value) {
+          materialManager.value.setViewportVisibility(entry.isIntersecting);
+        }
+
+        // Stop animation when leaving viewport to save CPU/GPU resources
+        if (!entry.isIntersecting && wasInViewport) {
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          stopAnimation();
+        }
+      },
+      {
+        // Add margin to start rendering slightly before entering viewport
+        rootMargin: '50px',
+        threshold: 0,
+      },
+    );
+    visibilityObserver.observe(materialElement.value);
   }
 });
 
@@ -590,6 +621,9 @@ const stepAnimation = (timestamp: number) => {
 };
 
 const ensureAnimation = () => {
+  // Skip animation if material is not in viewport (visibility culling)
+  if (!isInViewport.value) return;
+
   if (animationFrameId.value === null) {
     animationFrameId.value = window.requestAnimationFrame(stepAnimation);
   }
@@ -769,6 +803,11 @@ onUnmounted(() => {
     clearInterval(updateTimer.value);
     updateTimer.value = null;
   }
+  // Cleanup visibility observer
+  if (visibilityObserver) {
+    visibilityObserver.disconnect();
+    visibilityObserver = null;
+  }
   stopAnimation();
 });
 
@@ -883,6 +922,8 @@ defineExpose({
   updateDelegation,
   /** Set or clear the proxy target */
   setProxyTarget,
+  /** Whether the material is currently visible in the viewport */
+  isInViewport,
 });
 
 </script>

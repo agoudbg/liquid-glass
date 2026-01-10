@@ -1,6 +1,23 @@
 #version 300 es
 precision mediump float;
 
+/**
+ * LiquidGlass.frag - 旧版 Liquid Glass 片段着色器
+ * ===============================================
+ *
+ * 注意：这是一个较早的实现版本，用于圆形玻璃球效果。
+ * 当前项目主要使用 LiquidGlassAdvanced.frag（支持圆角矩形和 CSS transform）。
+ *
+ * 功能：
+ * - 圆形 SDF（sdCircle）
+ * - 基于鼠标位置的交互效果
+ * - 色散（Chromatic Aberration）效果
+ * - 阴影和高光
+ * - 纹理宽高比校正
+ *
+ * 保留此文件用于参考和可能的调试用途。
+ */
+
 in vec2 vTextureCoord;
 
 uniform sampler2D uTexture;

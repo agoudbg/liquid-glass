@@ -1,9 +1,36 @@
 /**
- * Types for Cross-Component Render Delegation
+ * ExternalMaterial.ts - 跨组件渲染委托类型定义
+ * ============================================
  *
- * This module defines the interfaces for materials that delegate their rendering
- * to a different LiquidGlass instance (proxy target).
+ * 当一个 LiquidGlassMaterial 视觉上位于嵌套的 LiquidGlass 上方时，
+ * 需要将渲染委托给子级 LiquidGlass。这个模块定义了委托机制所需的所有类型。
+ *
+ * 架构图：
+ * ┌─────────────────────────────────────────────────────────────┐
+ * │ Parent LiquidGlass                                         │
+ * │  ┌─────────────────────────────────────────────────────┐   │
+ * │  │ LiquidGlassMaterial (使用 proxyTarget 委托渲染)     │   │
+ * │  │    │                                                │   │
+ * │  │    ▼ ExternalMaterialConfig                         │   │
+ * │  │ ┌─────────────────────────────────────────────┐     │   │
+ * │  │ │ Child LiquidGlass (作为 ProxyTarget)        │     │   │
+ * │  │ │  - 接收配置                                 │     │   │
+ * │  │ │  - 创建 ExternalMaterialElement            │     │   │
+ * │  │ │  - 渲染玻璃效果                            │     │   │
+ * │  │ │    │                                        │     │   │
+ * │  │ │    ▼ ExternalMaterialFeedback               │     │   │
+ * │  │ │  - 返回主题颜色反馈                         │     │   │
+ * │  │ └─────────────────────────────────────────────┘     │   │
+ * │  └─────────────────────────────────────────────────────┘   │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * 关键接口：
+ * - ExternalMaterialConfig: Material → ProxyTarget 的配置数据
+ * - ExternalMaterialFeedback: ProxyTarget → Material 的反馈数据
+ * - ProxyTargetInterface: ProxyTarget 暴露的 API
  */
+
+// ===== 配置类型 =====
 
 /**
  * Configuration data sent from Material to its proxy target LiquidGlass
@@ -52,6 +79,8 @@ export interface ExternalMaterialConfig {
   };
 }
 
+// ===== 反馈类型 =====
+
 /**
  * Data returned from proxy LiquidGlass to the Material
  * for background/text color adaptation
@@ -63,6 +92,8 @@ export interface ExternalMaterialFeedback {
   /** Average luminance of the backdrop area (0-255) */
   averageLuminance?: number;
 }
+
+// ===== 回调类型 =====
 
 /**
  * Registration callback for when material is first registered with proxy
@@ -79,8 +110,12 @@ export type ExternalMaterialUpdateCallback = (id: string, data: Partial<External
  */
 export type ExternalMaterialUnregistrationCallback = (id: string) => void;
 
+// ===== 代理目标接口 =====
+
 /**
- * Interface for the proxy target (LiquidGlass component) exposed methods
+ * Interface for the proxy target (LiquidGlass component) exposed methods.
+ * This is the API that a child LiquidGlass exposes for external materials
+ * to delegate their rendering.
  */
 export interface ProxyTargetInterface {
   /** Register a new external material with the proxy */
@@ -102,9 +137,12 @@ export interface ProxyTargetInterface {
   onMaterialFeedback: (id: string, callback: (feedback: ExternalMaterialFeedback) => void) => () => void;
 }
 
+// ===== Canvas 坐标类型 =====
+
 /**
  * Computed canvas coordinates for an external material
- * relative to the proxy LiquidGlass's internal canvas
+ * relative to the proxy LiquidGlass's internal canvas.
+ * Used for positioning the glass effect on the WebGL canvas.
  */
 export interface ExternalMaterialCanvasCoords {
   /** Destination X in the proxy's canvas (CSS pixels) */

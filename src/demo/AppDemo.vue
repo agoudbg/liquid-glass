@@ -2,7 +2,8 @@
   <div class="app-demo-wrapper">
     <h2>LiquidGlass Demo</h2>
     <div class="single-glass-container">
-      <LiquidGlass class="liquid-glass-container" :scrollable="true" :debug="false" :render-precision="0.8">
+      <LiquidGlass class="liquid-glass-container" :scrollable="true" :debug="false" :render-precision="0.8"
+        :enable-blurred-effect="true">
         <div style="width: 120%; height: 120%">
           <div class="single-glass-layout">
             <LiquidGlass :scrollable="true" ref="scrollableLiquidGlass">

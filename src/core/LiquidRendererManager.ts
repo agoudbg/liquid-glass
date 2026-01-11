@@ -657,15 +657,22 @@ export class LiquidRendererManager extends EventEmitter {
       }
     }
 
-    if (this.isTextureDirty && !this.isRenderingMaterials) {
+    // If we already know we must render materials, but a backdrop capture is queued,
+    // prioritize the backdrop first to avoid a frame of misalignment.
+    const shouldCaptureBackdrop = this.hasPendingBackdropRenderRequest && !this.isRenderingBackdrop;
+    if (shouldCaptureBackdrop) {
+      this.hasPendingBackdropRenderRequest = false;
+      this.captureBackdrop();
+    }
+
+    // Avoid rendering materials while a backdrop capture is pending/in progress.
+    // Rendering with a stale backdrop can cause a visible “jump” before the
+    // updated backdrop arrives.
+    const canRenderMaterials = !this.isRenderingBackdrop && !this.hasPendingBackdropRenderRequest;
+    if (this.isTextureDirty && !this.isRenderingMaterials && canRenderMaterials) {
       this.log('debug', 'RAF: Texture dirty, rendering materials');
       this.renderMaterials();
       this.isTextureDirty = false;
-    }
-
-    if (this.hasPendingBackdropRenderRequest && !this.isRenderingBackdrop) {
-      this.hasPendingBackdropRenderRequest = false;
-      this.captureBackdrop();
     }
 
     // Schedule next frame
@@ -1493,6 +1500,17 @@ export class LiquidRendererManager extends EventEmitter {
     }
 
     this.isRenderingMaterials = true;
+
+    // Ensure geometry state is synced with the latest scroll/viewport movement
+    // before computing material positions. This guards against cases where
+    // window scroll happens between RAF ticks and interaction-driven renders.
+    this.updateContainerPositionAndSize();
+    this.registeredBackdropElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
+    this.registeredMaterialElements.forEach((el) => {
+      el.updatePositionAndSize({ suppressReRender: true });
+    });
 
     const renderPrecision = this.getRenderPrecision();
 

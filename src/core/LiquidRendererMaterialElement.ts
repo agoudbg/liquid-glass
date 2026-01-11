@@ -225,6 +225,9 @@ export class LiquidRendererMaterialElement extends EventEmitter {
    */
   public updatePositionAndSize(options?: { suppressReRender?: boolean; reason?: TextureDirtyReason }) {
     const rect = this.element.getBoundingClientRect();
+    const containerRect = this.manager.container.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
     const {
       translateX, translateY, scaleX, scaleY,
     } = this.transform;
@@ -252,12 +255,15 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     const height = rect.height / safeScaleY;
     const offsetXFromScale = (rect.width - width) / 2;
     const offsetYFromScale = (rect.height - height) / 2;
-    const x = rect.left + window.scrollX - translateX + offsetXFromScale;
-    const y = rect.top + window.scrollY - translateY + offsetYFromScale;
+    const elementLeftDocument = rect.left + scrollX;
+    const elementTopDocument = rect.top + scrollY;
+    const containerLeftDocument = containerRect.left + scrollX;
+    const containerTopDocument = containerRect.top + scrollY;
 
-    // Position should be relative to the document
-    this.position.x = x - this.manager.position.x + this.manager.scroll.x;
-    this.position.y = y - this.manager.position.y + this.manager.scroll.y;
+    // Position relative to the LiquidGlass container content coordinates
+    // (container origin plus its own scroll offset).
+    this.position.x = elementLeftDocument - containerLeftDocument - translateX + offsetXFromScale + this.manager.scroll.x;
+    this.position.y = elementTopDocument - containerTopDocument - translateY + offsetYFromScale + this.manager.scroll.y;
 
     this.size.width = width;
     this.size.height = height;
@@ -339,6 +345,11 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public setTransform(transform: LiquidRendererMaterialElementTransform) {
     this.transform = transform;
     this.manager.log('debug', 'Material element transform set to:', transform, 'for element:', this.element);
+
+    // Recalculate bounds with the latest interaction transform so the WebGL
+    // material stays aligned with the DOM element during animations.
+    this.updatePositionAndSize({ suppressReRender: true, reason: 'material_interaction' });
+
     this.sendReRenderRequest('material_interaction');
   }
 

@@ -206,14 +206,18 @@ export class LiquidRendererBackdropElement extends EventEmitter {
    */
   public updatePositionAndSize(options?: { suppressReRender?: boolean }) {
     const rect = this.element.getBoundingClientRect();
-    const x = rect.left + window.scrollX;
-    const y = rect.top + window.scrollY;
+    const containerRect = this.manager.container.getBoundingClientRect();
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
 
-    // Position should be relative to the manager's content area (not viewport)
-    // Must include scroll offset so elements are placed correctly in the full content canvas
-    // This is consistent with how LiquidRendererMaterialElement calculates position
-    this.position.x = x - this.manager.position.x + this.manager.scroll.x;
-    this.position.y = y - this.manager.position.y + this.manager.scroll.y;
+    const elementLeftDocument = rect.left + scrollX;
+    const elementTopDocument = rect.top + scrollY;
+    const containerLeftDocument = containerRect.left + scrollX;
+    const containerTopDocument = containerRect.top + scrollY;
+
+    // Position relative to the manager's content area + its internal scroll.
+    this.position.x = elementLeftDocument - containerLeftDocument + this.manager.scroll.x;
+    this.position.y = elementTopDocument - containerTopDocument + this.manager.scroll.y;
 
     // MEMORY FIX: Use effective pixel scale (safe DPR * render precision) for consistent sizing
     const pixelScale = getSafeDevicePixelRatio() * this.manager.getRenderPrecision();

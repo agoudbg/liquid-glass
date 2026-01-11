@@ -82,8 +82,12 @@ export interface LiquidRendererManagerOptions {
    */
   renderMode?: RenderMode;
 
-  /** Enable power-efficient mode to reduce CPU/GPU usage when idle */
-  powerEfficientMode?: boolean;
+  /**
+   * Enable blurred effect mode.
+   * When enabled, border and shadow will be hidden when the page loses focus,
+   * reducing visual distraction while maintaining the glass effect.
+   */
+  enableBlurredEffect?: boolean;
 
   /** Request full composite render for nested LiquidGlass components */
   requireFullRender?: boolean;

@@ -23,9 +23,10 @@
 -->
 <template>
   <div class="liquid-glass-material" ref="materialElement" :render-mode="renderMode" :is-fallback-mode="isFallbackMode"
-    :allowing-color-transition="allowingColorTransition" :disable-interactions="disableInteractions"
-    :only-click-interactions="onlyClickInteractions" :style="materialStyle" @pointerdown="onPointerDown"
-    @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp" @pointerleave="onPointerLeave">
+    :is-blurred="isBlurred" :allowing-color-transition="allowingColorTransition"
+    :disable-interactions="disableInteractions" :only-click-interactions="onlyClickInteractions" :style="materialStyle"
+    @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
+    @pointerleave="onPointerLeave">
     <div class="liquid-glass-highlight" :class="{ visible: highlightVisible }" :style="highlightStyle"></div>
     <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
@@ -195,6 +196,14 @@ const onFallbackModeChanged = (fallback: boolean) => {
 };
 manager.on('fallbackModeChanged', onFallbackModeChanged);
 isFallbackMode.value = manager.isFallbackMode;
+
+// Track blurred state (when enableBlurredEffect is enabled and page loses focus)
+const isBlurred = ref<boolean>(false);
+const onBlurredChanged = (blurred: boolean) => {
+  isBlurred.value = blurred;
+};
+manager.on('blurredChanged', onBlurredChanged);
+isBlurred.value = manager.isBlurred;
 
 const calculatedBackgroundColor = ref(<string>(props.backgroundColor ?? 'initial'));
 const calculatedForegroundColor = ref('initial');
@@ -796,6 +805,7 @@ watch(() => interactionState.value.interacting, () => {
 
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
+  manager.off('blurredChanged', onBlurredChanged);
   if (materialManager.value) {
     materialManager.value.destroy();
   }
@@ -975,6 +985,16 @@ defineExpose({
 .liquid-glass-material[is-fallback-mode="true"] {
   backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
   -webkit-backdrop-filter: blur(v-bind(fallbackBlur)) saturate(80%);
+}
+
+/* When page is blurred (enableBlurredEffect is on), hide border and shadow
+   but keep the glass canvas as-is */
+.liquid-glass-material[is-blurred="true"] {
+  box-shadow: none !important;
+}
+
+.liquid-glass-material[is-blurred="true"]::before {
+  background: transparent !important;
 }
 
 .liquid-glass-highlight {

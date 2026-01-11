@@ -85,7 +85,7 @@ The main container component that provides the rendering context for glass effec
 | `scrollable` | `boolean` | `false` | Enable scroll handling for content |
 | `renderPrecision` | `number` | `0` (auto) | Render scale factor (0.5-2.0) |
 | `renderMode` | `'uniform' \| 'dedicated'` | `'uniform'` | Canvas strategy |
-| `powerEfficientMode` | `boolean` | `false` | Reduce resource consumption |
+| `enableBlurredEffect` | `boolean` | `false` | Hide border/shadow when page loses focus |
 | `debug` | `boolean` | `false` | Enable debug logging |
 | `themeColorThresholds` | `object` | - | Custom theme detection thresholds |
 
@@ -249,7 +249,7 @@ When WebGL is unavailable, the library automatically falls back to CSS `backdrop
 
 ## ⚡ Performance Tips
 
-1. **Use `powerEfficientMode`** for battery-sensitive applications
+1. **Use `enableBlurredEffect`** to hide decorative elements when page loses focus
 2. **Lower `renderPrecision`** (0.5-0.8) for complex scenes
 3. **Limit the number of `LiquidGlassMaterial`** components on screen
 4. **Use `watchNodeChanges: false`** when backdrop content is static

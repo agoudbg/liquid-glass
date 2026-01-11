@@ -172,8 +172,17 @@ export class LiquidRendererManager extends EventEmitter {
   /** True if WebGL is not supported or failed to initialize */
   public glassNotSupported = false;
 
-  /** True if power-efficient mode is enabled (reduces quality for battery) */
-  public powerEfficientMode = false;
+  /**
+   * Enable blurred effect mode.
+   * When enabled, border and shadow will be hidden when the page loses focus.
+   */
+  public enableBlurredEffect = false;
+
+  /**
+   * True when the page/window is blurred (lost focus).
+   * Only tracked when enableBlurredEffect is true.
+   */
+  public isBlurred = false;
 
   /** True when using CSS backdrop-filter fallback instead of WebGL */
   public isFallbackMode = false;
@@ -368,7 +377,7 @@ export class LiquidRendererManager extends EventEmitter {
    * @param options.scrollable - Whether the container is scrollable
    * @param options.renderPrecision - Custom render scale (0 = auto)
    * @param options.renderMode - 'uniform' (shared canvas) or 'dedicated' (per-material)
-   * @param options.powerEfficientMode - Reduce quality for battery savings
+   * @param options.enableBlurredEffect - Hide border/shadow when page loses focus
    * @param options.themeColorThresholds - Custom thresholds for theme detection
    */
   constructor(options: LiquidRendererManagerOptions) {
@@ -396,7 +405,7 @@ export class LiquidRendererManager extends EventEmitter {
 
     this.renderMode = options.renderMode ?? 'uniform';
 
-    this.powerEfficientMode = options.powerEfficientMode ?? false;
+    this.enableBlurredEffect = options.enableBlurredEffect ?? false;
 
     // Apply theme color thresholds if provided
     if (options.themeColorThresholds) {
@@ -470,9 +479,9 @@ export class LiquidRendererManager extends EventEmitter {
       this.log('debug', `Render mode set to: ${this.renderMode}`);
     }
 
-    if (options.powerEfficientMode !== undefined) {
-      this.powerEfficientMode = options.powerEfficientMode;
-      this.log('debug', `Power efficient mode set to: ${this.powerEfficientMode}`);
+    if (options.enableBlurredEffect !== undefined) {
+      this.enableBlurredEffect = options.enableBlurredEffect;
+      this.log('debug', `Blurred effect mode set to: ${this.enableBlurredEffect}`);
     }
 
     if (options.scrollable !== undefined) {
@@ -1990,27 +1999,42 @@ export class LiquidRendererManager extends EventEmitter {
    * Update the fallback mode state based on current conditions.
    *
    * Fallback mode uses CSS backdrop-filter instead of WebGL rendering.
-   * It's enabled when:
+   * It's enabled ONLY when:
    * - WebGL is not supported (glassNotSupported)
    * - Component is not visible
-   * - Power efficient mode is on AND backdrop is rendering
+   *
+   * Note: When enableBlurredEffect is true and page is blurred, we use
+   * the 'blurredChanged' event instead to hide border/shadow without
+   * switching to backdrop-filter.
    *
    * Emits 'fallbackModeChanged' when the mode changes.
    */
   public updateFallbackMode() {
-    this.log('debug', 'Updating fallback mode. Glass supported:', !this.glassNotSupported, 'Power efficient mode:', this.powerEfficientMode, 'Is rendering backdrop:', this.isRenderingBackdrop);
-    if (this.glassNotSupported || !this.visible) {
-      this.isFallbackMode = true;
-      this.log('debug', 'Glass not supported, enabling fallback mode.');
-    } else if (this.isRenderingBackdrop && this.powerEfficientMode) {
-      this.isFallbackMode = true;
-    } else {
-      this.isFallbackMode = false;
+    this.log('debug', 'Updating fallback mode. Glass supported:', !this.glassNotSupported, 'Visible:', this.visible);
+
+    const shouldFallback = this.glassNotSupported || !this.visible;
+
+    if (shouldFallback !== this.isFallbackMode) {
+      this.isFallbackMode = shouldFallback;
+      this.log('debug', 'Fallback mode set to:', this.isFallbackMode);
+      this.emit('fallbackModeChanged', this.isFallbackMode);
     }
+  }
 
-    this.log('debug', 'Fallback mode set to:', this.isFallbackMode);
-
-    this.emit('fallbackModeChanged', this.isFallbackMode);
+  /**
+   * Set the blurred state (page lost focus).
+   *
+   * When enableBlurredEffect is true and isBlurred becomes true,
+   * materials should hide their border and shadow but keep the glass canvas as-is.
+   *
+   * @param blurred - Whether the page is blurred (lost focus)
+   */
+  public setBlurred(blurred: boolean) {
+    if (this.isBlurred !== blurred) {
+      this.isBlurred = blurred;
+      this.log('debug', `Blurred state set to: ${this.isBlurred}`);
+      this.emit('blurredChanged', this.isBlurred);
+    }
   }
 
   /**

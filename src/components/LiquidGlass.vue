@@ -32,7 +32,7 @@
   - debug: Enable debug logging
   - renderPrecision: Quality scale (0-1, affects canvas resolution)
   - renderMode: 'uniform' | 'dedicated'
-  - powerEfficientMode: Pause rendering when window loses focus
+  - enableBlurredEffect: Hide border/shadow when window loses focus
   - scrollable: Enable scroll handling
   - zIndex: Custom z-index for the canvas
   - themeColorThresholds: Custom thresholds for automatic theme detection
@@ -80,7 +80,7 @@ const props = defineProps<{
   debug?: boolean;
   renderPrecision?: number;
   renderMode?: 'uniform' | 'dedicated';
-  powerEfficientMode?: boolean;
+  enableBlurredEffect?: boolean;
   scrollable?: boolean;
   zIndex?: number;
   /**
@@ -114,7 +114,7 @@ const manager: LiquidRendererManager = new LiquidRendererManager({
   debug: props.debug ?? false,
   renderPrecision: effectiveRenderPrecision,
   renderMode: props.renderMode ?? 'uniform',
-  powerEfficientMode: props.powerEfficientMode ?? false,
+  enableBlurredEffect: props.enableBlurredEffect ?? false,
 });
 
 provideLiquidContext(manager);
@@ -146,14 +146,14 @@ manager.on('fallbackModeChanged', onFallbackModeChanged);
 
 isFallbackMode.value = manager.isFallbackMode;
 
-watch(() => [props.debug, props.renderPrecision, props.renderMode, props.powerEfficientMode, props.scrollable, props.themeColorThresholds], () => {
+watch(() => [props.debug, props.renderPrecision, props.renderMode, props.enableBlurredEffect, props.scrollable, props.themeColorThresholds], () => {
   // Use effectiveRenderPrecision which inherits from parent if not set
   const newRenderPrecision = props.renderPrecision ?? (parentManager?.getRenderPrecision() ?? 0);
   manager.setOptions({
     debug: props.debug,
     renderPrecision: newRenderPrecision,
     renderMode: props.renderMode,
-    powerEfficientMode: props.powerEfficientMode,
+    enableBlurredEffect: props.enableBlurredEffect,
     scrollable: props.scrollable,
     themeColorThresholds: props.themeColorThresholds,
   });
@@ -163,10 +163,6 @@ const currentRenderMode = ref(manager.renderMode);
 manager.on('optionsChanged', () => {
   currentRenderMode.value = manager.renderMode;
 });
-
-const setVisibility = (visible: boolean) => {
-  manager.setVisibility(visible);
-};
 
 onMounted(() => {
   // Ensure the container is set
@@ -182,7 +178,7 @@ onMounted(() => {
       debug: props.debug ?? false,
       renderPrecision: effectiveRenderPrecision,
       renderMode: props.renderMode ?? 'uniform',
-      powerEfficientMode: props.powerEfficientMode ?? false,
+      enableBlurredEffect: props.enableBlurredEffect ?? false,
       requireFullRender: !!backdropManager.value,
       scrollable: props.scrollable ?? false,
     },
@@ -250,13 +246,15 @@ onMounted(() => {
     }
   });
 
-  // Watch window blurred to change visibility state
-  if (props.powerEfficientMode) {
-    window.addEventListener('blur', () => setVisibility(false));
+  // Watch window blurred to set blurred state (for enableBlurredEffect feature)
+  if (props.enableBlurredEffect) {
+    const onBlur = () => manager.setBlurred(true);
+    const onFocus = () => manager.setBlurred(false);
+    const onVisibilityChange = () => manager.setBlurred(document.hidden);
 
-    window.addEventListener('focus', () => setVisibility(true));
-
-    window.addEventListener('visibilitychange', () => setVisibility(!document.hidden));
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('visibilitychange', onVisibilityChange);
   }
   // If has parent manager, register this manager as child
   if (parentManager) {

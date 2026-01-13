@@ -9,5 +9,6 @@
     "typescript",
     "typescriptreact",
     "vue"
-  ]
+  ],
+  "chat.tools.terminal.autoApprove": {}
 }

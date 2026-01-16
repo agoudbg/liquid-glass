@@ -9,6 +9,14 @@
 
 A Vue 3 component library for creating stunning **iOS-style Liquid Glass** effects using WebGL. Provides physically-based refraction, distortion, and interactive touch animations that bring the fluidity and elegance of Apple's glass design language to the web.
 
+## 🧠 How It Works
+
+- **Backdrop capture**: `LgBackdropConverter` and `LgBackdropCanvas` register with `LiquidRendererManager`, which captures DOM/canvas content into a texture.
+- **Material registration**: Each `LiquidGlassMaterial` registers a material element that tracks layout, visibility, and interaction transforms.
+- **Render pipeline**: The manager keeps a RAF loop that recalculates layout, renders backdrops, runs WebGL passes, and composites into a single uniform canvas.
+- **Nested glass**: Child `LiquidGlass` instances expose a composite canvas to their parent via `LiquidRendererBackdropElement`, so parents can refract child stacks without double-capturing the DOM.
+- **Fallback**: When WebGL is unavailable or disabled, materials switch to CSS `backdrop-filter` while keeping layout/interaction logic intact.
+
 ## ✨ Features
 
 - 🔮 **Real-time Refraction** - WebGL2-powered pixel displacement with configurable index of refraction
@@ -84,7 +92,7 @@ The main container component that provides the rendering context for glass effec
 |------|------|---------|-------------|
 | `scrollable` | `boolean` | `false` | Enable scroll handling for content |
 | `renderPrecision` | `number` | `0` (auto) | Render scale factor (0.5-2.0) |
-| `renderMode` | `'uniform' \| 'dedicated'` | `'uniform'` | Canvas strategy |
+| `renderMode` | `'uniform' \| 'dedicated'` | `'uniform'` | Canvas strategy. `dedicated` is currently unimplemented (see Known Limitations). |
 | `enableBlurredEffect` | `boolean` | `false` | Hide border/shadow when page loses focus |
 | `debug` | `boolean` | `false` | Enable debug logging |
 | `themeColorThresholds` | `object` | - | Custom theme detection thresholds |
@@ -299,6 +307,13 @@ src/
 └── demo/                 # Demo components
 ```
 
+### File Notes
+
+- [src/components/LiquidGlass.vue](src/components/LiquidGlass.vue): Sets up the container, owns the uniform canvas, and wires `LiquidRendererManager` plus nested context/depth providers. In uniform mode it mirrors the manager's offscreen canvas into the DOM canvas.
+- [src/core/LiquidRendererManager.ts](src/core/LiquidRendererManager.ts): Central orchestrator. Handles layout tracking, backdrop capture throttling, RAF-driven updates, and nested compositing. `renderMode` is defined here but the `dedicated` branch is stubbed.
+- [src/components/LiquidGlassMaterial.vue](src/components/LiquidGlassMaterial.vue): Registers materials, handles interaction physics, and forwards transforms to the manager. Applies depth-aware z-index only when in uniform mode.
+- [src/composables/useExternalRenderer.ts](src/composables/useExternalRenderer.ts): Supports cross-component render delegation so materials can be rendered by a different `LiquidGlass` instance.
+
 ## 🙏 Acknowledgments
 
 - Inspired by iOS Liquid Glass design language
@@ -308,6 +323,11 @@ src/
 ## 📄 License
 
 MIT License - see [LICENSE](./LICENSE) for details.
+
+## ⚠️ Known Limitations & Defects
+
+- `renderMode: 'dedicated'` is declared but **not implemented** in [src/core/LiquidRendererManager.ts](src/core/LiquidRendererManager.ts); selecting it currently yields the uniform rendering path with no per-material canvases. Keep to `uniform` until the dedicated pipeline is completed.
+- Documentation for the planned dedicated mode is pending; samples and API tables currently reflect uniform mode behavior only.
 
 ---
 

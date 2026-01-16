@@ -27,6 +27,7 @@
     :disable-interactions="disableInteractions" :only-click-interactions="onlyClickInteractions" :style="materialStyle"
     @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
     @pointerleave="onPointerLeave">
+    <div class="liquid-glass-background" :style="backgroundStyle" aria-hidden="true"></div>
     <!-- Dedicated canvas for 'dedicated' render mode -->
     <canvas v-if="renderMode === 'dedicated'" ref="dedicatedCanvas" class="liquid-glass-dedicated-canvas"
       :is-fallback-mode="isFallbackMode" :style="dedicatedCanvasStyle"></canvas>
@@ -524,6 +525,11 @@ const materialStyle = computed(() => {
 
   return style;
 });
+
+// Background layer style is separated so the dedicated canvas no longer hides the tint
+const backgroundStyle = computed(() => ({
+  backgroundColor: calculatedBackgroundColor.value,
+}));
 
 // Style for the dedicated canvas that extracts glass content from the manager's canvas
 // The canvas fills the material (100% width/height) and uses CSS to cover the entire area.
@@ -1053,13 +1059,13 @@ defineExpose({
   height: 100%;
   border-radius: v-bind(borderRadius);
   overflow: hidden;
-  background-color: v-bind(calculatedBackgroundColor);
+  background-color: transparent;
   color: v-bind(calculatedForegroundColor);
   box-shadow: inset 0 0 v-bind(boxShadowInsetSize) v-bind(calculatedBoxShadowInsetBackgroundColor),
     0 0 v-bind(boxShadowSize) v-bind(calculatedBoxShadowBackgroundColor);
   will-change: transform;
 
-  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
+  transition: color 0.2s ease, box-shadow 0.2s ease, border 0.2s ease, backdrop-filter 0.2s ease, -webkit-backdrop-filter 0.2s ease;
 }
 
 .liquid-glass-material::before {
@@ -1083,6 +1089,20 @@ defineExpose({
   z-index: 1;
 }
 
+.liquid-glass-background {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: v-bind(calculatedBackgroundColor);
+  pointer-events: none;
+  z-index: 0;
+  transition: none;
+}
+
+.liquid-glass-material[allowing-color-transition="true"] .liquid-glass-background {
+  transition: background-color 0.5s ease;
+}
+
 /* Dedicated canvas for 'dedicated' render mode */
 .liquid-glass-dedicated-canvas {
   position: absolute;
@@ -1100,7 +1120,7 @@ defineExpose({
 }
 
 .liquid-glass-material[allowing-color-transition="true"] {
-  transition: background-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
+  transition: color 0.5s ease, box-shadow 0.5s ease, border 0.5s ease, backdrop-filter 0.5s ease, -webkit-backdrop-filter 0.5s ease;
 }
 
 /* Note: z-index for uniform render mode is now set dynamically via materialStyle

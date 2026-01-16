@@ -92,7 +92,7 @@ The main container component that provides the rendering context for glass effec
 |------|------|---------|-------------|
 | `scrollable` | `boolean` | `false` | Enable scroll handling for content |
 | `renderPrecision` | `number` | `0` (auto) | Render scale factor (0.5-2.0) |
-| `renderMode` | `'uniform' \| 'dedicated'` | `'uniform'` | Canvas strategy. `dedicated` is currently unimplemented (see Known Limitations). |
+| `renderMode` | `'uniform' \| 'dedicated'` | `'uniform'` | Canvas strategy. `'uniform'` uses a single shared canvas; `'dedicated'` creates a per-material canvas for each `LiquidGlassMaterial` (see notes below). |
 | `enableBlurredEffect` | `boolean` | `false` | Hide border/shadow when page loses focus |
 | `debug` | `boolean` | `false` | Enable debug logging |
 | `themeColorThresholds` | `object` | - | Custom theme detection thresholds |
@@ -309,9 +309,9 @@ src/
 
 ### File Notes
 
-- [src/components/LiquidGlass.vue](src/components/LiquidGlass.vue): Sets up the container, owns the uniform canvas, and wires `LiquidRendererManager` plus nested context/depth providers. In uniform mode it mirrors the manager's offscreen canvas into the DOM canvas.
-- [src/core/LiquidRendererManager.ts](src/core/LiquidRendererManager.ts): Central orchestrator. Handles layout tracking, backdrop capture throttling, RAF-driven updates, and nested compositing. `renderMode` is defined here but the `dedicated` branch is stubbed.
-- [src/components/LiquidGlassMaterial.vue](src/components/LiquidGlassMaterial.vue): Registers materials, handles interaction physics, and forwards transforms to the manager. Applies depth-aware z-index only when in uniform mode.
+- [src/components/LiquidGlass.vue](src/components/LiquidGlass.vue): Sets up the container, owns the uniform canvas, and wires `LiquidRendererManager` plus nested context/depth providers. In `uniform` mode it mirrors the manager's offscreen canvas into the DOM canvas. In `dedicated` mode the uniform canvas is not used for display — each `LiquidGlassMaterial` presents its own per-material canvas.
+- [src/core/LiquidRendererManager.ts](src/core/LiquidRendererManager.ts): Central orchestrator. Handles layout tracking, backdrop capture throttling, RAF-driven updates, and nested compositing. Supports both `uniform` and `dedicated` render strategies; in `dedicated` mode the manager still runs the WebGL pass into its internal `materialsCanvas`, and individual materials extract their portion into per-material canvases.
+- [src/components/LiquidGlassMaterial.vue](src/components/LiquidGlassMaterial.vue): Registers materials, handles interaction physics, and forwards transforms to the manager. In `dedicated` mode each material creates a dedicated overlay canvas and updates it from the manager's rendered output so deformations and interactions remain in sync. Applies depth-aware z-index only when in `uniform` mode.
 - [src/composables/useExternalRenderer.ts](src/composables/useExternalRenderer.ts): Supports cross-component render delegation so materials can be rendered by a different `LiquidGlass` instance.
 
 ## 🙏 Acknowledgments
@@ -326,8 +326,13 @@ MIT License - see [LICENSE](./LICENSE) for details.
 
 ## ⚠️ Known Limitations & Defects
 
-- `renderMode: 'dedicated'` is declared but **not implemented** in [src/core/LiquidRendererManager.ts](src/core/LiquidRendererManager.ts); selecting it currently yields the uniform rendering path with no per-material canvases. Keep to `uniform` until the dedicated pipeline is completed.
-- Documentation for the planned dedicated mode is pending; samples and API tables currently reflect uniform mode behavior only.
+- `renderMode: 'dedicated'` is now implemented in `LiquidGlassMaterial` and supported by the manager. Behavior notes and caveats:
+  - Each `LiquidGlassMaterial` creates an internal HTML canvas which displays the material's glass output. The top-level `LiquidGlass` uniform canvas is not used for display in `dedicated` mode.
+  - The manager still renders materials into its internal `materialsCanvas` (WebGL). Per-material canvases extract their corresponding region from that canvas; this keeps visual results identical to `uniform` mode but increases per-material compositing work.
+  - Dedicated mode is more flexible for isolated clipping, nested layering, and per-material z-indexing, but may increase CPU/GPU usage when many materials are active. Use `dedicated` when you need independent canvases (complex clipping or overlapping nested LiquidGlass), otherwise prefer `uniform` for better performance.
+  - Fallback mode (CSS `backdrop-filter`) remains available when WebGL fails; in that case per-material canvases are hidden and CSS filters are used.
+
+- Documentation and examples have been updated to show `dedicated` behavior, but the API remains otherwise compatible with the uniform path. Report rendering issues on complex, animated pages so we can refine buffer sizing and update throttling.
 
 ---
 

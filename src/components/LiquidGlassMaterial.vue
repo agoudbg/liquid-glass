@@ -27,6 +27,9 @@
     :disable-interactions="disableInteractions" :only-click-interactions="onlyClickInteractions" :style="materialStyle"
     @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
     @pointerleave="onPointerLeave">
+    <!-- Dedicated canvas for 'dedicated' render mode -->
+    <canvas v-if="renderMode === 'dedicated'" ref="dedicatedCanvas" class="liquid-glass-dedicated-canvas"
+      :is-fallback-mode="isFallbackMode" :style="dedicatedCanvasStyle"></canvas>
     <div class="liquid-glass-highlight" :class="{ visible: highlightVisible }" :style="highlightStyle"></div>
     <slot :updating="updating" :startUpdating="startUpdating" :stopUpdating="stopUpdating"></slot>
   </div>
@@ -116,6 +119,9 @@ const interaction = computed<InteractionConfig>(() => ({
 
 const materialElement = ref<HTMLElement | null>(null);
 const materialManager = shallowRef<LiquidRendererMaterialElement | null>(null);
+
+// Dedicated canvas for 'dedicated' render mode
+const dedicatedCanvas = ref<HTMLCanvasElement | null>(null);
 
 // Visibility culling state - tracks whether material is in viewport
 const isInViewport = ref(true);
@@ -324,6 +330,92 @@ watch(proxyFeedback, (feedback) => {
   }
 });
 
+/**
+ * Handler for materialsRendered event in 'dedicated' render mode.
+ * Extracts this material's portion from the manager's materialsCanvas
+ * and draws it onto the dedicated canvas.
+ */
+const onMaterialsRendered = () => {
+  // Only process in dedicated mode with a valid canvas and materialManager
+  if (renderMode.value !== 'dedicated' || !dedicatedCanvas.value || !materialManager.value) {
+    return;
+  }
+
+  const canvas = dedicatedCanvas.value;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Get the material's position and size from the manager
+  const { position, size, transform } = materialManager.value;
+
+  // Get device scale for proper canvas resolution
+  const deviceScale = manager.getRenderPrecision() === 0
+    ? window.devicePixelRatio
+    : window.devicePixelRatio * manager.getRenderPrecision();
+
+  // Calculate the current transform values
+  const scaleX = transform.scaleX || 1;
+  const scaleY = transform.scaleY || 1;
+  const translateX = transform.translateX || 0;
+  const translateY = transform.translateY || 0;
+
+  // The dedicated canvas's CSS size is 100% of the material's base size.
+  // When the material scales, the canvas scales visually via CSS transform.
+  // Therefore, the canvas physical pixels should match the BASE (unscaled) size.
+  const physicalWidth = Math.round(size.width * deviceScale);
+  const physicalHeight = Math.round(size.height * deviceScale);
+
+  // Only resize if dimensions changed
+  if (canvas.width !== physicalWidth || canvas.height !== physicalHeight) {
+    canvas.width = physicalWidth;
+    canvas.height = physicalHeight;
+  }
+
+  // Clear the canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Calculate the source rectangle in the manager's materialsCanvas.
+  // The manager renders materials at their TRANSFORMED position and size.
+  // The rendered glass appears at: center + translate, with scaled dimensions.
+  const viewportOrigin = manager.isInViewportMode() ? manager.getViewportOrigin() : { x: 0, y: 0 };
+
+  // Calculate where the material is rendered on the manager's canvas
+  const renderedCenterX = position.x + size.width / 2 + translateX - viewportOrigin.x;
+  const renderedCenterY = position.y + size.height / 2 + translateY - viewportOrigin.y;
+
+  // The rendered dimensions (scaled)
+  const transformedWidth = size.width * scaleX;
+  const transformedHeight = size.height * scaleY;
+
+  // Top-left of the rendered material
+  const renderedTopLeftX = renderedCenterX - transformedWidth / 2;
+  const renderedTopLeftY = renderedCenterY - transformedHeight / 2;
+
+  // Source coordinates in physical pixels
+  const srcX = renderedTopLeftX * deviceScale;
+  const srcY = renderedTopLeftY * deviceScale;
+  const srcWidth = transformedWidth * deviceScale;
+  const srcHeight = transformedHeight * deviceScale;
+
+  // Draw the transformed content from the manager's canvas
+  // and scale it to fit the dedicated canvas (which is at base size)
+  try {
+    ctx.drawImage(
+      manager.materialsCanvas,
+      srcX,
+      srcY,
+      srcWidth,
+      srcHeight,
+      0,
+      0,
+      canvas.width, // Destination is base size
+      canvas.height,
+    );
+  } catch {
+    // May fail if coordinates are out of bounds, silently ignore
+  }
+};
+
 onMounted(() => {
   // Register self as a material element
   if (materialElement.value) {
@@ -376,6 +468,10 @@ onMounted(() => {
       },
     );
     visibilityObserver.observe(materialElement.value);
+
+    // Subscribe to materialsRendered event for dedicated render mode
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    manager.on('materialsRendered', onMaterialsRendered);
   }
 });
 
@@ -428,6 +524,17 @@ const materialStyle = computed(() => {
 
   return style;
 });
+
+// Style for the dedicated canvas that extracts glass content from the manager's canvas
+// The canvas fills the material (100% width/height) and uses CSS to cover the entire area.
+// The canvas physical size is set via onMaterialsRendered to match the transformed dimensions.
+// This approach works because the material's transform scales the canvas along with the content.
+// Style for the dedicated canvas - simply fills the parent
+// CSS will handle the scaling via the parent's transform
+const dedicatedCanvasStyle = computed(() => ({
+  width: '100%',
+  height: '100%',
+}));
 
 const highlightVisible = computed(() => interactionState.value.highlightVisible && !isFallbackMode.value);
 
@@ -806,6 +913,7 @@ watch(() => interactionState.value.interacting, () => {
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
   manager.off('blurredChanged', onBlurredChanged);
+  manager.off('materialsRendered', onMaterialsRendered);
   if (materialManager.value) {
     materialManager.value.destroy();
   }
@@ -973,6 +1081,22 @@ defineExpose({
 .liquid-glass-material>* {
   position: relative;
   z-index: 1;
+}
+
+/* Dedicated canvas for 'dedicated' render mode */
+.liquid-glass-dedicated-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  transition: visibility 0.2s ease, opacity 0.2s ease;
+}
+
+.liquid-glass-dedicated-canvas[is-fallback-mode="true"] {
+  visibility: hidden;
+  opacity: 0;
 }
 
 .liquid-glass-material[allowing-color-transition="true"] {

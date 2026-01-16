@@ -1,6 +1,7 @@
 <template>
   <div class="blog-demo">
-    <LiquidGlass class="blog-container" :scrollable="true" :render-precision="0.5" :z-index="10" ref="liquidGlassRef">
+    <LiquidGlass class="blog-container" :scrollable="true" :render-mode="'dedicated'" :render-precision="0.5"
+      :z-index="10" ref="liquidGlassRef">
       <!-- Colorful Background for Glass Effect -->
       <LgBackdropConverter>
         <template #default>
@@ -157,7 +158,7 @@ const doubled = computed(() => count.value * 2)</code></pre>
           </div>
         </LiquidGlassMaterial>
       </Transition>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 </template>

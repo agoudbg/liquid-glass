@@ -338,11 +338,11 @@ export class LiquidRendererManager extends EventEmitter {
    */
   private compositeThrottleMsByReason: Record<TextureDirtyReason, number> = {
     material_interaction: 480, // User interaction - can be delayed
-    scroll: 180,              // Scroll - medium priority
-    layout: 160,              // Layout change - higher priority
-    structural: 140,          // DOM structure change - high priority
-    external: 260,            // External trigger - medium priority
-    unknown: 300,             // Default fallback
+    scroll: 180, // Scroll - medium priority
+    layout: 160, // Layout change - higher priority
+    structural: 140, // DOM structure change - high priority
+    external: 260, // External trigger - medium priority
+    unknown: 300, // Default fallback
   };
 
   /** Timestamp of last composite render (for throttling) */
@@ -1401,8 +1401,8 @@ export class LiquidRendererManager extends EventEmitter {
         this.log(
           'debug',
           `  [${index}] type=${element.type} pos=(${drawX}, ${drawY}) `
-            + `size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height}) `
-            + `opacity=${visibility.opacity}${vpCaptureTag}${vpModeTag}`,
+          + `size=(${drawW}x${drawH}) canvas=(${canvas.width}x${canvas.height}) `
+          + `opacity=${visibility.opacity}${vpCaptureTag}${vpModeTag}`,
         );
 
         // Apply opacity if not fully opaque
@@ -1641,7 +1641,7 @@ export class LiquidRendererManager extends EventEmitter {
         const halfH = size.height / 2;
 
         if (materialPosX + halfW < 0 || materialPosY + halfH < 0
-            || materialPosX - halfW > canvasWidthCSS || materialPosY - halfH > canvasHeightCSS) {
+          || materialPosX - halfW > canvasWidthCSS || materialPosY - halfH > canvasHeightCSS) {
           this.log('debug', `Skipping material ${element.materialId} - outside viewport canvas`);
           if (this.addedMaterialIds.has(element.materialId)) {
             this.renderer!.removeMaterial(element.materialId);

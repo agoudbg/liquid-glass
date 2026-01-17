@@ -350,9 +350,8 @@ const onMaterialsRendered = () => {
   const { position, size, transform } = materialManager.value;
 
   // Get device scale for proper canvas resolution
-  const deviceScale = manager.getRenderPrecision() === 0
-    ? window.devicePixelRatio
-    : window.devicePixelRatio * manager.getRenderPrecision();
+  // Use manager's device scale so dedicated canvas sampling matches internal render buffers (respects DPR clamping)
+  const deviceScale = manager.getDeviceScale();
 
   // Calculate the current transform values
   const scaleX = transform.scaleX || 1;

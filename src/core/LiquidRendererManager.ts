@@ -1991,7 +1991,7 @@ export class LiquidRendererManager extends EventEmitter {
    *
    * @returns Combined scale factor
    */
-  private getDeviceScale() {
+  public getDeviceScale() {
     return getSafeDevicePixelRatio() * this.getRenderPrecision();
   }
 

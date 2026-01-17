@@ -1053,6 +1053,20 @@ export class LiquidRendererManager extends EventEmitter {
     this.markTextureDirty('structural');
   }
 
+  /**
+   * Check if any registered material element uses uniform render mode.
+   *
+   * This is used by LiquidGlass.vue to determine if the uniform canvas
+   * should be rendered, even when the manager itself is in 'dedicated' mode.
+   *
+   * @returns True if any material has effective render mode 'uniform'
+   */
+  public hasUniformMaterials(): boolean {
+    return this.registeredMaterialElements.some(
+      (el) => el.getEffectiveRenderMode() === 'uniform',
+    );
+  }
+
   // ============================================================================
   // EVENT LISTENERS - Resize and Scroll Handling
   // ============================================================================

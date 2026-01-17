@@ -93,6 +93,13 @@ const props = defineProps<{
    * a nested LiquidGlass component.
    */
   proxyTarget?: ProxyTargetInterface | null;
+  /**
+   * Override render mode for this specific material.
+   * - 'uniform': Share canvas with other materials (default, inherited from manager)
+   * - 'dedicated': Use a dedicated canvas for this material
+   * If not set, inherits from the parent LiquidGlass manager.
+   */
+  renderMode?: 'uniform' | 'dedicated';
 }>();
 
 const defaultInteraction: InteractionConfig = {
@@ -258,9 +265,18 @@ const updateBackgroundColor = () => {
 
 const fallbackBlur = computed(() => `${Math.min(props.blur ?? 6, 6)}px`);
 
-const renderMode = ref(manager.renderMode);
+// Determine render mode: use prop if explicitly set, otherwise inherit from manager
+const renderMode = ref(props.renderMode ?? manager.renderMode);
 manager.on('optionsChanged', () => {
-  renderMode.value = manager.renderMode;
+  // Only update from manager if prop is not explicitly set
+  if (props.renderMode === undefined) {
+    renderMode.value = manager.renderMode;
+  }
+});
+
+// Watch for prop changes to renderMode
+watch(() => props.renderMode, (newRenderMode) => {
+  renderMode.value = newRenderMode ?? manager.renderMode;
 });
 
 // Setup delegation composable for cross-component render delegation
@@ -431,6 +447,7 @@ onMounted(() => {
       radiusBL: props.radiusBL,
       radiusTL: props.radiusTL,
       useCustomColor: props.useCustomColor,
+      renderMode: props.renderMode,
     });
 
     materialManager.value.on('backgroundColorModeChanged', () => {

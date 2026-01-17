@@ -105,6 +105,14 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public isInViewport = true;
 
   /**
+   * Per-material render mode override.
+   * - 'uniform': Share canvas with other materials (default)
+   * - 'dedicated': Use a dedicated canvas for this material
+   * If undefined, inherits from the parent manager's renderMode setting.
+   */
+  public renderMode?: 'uniform' | 'dedicated';
+
+  /**
    * Cached computed visibility (opacity and hidden state).
    * Hidden elements (opacity: 0, visibility: hidden, display: none) are skipped.
    */
@@ -130,6 +138,9 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     };
     this.materialId = this.element.id || `material-${Math.random().toString(36).substr(2, 9)}`;
 
+    // Initialize render mode from options
+    this.renderMode = options.renderMode;
+
     // Initialize glass attributes with defaults or options
     this.initializeGlassAttributes(options);
 
@@ -154,6 +165,12 @@ export class LiquidRendererMaterialElement extends EventEmitter {
    */
   public setOptions(options: Partial<LiquidRendererMaterialElementOptions>) {
     this.options = { ...this.options, ...options };
+
+    // Update render mode if provided
+    if (options.renderMode !== undefined) {
+      this.renderMode = options.renderMode;
+    }
+
     this.initializeGlassAttributes(this.options);
     // this.manager.requestMaterialsRender();
   }
@@ -390,6 +407,18 @@ export class LiquidRendererMaterialElement extends EventEmitter {
    */
   public shouldRender(): boolean {
     return this.isInViewport && !this.isDelegatedToProxy;
+  }
+
+  /**
+   * Get the effective render mode for this material.
+   *
+   * If a per-material renderMode is set, it takes precedence.
+   * Otherwise, inherits from the parent manager's renderMode setting.
+   *
+   * @returns The effective render mode ('uniform' or 'dedicated')
+   */
+  public getEffectiveRenderMode(): 'uniform' | 'dedicated' {
+    return this.renderMode ?? this.manager.renderMode;
   }
 
   // ============================================================================

@@ -55,7 +55,7 @@
 <template>
   <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
     <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">
-      <canvas v-if="currentRenderMode === 'uniform'" class="liquid-glass-uniform-canvas"
+      <canvas v-if="shouldShowUniformCanvas" class="liquid-glass-uniform-canvas"
         :is-fallback-mode="isFallbackMode" :style="{ zIndex: canvasZIndex }" ref="uniformCanvas"></canvas>
       <slot></slot>
     </div>
@@ -160,8 +160,19 @@ watch(() => [props.debug, props.renderPrecision, props.renderMode, props.enableB
 });
 
 const currentRenderMode = ref(manager.renderMode);
+const hasUniformMaterials = ref(false);
+
+// Computed property to determine if uniform canvas should be shown
+// Shows when: manager is in uniform mode OR any material overrides to uniform mode
+const shouldShowUniformCanvas = computed(() => currentRenderMode.value === 'uniform' || hasUniformMaterials.value);
+
 manager.on('optionsChanged', () => {
   currentRenderMode.value = manager.renderMode;
+});
+
+// Update hasUniformMaterials when materials change
+manager.on('materialElementChanged', () => {
+  hasUniformMaterials.value = manager.hasUniformMaterials();
 });
 
 onMounted(() => {
@@ -185,8 +196,9 @@ onMounted(() => {
   );
 
   manager.on('materialsRendered', () => {
-    // If is uniform mode, update the uniform canvas
-    if (manager.renderMode === 'uniform') {
+    // Update the uniform canvas if it's being shown
+    // (either due to manager mode OR per-material overrides)
+    if (shouldShowUniformCanvas.value) {
       if (uniformCanvas.value) {
         uniformCanvas.value.width = manager.materialsCanvas.width;
         uniformCanvas.value.height = manager.materialsCanvas.height;
@@ -226,6 +238,42 @@ onMounted(() => {
         if (ctx) {
           ctx.clearRect(0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
           ctx.drawImage(manager.materialsCanvas, 0, 0, manager.materialsCanvas.width, manager.materialsCanvas.height);
+
+          // Clear out regions occupied by materials using 'dedicated' render mode
+          // This prevents double-rendering when mixed modes are used
+          const deviceScale = manager.getDeviceScale();
+          const viewportOrigin = isViewportMode ? manager.getViewportOrigin() : { x: 0, y: 0 };
+
+          manager.registeredMaterialElements.forEach((material) => {
+            if (material.getEffectiveRenderMode() === 'dedicated' && !material.isDelegatedToProxy) {
+              const {
+                position, size, transform,
+              } = material;
+
+              // Calculate the rendered position and size (accounting for transform)
+              const scaleX = transform.scaleX || 1;
+              const scaleY = transform.scaleY || 1;
+              const translateX = transform.translateX || 0;
+              const translateY = transform.translateY || 0;
+
+              const renderedCenterX = position.x + size.width / 2 + translateX - viewportOrigin.x;
+              const renderedCenterY = position.y + size.height / 2 + translateY - viewportOrigin.y;
+
+              const transformedWidth = size.width * scaleX;
+              const transformedHeight = size.height * scaleY;
+
+              const renderedTopLeftX = renderedCenterX - transformedWidth / 2;
+              const renderedTopLeftY = renderedCenterY - transformedHeight / 2;
+
+              // Clear the region in physical pixels
+              ctx.clearRect(
+                renderedTopLeftX * deviceScale,
+                renderedTopLeftY * deviceScale,
+                transformedWidth * deviceScale,
+                transformedHeight * deviceScale,
+              );
+            }
+          });
         }
       }
     }

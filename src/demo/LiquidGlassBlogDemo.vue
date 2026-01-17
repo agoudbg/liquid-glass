@@ -98,7 +98,8 @@ const doubled = computed(() => count.value * 2)</code></pre>
 
       <!-- Fixed Glass Header -->
       <header class="glass-header">
-        <LiquidGlassMaterial :radius="16" :thickness="19" :dispersion="0.025" class="header-glass">
+        <LiquidGlassMaterial :radius="16" :thickness="19" :render-mode="'uniform'" :dispersion="0.025"
+          class="header-glass">
           <div class="header-content">
             <h1 class="logo">✨ Liquid</h1>
             <nav class="nav-links">
@@ -158,7 +159,7 @@ const doubled = computed(() => count.value * 2)</code></pre>
           </div>
         </LiquidGlassMaterial>
       </Transition>
-      <!-- <LiquidGlassDebugger /> -->
+      <LiquidGlassDebugger />
     </LiquidGlass>
   </div>
 </template>
@@ -201,11 +202,11 @@ const galleryColors = [
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; */
 }
 
 * {
-  font-size: 16px;
+  font-size: 10px;
 }
 
 .blog-container {

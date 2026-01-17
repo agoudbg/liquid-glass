@@ -201,6 +201,14 @@ export interface LiquidRendererMaterialElementOptions {
 
   /** Use custom background color instead of automatic detection */
   useCustomColor?: boolean;
+
+  /**
+   * Override render mode for this specific material.
+   * - 'uniform': Share canvas with other materials (default, inherited from manager)
+   * - 'dedicated': Use a dedicated canvas for this material
+   * If not set, inherits from the parent LiquidGlass manager.
+   */
+  renderMode?: RenderMode;
 }
 
 /**

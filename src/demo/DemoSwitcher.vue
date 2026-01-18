@@ -70,7 +70,7 @@ const currentDemo = ref('blog');
 const isCollapsed = ref(false);
 
 const currentComponent = computed(() => {
-  const demo = demos.find(d => d.id === currentDemo.value);
+  const demo = demos.find((d) => d.id === currentDemo.value);
   return demo?.component;
 });
 </script>

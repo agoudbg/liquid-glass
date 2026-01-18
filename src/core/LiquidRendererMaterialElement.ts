@@ -115,7 +115,7 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   /**
    * Custom render order for this material in the WebGL rendering pipeline.
    * Higher values are rendered later (appearing on top of lower values).
-   * 
+   *
    * If undefined, the manager calculates render order from DOM stacking rules:
    * - Higher CSS z-index = rendered later (on top)
    * - Same z-index = later DOM position rendered later (on top)

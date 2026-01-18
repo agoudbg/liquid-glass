@@ -121,12 +121,12 @@ const props = defineProps<{
   /**
    * Custom render order for this material in the WebGL rendering pipeline.
    * Higher values are rendered later (appearing on top of lower values).
-   * 
+   *
    * Default behavior (when not set):
    * - Follows DOM stacking rules automatically
    * - Materials with higher CSS z-index render on top
    * - For same z-index, later siblings in DOM render on top
-   * 
+   *
    * @example
    * // Force this material to render on top of others
    * <LiquidGlassMaterial :renderOrder="100" />

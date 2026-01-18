@@ -213,7 +213,7 @@ export interface LiquidRendererMaterialElementOptions {
   /**
    * Custom render order for this material in the WebGL rendering pipeline.
    * Higher values are rendered later (appearing on top of lower values).
-   * 
+   *
    * Default behavior (when not set):
    * - Follows DOM stacking rules automatically
    * - Materials with higher CSS z-index render on top

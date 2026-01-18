@@ -55,8 +55,8 @@
 <template>
   <div class="liquid-glass-container" :class="{ 'scrollable': props.scrollable }" ref="container">
     <div class="liquid-glass-content" :class="{ 'scrollable': props.scrollable }" ref="content">
-      <canvas v-if="shouldShowUniformCanvas" class="liquid-glass-uniform-canvas"
-        :is-fallback-mode="isFallbackMode" :style="{ zIndex: canvasZIndex }" ref="uniformCanvas"></canvas>
+      <canvas v-if="shouldShowUniformCanvas" class="liquid-glass-uniform-canvas" :is-fallback-mode="isFallbackMode"
+        :style="{ zIndex: canvasZIndex }" ref="uniformCanvas"></canvas>
       <slot></slot>
     </div>
   </div>
@@ -245,10 +245,21 @@ onMounted(() => {
           const viewportOrigin = isViewportMode ? manager.getViewportOrigin() : { x: 0, y: 0 };
 
           manager.registeredMaterialElements.forEach((material) => {
-            if (material.getEffectiveRenderMode() === 'dedicated' && !material.isDelegatedToProxy) {
-              const {
-                position, size, transform,
-              } = material;
+            // Some external items might not expose the material API; guard to avoid runtime errors.
+            const effectiveRenderMode = typeof material.getEffectiveRenderMode === 'function'
+              ? material.getEffectiveRenderMode()
+              : manager.renderMode;
+
+            if (effectiveRenderMode === 'dedicated' && !material.isDelegatedToProxy) {
+              const { position, size, transform } = material as typeof material & {
+                position?: { x: number; y: number };
+                size?: { width: number; height: number };
+                transform?: { scaleX?: number; scaleY?: number; translateX?: number; translateY?: number };
+              };
+
+              if (!position || !size || !transform) {
+                return;
+              }
 
               // Calculate the rendered position and size (accounting for transform)
               const scaleX = transform.scaleX || 1;

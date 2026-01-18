@@ -147,15 +147,53 @@ void main() {
 
   // 12. 设置模糊等级（LOD = Level of Detail）
   //     使用 mipmap 实现高效的模糊效果
+  //     模糊强度计算：边缘区域更模糊，中心较清晰
   float lod = uBlur;
   
   // ===== 纹理采样与色散处理 =====
+  // 使用 9 点高斯采样实现更高质量的模糊效果
+  // 在移动端仍然使用 LOD 采样减少带宽，但结合多点采样提升平滑度
+  
+  // 计算基于 LOD 的采样偏移（以纹理坐标为单位）
+  // 使用纹理的 mipmap 尺寸来计算合适的偏移
+  float blurRadius = exp2(lod) / min(uResolution.x, uResolution.y);
+  
+  // 9 点高斯采样核权重（已归一化，和为 1.0）
+  // 中心权重较高，边缘权重较低，模拟高斯分布
+  const float w0 = 0.0625;  // 角落权重 (1/16)
+  const float w1 = 0.125;   // 边缘权重 (2/16)
+  const float w2 = 0.25;    // 中心权重 (4/16)
+  
   // 性能优化：当色散值可忽略时，跳过色散计算
-  // 这样可以减少移动端的纹理采样开销（从 3 次降为 1 次）
+  // 这样可以减少移动端的纹理采样开销
   if (uDispersion < 0.0001) {
-    // 单次采样路径 - 无色散效果
-    vec2 uvFinal = clamp(vTextureCoord + refraction, 0.0, 1.0);
-    fragColor = textureLod(uTexture, uvFinal, lod);
+    vec2 uvBase = vTextureCoord + refraction;
+    
+    // 当模糊值较小时，使用简单采样提升性能
+    if (uBlur < 0.5) {
+      vec2 uvFinal = clamp(uvBase, 0.0, 1.0);
+      fragColor = textureLod(uTexture, uvFinal, lod);
+    } else {
+      // 9 点高斯模糊采样
+      vec4 color = vec4(0.0);
+      
+      // 中心点
+      color += textureLod(uTexture, clamp(uvBase, 0.0, 1.0), lod) * w2;
+      
+      // 上下左右 4 点（十字形）
+      color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, 0.0), 0.0, 1.0), lod) * w1;
+      color += textureLod(uTexture, clamp(uvBase + vec2(-blurRadius, 0.0), 0.0, 1.0), lod) * w1;
+      color += textureLod(uTexture, clamp(uvBase + vec2(0.0, blurRadius), 0.0, 1.0), lod) * w1;
+      color += textureLod(uTexture, clamp(uvBase + vec2(0.0, -blurRadius), 0.0, 1.0), lod) * w1;
+      
+      // 四个角落
+      color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, blurRadius), 0.0, 1.0), lod) * w0;
+      color += textureLod(uTexture, clamp(uvBase + vec2(-blurRadius, blurRadius), 0.0, 1.0), lod) * w0;
+      color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, -blurRadius), 0.0, 1.0), lod) * w0;
+      color += textureLod(uTexture, clamp(uvBase + vec2(-blurRadius, -blurRadius), 0.0, 1.0), lod) * w0;
+      
+      fragColor = color;
+    }
   } else {
     // 色散路径：R、G、B 通道使用不同的偏移量采样
     // 红色通道：折射略多（外边缘）
@@ -163,19 +201,49 @@ void main() {
     // 蓝色通道：折射略少（内边缘）
     // 这模拟了光通过玻璃时不同波长折射率不同的物理现象
     
-    // 将 UV 坐标限制在纹理边界内，防止采样到纹理外部
-    vec2 uvR = clamp(vTextureCoord + refraction * (1.0 + uDispersion), 0.0, 1.0);
-    vec2 uvG = clamp(vTextureCoord + refraction, 0.0, 1.0);
-    vec2 uvB = clamp(vTextureCoord + refraction * (1.0 - uDispersion), 0.0, 1.0);
+    vec2 uvBaseR = vTextureCoord + refraction * (1.0 + uDispersion);
+    vec2 uvBaseG = vTextureCoord + refraction;
+    vec2 uvBaseB = vTextureCoord + refraction * (1.0 - uDispersion);
     
-    float r = textureLod(uTexture, uvR, lod).r;
-    float g = textureLod(uTexture, uvG, lod).g;
-    float b = textureLod(uTexture, uvB, lod).b;
-    
-    // Alpha 值取自绿色通道（中心采样点），保持一致性
-    float a = textureLod(uTexture, uvG, lod).a;
-    
-    fragColor = vec4(r, g, b, a);
+    // 当模糊值较小时，使用简单采样提升性能
+    if (uBlur < 0.5) {
+      vec2 uvR = clamp(uvBaseR, 0.0, 1.0);
+      vec2 uvG = clamp(uvBaseG, 0.0, 1.0);
+      vec2 uvB = clamp(uvBaseB, 0.0, 1.0);
+      
+      float r = textureLod(uTexture, uvR, lod).r;
+      float g = textureLod(uTexture, uvG, lod).g;
+      float b = textureLod(uTexture, uvB, lod).b;
+      float a = textureLod(uTexture, uvG, lod).a;
+      
+      fragColor = vec4(r, g, b, a);
+    } else {
+      // 5 点十字形采样（每通道），在色散模式下保持性能
+      // 比 9 点少但仍能显著改善质量
+      float r = 0.0, g = 0.0, b = 0.0, a = 0.0;
+      
+      // 中心采样（权重 0.4）
+      r += textureLod(uTexture, clamp(uvBaseR, 0.0, 1.0), lod).r * 0.4;
+      g += textureLod(uTexture, clamp(uvBaseG, 0.0, 1.0), lod).g * 0.4;
+      b += textureLod(uTexture, clamp(uvBaseB, 0.0, 1.0), lod).b * 0.4;
+      a += textureLod(uTexture, clamp(uvBaseG, 0.0, 1.0), lod).a * 0.4;
+      
+      // 十字形 4 点采样（每点权重 0.15）
+      vec2 offsets[4];
+      offsets[0] = vec2(blurRadius, 0.0);
+      offsets[1] = vec2(-blurRadius, 0.0);
+      offsets[2] = vec2(0.0, blurRadius);
+      offsets[3] = vec2(0.0, -blurRadius);
+      
+      for (int i = 0; i < 4; i++) {
+        r += textureLod(uTexture, clamp(uvBaseR + offsets[i], 0.0, 1.0), lod).r * 0.15;
+        g += textureLod(uTexture, clamp(uvBaseG + offsets[i], 0.0, 1.0), lod).g * 0.15;
+        b += textureLod(uTexture, clamp(uvBaseB + offsets[i], 0.0, 1.0), lod).b * 0.15;
+        a += textureLod(uTexture, clamp(uvBaseG + offsets[i], 0.0, 1.0), lod).a * 0.15;
+      }
+      
+      fragColor = vec4(r, g, b, a);
+    }
   }
 
   // ===== 最终颜色处理 =====

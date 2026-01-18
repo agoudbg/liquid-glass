@@ -13,13 +13,8 @@
         {{ isCollapsed ? '▶' : '◀' }}
       </button>
       <div class="nav-items" v-show="!isCollapsed">
-        <button
-          v-for="demo in demos"
-          :key="demo.id"
-          :class="['nav-btn', { active: currentDemo === demo.id }]"
-          @click="currentDemo = demo.id"
-          :title="demo.label"
-        >
+        <button v-for="demo in demos" :key="demo.id" :class="['nav-btn', { active: currentDemo === demo.id }]"
+          @click="currentDemo = demo.id" :title="demo.label">
           <span class="nav-icon">{{ demo.icon }}</span>
           <span class="nav-label">{{ demo.label }}</span>
         </button>
@@ -95,7 +90,7 @@ const currentComponent = computed(() => {
   inset: 0;
 }
 
-.demo-content > * {
+.demo-content>* {
   width: 100%;
   height: 100%;
 }
@@ -184,7 +179,7 @@ const currentComponent = computed(() => {
   .nav-label {
     display: none;
   }
-  
+
   .nav-btn {
     padding: 10px 12px;
   }

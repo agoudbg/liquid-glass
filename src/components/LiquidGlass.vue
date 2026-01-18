@@ -77,11 +77,17 @@ import { LiquidRendererManager } from '../core/LiquidRendererManager';
 import { LiquidRendererFullCanvasRenderedEvent, ThemeColorThresholds } from '../types/LiquidGlass';
 
 const props = defineProps<{
+  /** Enable debug logging for the manager and renderer */
   debug?: boolean;
+  /** Render quality scale (0-1) used to compute canvas resolution */
   renderPrecision?: number;
+  /** Render mode for materials: 'uniform' (shared) or 'dedicated' (per-material) */
   renderMode?: 'uniform' | 'dedicated';
+  /** When true, hides border/shadow when the page loses focus */
   enableBlurredEffect?: boolean;
+  /** Whether the content area should be scrollable and tracked by the renderer */
   scrollable?: boolean;
+  /** Custom z-index used for the internal uniform canvas (higher is on top) */
   zIndex?: number;
   /**
    * Theme color detection thresholds for automatic background color mode.

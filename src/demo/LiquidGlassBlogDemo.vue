@@ -152,14 +152,14 @@ const doubled = computed(() => count.value * 2)</code></pre>
 
       <!-- Search Modal Glass -->
       <Transition name="fade-up">
-        <LiquidGlassMaterial v-if="showSearch" :radius="24" :thickness="30" :dispersion="0.02" class="search-glass">
+        <LiquidGlassMaterial v-if="showSearch" :radius="24" :thickness="6" :dispersion="0.02" class="search-glass">
           <div class="search-content">
             <input type="text" placeholder="Search..." class="search-input" autofocus />
             <button class="close-btn" @click="showSearch = false">✕</button>
           </div>
         </LiquidGlassMaterial>
       </Transition>
-      <LiquidGlassDebugger />
+      <!-- <LiquidGlassDebugger /> -->
     </LiquidGlass>
   </div>
 </template>

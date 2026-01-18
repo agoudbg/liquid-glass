@@ -41,7 +41,9 @@ import type { ViewportCaptureConfig, ViewportCaptureRect } from '../types/Liquid
 import { getSafeDevicePixelRatio } from '../utils/featureDetect';
 
 const props = defineProps<{
+  /** Which HTML-to-canvas library to use for captures ('html-to-image' or 'html2canvas') */
   captureLib?: 'html-to-image' | 'html2canvas';
+  /** z-index to apply to the backdrop element for stacking with materials/canvas */
   zIndex?: number;
   /**
    * Viewport-based capture configuration.

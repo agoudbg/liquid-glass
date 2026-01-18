@@ -66,25 +66,43 @@ type InteractionConfig = {
 };
 
 const props = defineProps<{
+  /** Thickness of the glass surface in pixels (visual depth) */
   thickness?: number;
+  /** Index of refraction used for the refraction shader (e.g. 1.0 - 1.5) */
   refractIndex?: number;
+  /** Overall strength of the refraction effect (0.0 - 1.0) */
   refractIntensity?: number;
+  /** Base border radius in pixels applied to all corners unless overridden */
   radius: number;
+  /** Top-right corner radius in pixels (overrides `radius` for that corner) */
   radiusTR?: number;
+  /** Bottom-right corner radius in pixels (overrides `radius` for that corner) */
   radiusBR?: number;
+  /** Bottom-left corner radius in pixels (overrides `radius` for that corner) */
   radiusBL?: number;
+  /** Top-left corner radius in pixels (overrides `radius` for that corner) */
   radiusTL?: number;
+  /** Optional blur amount applied in fallback mode (CSS blur) */
   blur?: number;
-  dispersion?: number; // Chromatic aberration strength (0.0 to 0.05)
+  /** Chromatic aberration strength (0.0 to ~0.05) for dispersion effect */
+  dispersion?: number;
+  /** Saturation multiplier applied to the final color (1 = unchanged) */
   saturation?: number;
+  /** When true, use an explicitly provided color rather than auto-detected theme colors */
   useCustomColor?: boolean;
+  /** Explicit background tint color for the material (CSS color string) */
   backgroundColor?: string;
+  /** Disable pointer interactions on the material (keeps children interactive) */
   disableInteractions?: boolean;
+  /** If true, only allow interactions that begin with a click (ignore hover tracking) */
   onlyClickInteractions?: boolean;
+  /** Partial configuration for the material interaction physics/behavior */
   interaction?: Partial<InteractionConfig>;
   /** Whether the material is moveable by user interaction */
   isMoveable?: boolean;
+  /** Angle (degrees) for the rim illumination effect */
   illuminationAngle?: number;
+  /** Intensity (0-1) of the rim illumination effect */
   illuminationIntensity?: number;
   /**
    * Proxy target for cross-component render delegation.

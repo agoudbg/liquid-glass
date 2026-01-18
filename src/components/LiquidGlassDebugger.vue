@@ -71,6 +71,7 @@ import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialEle
 import { LiquidRendererBackdropCapturedEvent } from '../types/LiquidGlass';
 
 const props = defineProps<{
+  /** Whether the debugger panel should be open by default */
   initiallyOpen?: boolean;
 }>();
 

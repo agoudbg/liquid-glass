@@ -113,6 +113,16 @@ export class LiquidRendererMaterialElement extends EventEmitter {
   public renderMode?: 'uniform' | 'dedicated';
 
   /**
+   * Custom render order for this material in the WebGL rendering pipeline.
+   * Higher values are rendered later (appearing on top of lower values).
+   * 
+   * If undefined, the manager calculates render order from DOM stacking rules:
+   * - Higher CSS z-index = rendered later (on top)
+   * - Same z-index = later DOM position rendered later (on top)
+   */
+  public renderOrder?: number;
+
+  /**
    * Cached computed visibility (opacity and hidden state).
    * Hidden elements (opacity: 0, visibility: hidden, display: none) are skipped.
    */
@@ -140,6 +150,9 @@ export class LiquidRendererMaterialElement extends EventEmitter {
 
     // Initialize render mode from options
     this.renderMode = options.renderMode;
+
+    // Initialize render order from options
+    this.renderOrder = options.renderOrder;
 
     // Initialize glass attributes with defaults or options
     this.initializeGlassAttributes(options);
@@ -169,6 +182,11 @@ export class LiquidRendererMaterialElement extends EventEmitter {
     // Update render mode if provided
     if (options.renderMode !== undefined) {
       this.renderMode = options.renderMode;
+    }
+
+    // Update render order if provided
+    if (options.renderOrder !== undefined) {
+      this.renderOrder = options.renderOrder;
     }
 
     this.initializeGlassAttributes(this.options);

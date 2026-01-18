@@ -1062,9 +1062,13 @@ export class LiquidRendererManager extends EventEmitter {
    * @returns True if any material has effective render mode 'uniform'
    */
   public hasUniformMaterials(): boolean {
-    return this.registeredMaterialElements.some(
-      (el) => el.getEffectiveRenderMode() === 'uniform',
-    );
+    return this.registeredMaterialElements.some((el) => {
+      // External materials don't have getEffectiveRenderMode, treat as uniform
+      if (typeof (el as any).getEffectiveRenderMode !== 'function') {
+        return true;
+      }
+      return (el as any).getEffectiveRenderMode() === 'uniform';
+    });
   }
 
   // ============================================================================
@@ -1591,9 +1595,58 @@ export class LiquidRendererManager extends EventEmitter {
       this.renderer.resize();
     }
 
+    // Sort materials by renderOrder for proper layering
+    // Layering follows DOM stacking rules:
+    // 1. If renderOrder is explicitly set, use it directly
+    // 2. Otherwise, calculate from DOM: higher CSS z-index = higher priority
+    // 3. If z-index is equal, later DOM position = higher priority
+    // Note: External materials (no DOM element) use registration order as fallback
+    const sortedMaterials = [...this.registeredMaterialElements].sort((a, b) => {
+      // If both have explicit renderOrder, compare directly
+      if (a.renderOrder !== undefined && b.renderOrder !== undefined) {
+        return a.renderOrder - b.renderOrder;
+      }
+      // If only one has explicit renderOrder, it takes precedence over auto-calculated
+      if (a.renderOrder !== undefined) return 1; // a comes after (on top)
+      if (b.renderOrder !== undefined) return -1; // b comes after (on top)
+
+      // Check if both have DOM elements (not external materials)
+      const aElement = (a as any).element as HTMLElement | undefined;
+      const bElement = (b as any).element as HTMLElement | undefined;
+
+      // If either lacks a DOM element, fall back to registration order
+      if (!aElement || !bElement) {
+        return this.registeredMaterialElements.indexOf(a) - this.registeredMaterialElements.indexOf(b);
+      }
+
+      // Both use auto-calculation based on DOM stacking rules
+      const styleA = window.getComputedStyle(aElement);
+      const styleB = window.getComputedStyle(bElement);
+
+      // Parse z-index (auto = 0 for comparison purposes)
+      const zIndexA = styleA.zIndex === 'auto' ? 0 : parseInt(styleA.zIndex, 10) || 0;
+      const zIndexB = styleB.zIndex === 'auto' ? 0 : parseInt(styleB.zIndex, 10) || 0;
+
+      // Higher z-index = rendered later (on top)
+      if (zIndexA !== zIndexB) {
+        return zIndexA - zIndexB;
+      }
+
+      // Same z-index: use DOM order (later in DOM = rendered later = on top)
+      // compareDocumentPosition returns bitmask, DOCUMENT_POSITION_FOLLOWING means b comes after a
+      const position = aElement.compareDocumentPosition(bElement);
+      if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+        return -1; // b is after a, so a should render first
+      }
+      if (position & Node.DOCUMENT_POSITION_PRECEDING) {
+        return 1; // a is after b, so b should render first
+      }
+      return 0; // Same element or not comparable
+    });
+
     // PERFORMANCE OPTIMIZATION: Update existing materials instead of remove+add
     const currentMaterialIds = new Set<string>();
-    this.registeredMaterialElements.forEach((element) => {
+    sortedMaterials.forEach((element) => {
       // Skip materials that are delegating their rendering to a proxy target
       // These materials will be rendered by a child LiquidGlass instead
       if (element.isDelegatedToProxy) {

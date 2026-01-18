@@ -100,6 +100,20 @@ const props = defineProps<{
    * If not set, inherits from the parent LiquidGlass manager.
    */
   renderMode?: 'uniform' | 'dedicated';
+  /**
+   * Custom render order for this material in the WebGL rendering pipeline.
+   * Higher values are rendered later (appearing on top of lower values).
+   * 
+   * Default behavior (when not set):
+   * - Follows DOM stacking rules automatically
+   * - Materials with higher CSS z-index render on top
+   * - For same z-index, later siblings in DOM render on top
+   * 
+   * @example
+   * // Force this material to render on top of others
+   * <LiquidGlassMaterial :renderOrder="100" />
+   */
+  renderOrder?: number;
 }>();
 
 const defaultInteraction: InteractionConfig = {
@@ -196,12 +210,9 @@ const borderRadius = computed(() => {
 const manager = useLiquidContext();
 const depth = useLiquidDepth(0);
 
-// Calculate depth-aware z-index for the material
-// Material z-index should be: 10000 - depth * 2
-// This ensures parent materials (depth 0) have z-index 10000,
-// and child materials (depth 1) have z-index 9998, etc.
-// This is 1 higher than the parent's canvas z-index (9999 - depth * 2)
-// but lower than the grandparent's canvas
+// Calculate z-index for the material element (DOM stacking)
+// Uses depth-aware calculation to ensure proper layering with nested LiquidGlass
+// Top-level (depth 0): z-index = 10000, nested: decreases by 2 per level
 const materialZIndex = computed(() => 10000 - depth * 2);
 
 const isFallbackMode = ref<boolean>(false);
@@ -448,6 +459,7 @@ onMounted(() => {
       radiusTL: props.radiusTL,
       useCustomColor: props.useCustomColor,
       renderMode: props.renderMode,
+      renderOrder: props.renderOrder,
     });
 
     materialManager.value.on('backgroundColorModeChanged', () => {
@@ -1027,6 +1039,7 @@ watch(() => [
   props.backgroundColor,
   props.illuminationAngle,
   props.illuminationIntensity,
+  props.renderOrder,
 ], () => {
   if (materialManager.value) {
     materialManager.value.setOptions({
@@ -1040,11 +1053,8 @@ watch(() => [
       radiusTL: props.radiusTL,
       blur: props.blur,
       dispersion: props.dispersion,
-      saturation: props.saturation,
       useCustomColor: props.useCustomColor,
-      backgroundColor: props.backgroundColor,
-      illuminationAngle: props.illuminationAngle,
-      illuminationIntensity: props.illuminationIntensity,
+      renderOrder: props.renderOrder,
     });
 
     // Update delegation when glass attributes change

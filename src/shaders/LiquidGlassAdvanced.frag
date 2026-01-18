@@ -2,191 +2,192 @@
 precision mediump float;
 
 /**
- * LiquidGlassAdvanced.frag - Liquid Glass 片段着色器
- * =====================================================
+ * LiquidGlassAdvanced.frag - Liquid Glass Fragment Shader
+ * ========================================================
  * 
- * 实现类似 iOS Liquid Glass 的玻璃折射效果。
+ * Implements iOS-like Liquid Glass refraction effects.
  * 
- * 核心算法：
- * 1. SDF（有符号距离场）：使用 sdfRect() 计算像素到圆角矩形边界的距离
- * 2. 法线计算：通过 SDF 梯度计算表面法线，模拟玻璃曲面
- * 3. 折射模拟：根据法线和折射率计算 UV 偏移
- * 4. 色散效果：R/G/B 通道使用不同折射强度，模拟光的色散
- * 5. 模糊效果：使用 LOD (Level of Detail) 采样实现边缘模糊
+ * Core Algorithm:
+ * 1. SDF (Signed Distance Field): Use sdfRect() to calculate pixel distance to rounded rect boundary
+ * 2. Normal Calculation: Compute surface normal from SDF gradient to simulate glass curvature
+ * 3. Refraction Simulation: Calculate UV offset based on normal and refraction index
+ * 4. Chromatic Dispersion: R/G/B channels use different refraction intensities
+ * 5. Blur Effect: Use LOD (Level of Detail) sampling combined with multi-point Gaussian blur
  * 
- * 视觉效果：
- * - 玻璃材质的边缘有折射扭曲效果
- * - 边缘区域有轻微的色散（彩虹）效果
- * - 玻璃边缘有柔和的模糊过渡
- * - 支持 CSS transform 变换（通过变换矩阵）
+ * Visual Effects:
+ * - Glass material has refraction distortion at edges
+ * - Slight chromatic aberration (rainbow) effect at edges
+ * - Soft blur transition at glass edges
+ * - Supports CSS transform (via transform matrix)
  * 
- * 性能优化：
- * - 使用 textureLod() 结合 mipmap 实现高效模糊
- * - 边界外像素直接 discard，避免不必要计算
- * - 所有计算在 GPU 上并行执行
+ * Performance Optimizations:
+ * - Uses textureLod() with mipmap for efficient blur base
+ * - Multi-point sampling for improved blur quality
+ * - Pixels outside boundary use discard to skip unnecessary computation
+ * - All calculations run in parallel on GPU
  */
 
-// ===== 输入/输出变量 =====
-in vec2 vTextureCoord;  // 从顶点着色器传入的纹理坐标 (0.0 ~ 1.0)
-out vec4 fragColor;     // 输出的片段颜色
+// ===== Input/Output Variables =====
+in vec2 vTextureCoord;  // Texture coordinates from vertex shader (0.0 ~ 1.0)
+out vec4 fragColor;     // Output fragment color
 
-// ===== Uniform 变量：纹理与几何参数 =====
-uniform sampler2D uTexture;   // 背景纹理（带 mipmap）
-uniform vec2 uResolution;     // 画布分辨率 (宽, 高) 像素
-uniform vec2 uCenter;         // 材质中心点在画布中的位置（像素）
-uniform vec2 uSize;           // 材质半尺寸（宽度/2, 高度/2）像素
+// ===== Uniform Variables: Texture and Geometry Parameters =====
+uniform sampler2D uTexture;   // Background texture (with mipmap)
+uniform vec2 uResolution;     // Canvas resolution (width, height) in pixels
+uniform vec2 uCenter;         // Material center position in canvas (pixels)
+uniform vec2 uSize;           // Material half-size (width/2, height/2) in pixels
 
-// 每个角的圆角半径（像素），按 GL 坐标象限：x=右上, y=右下, z=左下, w=左上
+// Corner radii in pixels, ordered by GL coordinate quadrants: x=TR, y=BR, z=BL, w=TL
 uniform vec4 uRadius;
 
-// ===== Uniform 变量：视觉效果参数 =====
-uniform float uThickness;        // 玻璃边缘厚度（像素），影响折射范围
-uniform float uRefractIndex;     // 折射率，值越大折射越明显（建议 1.0 ~ 2.0）
-uniform float uRefractIntensity; // 折射强度系数，缩放 UV 偏移量
-uniform float uBlur;             // 模糊等级，控制边缘模糊程度（mipmap LOD 偏移）
-uniform float uDispersion;       // 色散强度，产生彩虹效果（建议 0.0 ~ 0.05）
-uniform float uOpacity;          // 材质整体透明度 (0.0 ~ 1.0)
+// ===== Uniform Variables: Visual Effect Parameters =====
+uniform float uThickness;        // Glass edge thickness (pixels), affects refraction range
+uniform float uRefractIndex;     // Refraction index, higher = more distortion (recommend 1.0 ~ 2.0)
+uniform float uRefractIntensity; // Refraction intensity coefficient, scales UV offset
+uniform float uBlur;             // Blur level, controls edge blur amount (mipmap LOD offset)
+uniform float uDispersion;       // Chromatic dispersion strength (recommend 0.0 ~ 0.05)
+uniform float uOpacity;          // Material overall opacity (0.0 ~ 1.0)
 
-// ===== Uniform 变量：CSS 变换矩阵 =====
-// 用于支持 CSS transform (rotate/scale/skew) 的坐标变换
-// CSS matrix(a, b, c, d, e, f) 中的 2x2 变换部分：
+// ===== Uniform Variables: CSS Transform Matrix =====
+// Used to support CSS transform (rotate/scale/skew) coordinate transformations
+// From CSS matrix(a, b, c, d, e, f), we use the 2x2 transform portion:
 //   a = scaleX * cos(rotation), b = scaleX * sin(rotation) + skewY
 //   c = -scaleY * sin(rotation) + skewX, d = scaleY * cos(rotation)
-// 我们使用逆矩阵将像素坐标变换回 SDF 计算空间
-uniform vec4 uTransformMatrix;     // [a, b, c, d] - 2x2 变换矩阵
-uniform vec2 uTransformMatrixInv1; // [invA, invB] - 逆矩阵第一行
-uniform vec2 uTransformMatrixInv2; // [invC, invD] - 逆矩阵第二行
+// We use the inverse matrix to transform pixel coordinates back to SDF calculation space
+uniform vec4 uTransformMatrix;     // [a, b, c, d] - 2x2 transform matrix
+uniform vec2 uTransformMatrixInv1; // [invA, invB] - Inverse matrix row 1
+uniform vec2 uTransformMatrixInv2; // [invC, invD] - Inverse matrix row 2
 
-// ===== SDF 函数：圆角矩形有符号距离场 =====
+// ===== SDF Function: Rounded Rectangle Signed Distance Field =====
 /**
- * 计算点 p 到圆角矩形边界的有符号距离。
+ * Calculate the signed distance from point p to rounded rectangle boundary.
  * 
- * @param p 相对于中心的坐标（y 轴向上）
- * @param r 四个角的圆角半径 (右上, 右下, 左下, 左上)
- * @param halfSize 矩形的半尺寸 (宽/2, 高/2)
- * @return 负值表示点在形状内部，正值表示在外部，0 表示在边界上
+ * @param p Coordinates relative to center (y-axis up)
+ * @param r Corner radii for four corners (TR, BR, BL, TL)
+ * @param halfSize Rectangle half-size (width/2, height/2)
+ * @return Negative = inside shape, Positive = outside, 0 = on boundary
  */
 float sdfRect(vec2 p, vec4 r, vec2 halfSize) {
-  // p 相对于中心；y 轴向上
-  // 根据点所在象限选择对应的圆角半径
+  // p is relative to center; y-axis points up
+  // Select corner radius based on which quadrant the point is in
   float rad;
   if (p.x >= 0.0) {
-    rad = (p.y >= 0.0) ? r.x : r.y; // 右侧：上 vs 下
+    rad = (p.y >= 0.0) ? r.x : r.y; // Right side: top vs bottom
   } else {
-    rad = (p.y >= 0.0) ? r.w : r.z; // 左侧：上 vs 下
+    rad = (p.y >= 0.0) ? r.w : r.z; // Left side: top vs bottom
   }
-  // 计算到圆角矩形边界的距离
-  // 先缩小到圆角内的矩形，再加上圆角半径
+  // Calculate distance to rounded rectangle boundary
+  // First shrink to the rectangle inside the corners, then add corner radius
   vec2 q = abs(p) - halfSize + rad;
   return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - rad;
 }
 
-// ===== 主函数：片段着色器入口 =====
+// ===== Main Function: Fragment Shader Entry Point =====
 void main() {
-  // 1. 坐标计算：将纹理坐标转换为像素坐标
+  // 1. Coordinate Calculation: Convert texture coordinates to pixel coordinates
   vec2 fragCoord = vTextureCoord * uResolution;
-  vec2 p = fragCoord - uCenter;  // 相对于材质中心的像素坐标
+  vec2 p = fragCoord - uCenter;  // Position relative to material center (pixels)
 
-  // 2. 应用逆变换矩阵，将坐标变换回 SDF 计算空间
-  //    这样 SDF 计算结果会匹配经过 CSS transform 变换后的形状
+  // 2. Apply inverse transform matrix to transform coordinates back to SDF calculation space
+  //    This ensures SDF calculation matches the CSS-transformed shape
   //    p_untransformed = inverse(transformMatrix) * p
   vec2 pUntransformed = vec2(
     uTransformMatrixInv1.x * p.x + uTransformMatrixInv1.y * p.y,
     uTransformMatrixInv2.x * p.x + uTransformMatrixInv2.y * p.y
   );
 
-  // 3. 计算 SDF 距离值
+  // 3. Calculate SDF distance value
   float sd = sdfRect(pUntransformed, uRadius, uSize);
   
-  // 4. 边界裁剪：如果在玻璃区域外，直接丢弃该片段
+  // 4. Boundary Clipping: Discard fragment if outside glass area
   if (sd >= 0.0) {
     discard;
   }
   
   vec2 uv = vTextureCoord;
 
-  // 5. 计算 SDF 梯度，用于法线计算
-  //    通过有限差分法求梯度：在 x/y 方向各偏移 1 像素
+  // 5. Calculate SDF gradient for normal computation
+  //    Use finite difference method: offset 1 pixel in x/y directions
   float sdX = sdfRect(pUntransformed + vec2(1.0, 0.0), uRadius, uSize);
   float sdY = sdfRect(pUntransformed + vec2(0.0, 1.0), uRadius, uSize);
 
-  // 6. 法线计算：模拟玻璃边缘的曲面
-  //    n_cos: 边缘过渡因子，从边缘(0)到内部(1)平滑过渡
-  //    n_sin: 折射方向的正弦分量
+  // 6. Normal Calculation: Simulate glass edge curvature
+  //    n_cos: Edge transition factor, smoothly transitions from edge(0) to interior(1)
+  //    n_sin: Sine component of refraction direction
   float n_cos = max(uThickness + sd, 0.0) / uThickness;
   float n_cos2 = n_cos * n_cos;
   float n_sin = sqrt(1.0 - n_cos2);
   
-  // 7. 构建表面法线向量
-  //    xy 分量：通过 SDF 梯度计算得到
-  //    z 分量：表示表面朝向（指向观察者）
+  // 7. Construct surface normal vector
+  //    xy components: derived from SDF gradient
+  //    z component: surface facing direction (toward viewer)
   vec3 normal = normalize(vec3((sdX - sd) * n_cos, (sdY - sd) * n_cos, n_sin));
 
-  // 8. 将法线变换回屏幕空间
-  //    确保折射方向与经过 CSS transform 变换后的视觉形状一致
+  // 8. Transform normal back to screen space
+  //    Ensures refraction direction matches the CSS-transformed visual shape
   vec2 normalXY = vec2(
     uTransformMatrix.x * normal.x + uTransformMatrix.z * normal.y,
     uTransformMatrix.y * normal.x + uTransformMatrix.w * normal.y
   );
   normal = normalize(vec3(normalXY, normal.z));
 
-  // 9. 计算折射向量
-  //    入射向量为 (0, 0, -1)，即垂直入射
-  //    折射率 = 1.0 / uRefractIndex（从空气进入玻璃）
+  // 9. Calculate refraction vector
+  //    Incident vector is (0, 0, -1), i.e., perpendicular incidence
+  //    Refraction index = 1.0 / uRefractIndex (from air into glass)
   vec3 refract_vec = refract(vec3(0.0, 0.0, -1.0), normal, 1.0 / uRefractIndex);
 
-  // 10. 计算折射光线在玻璃中的传播距离
-  //     h: 光线在玻璃内部的水平传播距离
-  //     refract_length: 考虑玻璃厚度后的总折射长度
+  // 10. Calculate refracted ray travel distance in glass
+  //     h: Horizontal travel distance inside glass
+  //     refract_length: Total refraction length considering glass thickness
   float h = sd < -uThickness ? uThickness : sqrt(sd * (-2.0 * uThickness - sd));
   float refract_length = (h + 8.0 * uThickness) / -refract_vec.z;
 
-  // 11. 将像素偏移转换为 UV 坐标偏移
+  // 11. Convert pixel offset to UV coordinate offset
   vec2 pixelOffset = refract_vec.xy * refract_length * uRefractIntensity;
   vec2 refraction = pixelOffset / uResolution;
 
-  // 12. 设置模糊等级（LOD = Level of Detail）
-  //     使用 mipmap 实现高效的模糊效果
-  //     模糊强度计算：边缘区域更模糊，中心较清晰
+  // 12. Set blur level (LOD = Level of Detail)
+  //     Uses mipmap for efficient blur effect
+  //     Blur intensity: edges are more blurred, center is clearer
   float lod = uBlur;
   
-  // ===== 纹理采样与色散处理 =====
-  // 使用 9 点高斯采样实现更高质量的模糊效果
-  // 在移动端仍然使用 LOD 采样减少带宽，但结合多点采样提升平滑度
+  // ===== Texture Sampling and Dispersion Processing =====
+  // Use 9-point Gaussian sampling for higher quality blur
+  // Still uses LOD sampling on mobile for bandwidth reduction, combined with multi-point sampling for smoothness
   
-  // 计算基于 LOD 的采样偏移（以纹理坐标为单位）
-  // 使用纹理的 mipmap 尺寸来计算合适的偏移
+  // Calculate LOD-based sampling offset (in texture coordinate units)
+  // Uses mipmap size to determine appropriate offset
   float blurRadius = exp2(lod) / min(uResolution.x, uResolution.y);
   
-  // 9 点高斯采样核权重（已归一化，和为 1.0）
-  // 中心权重较高，边缘权重较低，模拟高斯分布
-  const float w0 = 0.0625;  // 角落权重 (1/16)
-  const float w1 = 0.125;   // 边缘权重 (2/16)
-  const float w2 = 0.25;    // 中心权重 (4/16)
+  // 9-point Gaussian kernel weights (normalized, sum = 1.0)
+  // Center weight is higher, edge weights are lower, simulating Gaussian distribution
+  const float w0 = 0.0625;  // Corner weight (1/16)
+  const float w1 = 0.125;   // Edge weight (2/16)
+  const float w2 = 0.25;    // Center weight (4/16)
   
-  // 性能优化：当色散值可忽略时，跳过色散计算
-  // 这样可以减少移动端的纹理采样开销
+  // Performance optimization: Skip dispersion calculation when value is negligible
+  // This reduces texture sampling overhead on mobile (from 3 samples to 1)
   if (uDispersion < 0.0001) {
     vec2 uvBase = vTextureCoord + refraction;
     
-    // 当模糊值较小时，使用简单采样提升性能
+    // When blur value is small, use simple sampling for performance
     if (uBlur < 0.5) {
       vec2 uvFinal = clamp(uvBase, 0.0, 1.0);
       fragColor = textureLod(uTexture, uvFinal, lod);
     } else {
-      // 9 点高斯模糊采样
+      // 9-point Gaussian blur sampling
       vec4 color = vec4(0.0);
       
-      // 中心点
+      // Center point
       color += textureLod(uTexture, clamp(uvBase, 0.0, 1.0), lod) * w2;
       
-      // 上下左右 4 点（十字形）
+      // 4 cross points (up, down, left, right)
       color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, 0.0), 0.0, 1.0), lod) * w1;
       color += textureLod(uTexture, clamp(uvBase + vec2(-blurRadius, 0.0), 0.0, 1.0), lod) * w1;
       color += textureLod(uTexture, clamp(uvBase + vec2(0.0, blurRadius), 0.0, 1.0), lod) * w1;
       color += textureLod(uTexture, clamp(uvBase + vec2(0.0, -blurRadius), 0.0, 1.0), lod) * w1;
       
-      // 四个角落
+      // 4 corner points
       color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, blurRadius), 0.0, 1.0), lod) * w0;
       color += textureLod(uTexture, clamp(uvBase + vec2(-blurRadius, blurRadius), 0.0, 1.0), lod) * w0;
       color += textureLod(uTexture, clamp(uvBase + vec2(blurRadius, -blurRadius), 0.0, 1.0), lod) * w0;
@@ -195,17 +196,17 @@ void main() {
       fragColor = color;
     }
   } else {
-    // 色散路径：R、G、B 通道使用不同的偏移量采样
-    // 红色通道：折射略多（外边缘）
-    // 绿色通道：基准折射
-    // 蓝色通道：折射略少（内边缘）
-    // 这模拟了光通过玻璃时不同波长折射率不同的物理现象
+    // Dispersion path: R, G, B channels use different offset amounts
+    // Red channel: slightly more refraction (outer edge)
+    // Green channel: base refraction
+    // Blue channel: slightly less refraction (inner edge)
+    // This simulates how different wavelengths refract differently through glass
     
     vec2 uvBaseR = vTextureCoord + refraction * (1.0 + uDispersion);
     vec2 uvBaseG = vTextureCoord + refraction;
     vec2 uvBaseB = vTextureCoord + refraction * (1.0 - uDispersion);
     
-    // 当模糊值较小时，使用简单采样提升性能
+    // When blur value is small, use simple sampling for performance
     if (uBlur < 0.5) {
       vec2 uvR = clamp(uvBaseR, 0.0, 1.0);
       vec2 uvG = clamp(uvBaseG, 0.0, 1.0);
@@ -218,17 +219,17 @@ void main() {
       
       fragColor = vec4(r, g, b, a);
     } else {
-      // 5 点十字形采样（每通道），在色散模式下保持性能
-      // 比 9 点少但仍能显著改善质量
+      // 5-point cross sampling (per channel), maintains performance in dispersion mode
+      // Fewer than 9 points but still significantly improves quality
       float r = 0.0, g = 0.0, b = 0.0, a = 0.0;
       
-      // 中心采样（权重 0.4）
+      // Center sampling (weight 0.4)
       r += textureLod(uTexture, clamp(uvBaseR, 0.0, 1.0), lod).r * 0.4;
       g += textureLod(uTexture, clamp(uvBaseG, 0.0, 1.0), lod).g * 0.4;
       b += textureLod(uTexture, clamp(uvBaseB, 0.0, 1.0), lod).b * 0.4;
       a += textureLod(uTexture, clamp(uvBaseG, 0.0, 1.0), lod).a * 0.4;
       
-      // 十字形 4 点采样（每点权重 0.15）
+      // Cross 4-point sampling (weight 0.15 each)
       vec2 offsets[4];
       offsets[0] = vec2(blurRadius, 0.0);
       offsets[1] = vec2(-blurRadius, 0.0);
@@ -246,10 +247,10 @@ void main() {
     }
   }
 
-  // ===== 最终颜色处理 =====
-  // 13. 应用材质透明度
+  // ===== Final Color Processing =====
+  // 13. Apply material opacity
   fragColor.a *= uOpacity;
-  // 14. 预乘 Alpha：将 RGB 乘以 Alpha 值
-  //     这是 WebGL 混合模式的标准做法，确保透明度正确混合
+  // 14. Premultiplied Alpha: Multiply RGB by Alpha value
+  //     This is standard practice for WebGL blending, ensures correct transparency blending
   fragColor.rgb *= fragColor.a;
 }

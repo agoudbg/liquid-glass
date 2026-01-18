@@ -1,20 +1,21 @@
 /**
- * useMaterialDelegation.ts - 材质渲染委托组合式函数
- * ===================================================
+ * useMaterialDelegation.ts - Material Render Delegation Composable
+ * =================================================================
  *
- * 当一个 LiquidGlassMaterial 视觉上位于嵌套的 LiquidGlass 上方时，
- * 父级 LiquidGlass 不应该渲染该材质的玻璃效果，而是应该由子级
- * LiquidGlass（已经拥有正确的背景纹理）作为代理来渲染。
+ * When a LiquidGlassMaterial is visually positioned above a nested LiquidGlass,
+ * the parent LiquidGlass should not render the glass effect for that material.
+ * Instead, the child LiquidGlass (which already has the correct backdrop texture)
+ * acts as a proxy to render it.
  *
- * 使用场景：
- * - 固定定位的工具栏覆盖在可滚动的 LiquidGlass 区域上
- * - 弹出层/模态框需要使用底层 LiquidGlass 的背景进行折射
+ * Use Cases:
+ * - Fixed-position toolbars overlaying scrollable LiquidGlass areas
+ * - Popups/modals that need to use the underlying LiquidGlass backdrop for refraction
  *
- * 工作流程：
- * 1. Material 通过 proxyTarget 指定代理 LiquidGlass
- * 2. 代理接收材质配置并在其渲染管线中渲染玻璃效果
- * 3. 代理返回主题颜色等反馈信息给 Material
- * 4. RAF 循环持续同步 Material 的位置变化
+ * Workflow:
+ * 1. Material specifies the proxy LiquidGlass via proxyTarget
+ * 2. Proxy receives material configuration and renders the glass effect in its pipeline
+ * 3. Proxy returns feedback like theme colors back to the Material
+ * 4. RAF loop continuously syncs Material position changes
  */
 
 import {
@@ -31,7 +32,7 @@ import type {
 } from '../types/ExternalMaterial';
 import type { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
 
-// ===== 类型定义 =====
+// ===== Type Definitions =====
 
 export interface UseMaterialDelegationOptions {
   /** The material element instance */
@@ -75,7 +76,7 @@ export interface UseMaterialDelegationReturn {
   updateDelegation: () => void;
 }
 
-// ===== 主函数 =====
+// ===== Main Function =====
 
 /**
  * Composable for materials that delegate their glass rendering to another LiquidGlass instance.
@@ -95,7 +96,7 @@ export function useMaterialDelegation(
     getTransform,
   } = options;
 
-  // ===== 状态变量 =====
+  // ===== State Variables =====
   const proxyTarget = shallowRef<ProxyTargetInterface | null>(null);
   const isDelegating = ref(false);
   const proxyFeedback = ref<ExternalMaterialFeedback | null>(null);
@@ -108,7 +109,7 @@ export function useMaterialDelegation(
   let rafId: number | null = null;
   let lastClientRect: DOMRect | null = null;
 
-  // ===== 配置构建 =====
+  // ===== Configuration Building =====
 
   /**
    * Build the config payload to send to the proxy target
@@ -148,7 +149,7 @@ export function useMaterialDelegation(
     };
   };
 
-  // ===== 位置同步 RAF 循环 =====
+  // ===== Position Sync RAF Loop =====
 
   /**
    * Check if the bounding rect has changed significantly
@@ -207,7 +208,7 @@ export function useMaterialDelegation(
     }
   };
 
-  // ===== 代理目标管理 =====
+  // ===== Proxy Target Management =====
 
   /**
    * Handle feedback from proxy target
@@ -259,7 +260,7 @@ export function useMaterialDelegation(
     }
   };
 
-  // ===== 父级管理器通知 =====
+  // ===== Parent Manager Notification =====
 
   /**
    * Tell the parent manager to skip or include this material in rendering.
@@ -275,7 +276,7 @@ export function useMaterialDelegation(
     parentManager.markTextureDirty('external');
   };
 
-  // ===== 更新与清理 =====
+  // ===== Updates and Cleanup =====
 
   /**
    * Force update the delegation state (call when config changes)
@@ -306,7 +307,7 @@ export function useMaterialDelegation(
     stopSyncLoop();
   });
 
-  // ===== 返回接口 =====
+  // ===== Return Interface =====
 
   return {
     isDelegating,

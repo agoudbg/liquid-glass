@@ -1,22 +1,23 @@
 /**
- * ExternalMaterialElement.ts - 外部材质虚拟元素
- * =============================================
+ * ExternalMaterialElement.ts - Virtual Element for External Materials
+ * ====================================================================
  *
- * 当一个 LiquidGlassMaterial 通过委托机制将其渲染交给另一个 LiquidGlass 时，
- * 这个类表示该"外部"材质在接收方 LiquidGlass 中的虚拟存在。
+ * When a LiquidGlassMaterial delegates its rendering to another LiquidGlass
+ * through the delegation mechanism, this class represents that "external"
+ * material's virtual presence in the receiving LiquidGlass.
  *
- * 与 LiquidRendererMaterialElement 的区别：
- * - 没有真实的 DOM 元素
- * - 位置通过委托方提供的视口坐标计算
- * - 支持滚动时的位置重新计算
- * - 可以向委托方发送主题颜色反馈
+ * Differences from LiquidRendererMaterialElement:
+ * - No real DOM element
+ * - Position is calculated from viewport coordinates provided by the delegator
+ * - Supports position recalculation on scroll
+ * - Can send theme color feedback to the delegator
  *
- * 生命周期：
- * 1. 由 useExternalRenderer 创建
- * 2. 注册到 LiquidRendererManager
- * 3. 参与正常的渲染循环
- * 4. 委托方更新配置时重新计算位置
- * 5. 委托方取消注册时销毁
+ * Lifecycle:
+ * 1. Created by useExternalRenderer
+ * 2. Registered with LiquidRendererManager
+ * 3. Participates in the normal render loop
+ * 4. Position recalculated when delegator updates configuration
+ * 5. Destroyed when delegator unregisters
  */
 
 import type { ExternalMaterialConfig } from '../types/ExternalMaterial';
@@ -28,7 +29,7 @@ import {
 import { EventEmitter } from './EventEmitter';
 import { LiquidRendererManager } from './LiquidRendererManager';
 
-// ===== 类定义 =====
+// ===== Class Definition =====
 
 /**
  * A virtual material element that represents an external material
@@ -38,11 +39,11 @@ import { LiquidRendererManager } from './LiquidRendererManager';
  * Its position is calculated from viewport coordinates provided by the delegating material.
  */
 export class ExternalMaterialElement extends EventEmitter {
-  // ===== 核心引用 =====
+  // ===== Core References =====
 
   public manager: LiquidRendererManager;
 
-  // ===== 标识符 =====
+  // ===== Identifiers =====
 
   /** Internal material ID used by the manager */
   public materialId: string;
@@ -50,13 +51,13 @@ export class ExternalMaterialElement extends EventEmitter {
   /** External ID from the delegating material */
   public externalId: string;
 
-  // ===== 玻璃属性 =====
+  // ===== Glass Attributes =====
 
   public glassAttributes: LiquidRendererMaterialGlassAttributions;
 
   public automaticBackgroundColorMode: AutomaticBackgroundColorMode = 'light';
 
-  // ===== 位置与变换 =====
+  // ===== Position and Transform =====
 
   public position = { x: 0, y: 0 };
 
@@ -69,7 +70,7 @@ export class ExternalMaterialElement extends EventEmitter {
     translateY: 0,
   };
 
-  // ===== 状态标记 =====
+  // ===== State Flags =====
 
   /** External materials are never delegated to another proxy */
   public isDelegatedToProxy = false;
@@ -80,7 +81,7 @@ export class ExternalMaterialElement extends EventEmitter {
   /** Visibility state for external materials (always visible with full opacity) */
   public visibility = { state: 'visible' as const, opacity: 1 };
 
-  // ===== 反馈机制 =====
+  // ===== Feedback Mechanism =====
 
   /** Callback to emit feedback to the delegating material */
   private feedbackCallback: ((mode: AutomaticBackgroundColorMode) => void) | null = null;
@@ -88,7 +89,7 @@ export class ExternalMaterialElement extends EventEmitter {
   /** Last config for recalculation on scroll */
   private lastConfig: ExternalMaterialConfig | null = null;
 
-  // ===== 构造函数 =====
+  // ===== Constructor =====
 
   constructor(
     manager: LiquidRendererManager,
@@ -128,7 +129,7 @@ export class ExternalMaterialElement extends EventEmitter {
     this.manager.log('debug', `ExternalMaterialElement created: ${this.materialId}`);
   }
 
-  // ===== 配置更新 =====
+  // ===== Configuration Updates =====
 
   /**
    * Update position and size from external config.
@@ -196,7 +197,7 @@ export class ExternalMaterialElement extends EventEmitter {
     this.manager.log('debug', `ExternalMaterial ${this.materialId} updated: pos=(${this.position.x}, ${this.position.y}) size=(${this.size.width}x${this.size.height})`);
   }
 
-  // ===== 滚动同步 =====
+  // ===== Scroll Synchronization =====
 
   /**
    * Recalculate position based on current scroll.
@@ -208,7 +209,7 @@ export class ExternalMaterialElement extends EventEmitter {
     }
   }
 
-  // ===== 反馈回调 =====
+  // ===== Feedback Callbacks =====
 
   /**
    * Set the callback for theme color feedback.
@@ -233,7 +234,7 @@ export class ExternalMaterialElement extends EventEmitter {
     }
   }
 
-  // ===== 变换更新 =====
+  // ===== Transform Updates =====
 
   /**
    * Set transform (called during animation)
@@ -252,7 +253,7 @@ export class ExternalMaterialElement extends EventEmitter {
     this.recalculatePosition();
   }
 
-  // ===== 清理 =====
+  // ===== Cleanup =====
 
   /**
    * Destroy this material element.

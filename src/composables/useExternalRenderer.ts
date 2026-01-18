@@ -1,20 +1,21 @@
 /**
- * useExternalRenderer.ts - 外部材质渲染器组合式函数
- * ==================================================
+ * useExternalRenderer.ts - External Material Renderer Composable
+ * ===============================================================
  *
- * 当一个来自父级 LiquidGlass 的 Material 定位在当前（子级）LiquidGlass 上方时，
- * 这个 composable 负责：
+ * When a Material from a parent LiquidGlass is positioned above the current
+ * (child) LiquidGlass, this composable is responsible for:
  *
- * 1. 接收来自委托 Material 的配置信息
- * 2. 创建虚拟的 ExternalMaterialElement 实例
- * 3. 将它们注册到 Manager 中进行 WebGL 渲染
+ * 1. Receiving configuration from delegating Materials
+ * 2. Creating virtual ExternalMaterialElement instances
+ * 3. Registering them with the Manager for WebGL rendering
  *
- * 这是材质委托机制的"接收端"，与 useMaterialDelegation（发送端）配合使用。
+ * This is the "receiving end" of the material delegation mechanism,
+ * working together with useMaterialDelegation (the "sending end").
  *
- * 架构说明：
- * - proxyInterface: 暴露给外部 Material 的接口
- * - ExternalMaterialElement: 虚拟材质元素，行为类似真实 Material
- * - feedbackCallbacks: 将主题颜色等信息反馈给委托的 Material
+ * Architecture Notes:
+ * - proxyInterface: Interface exposed to external Materials
+ * - ExternalMaterialElement: Virtual material element that behaves like a real Material
+ * - feedbackCallbacks: Returns information like theme colors back to delegating Materials
  */
 
 import { onUnmounted, reactive, type Ref } from 'vue';
@@ -28,7 +29,7 @@ import type {
   ProxyTargetInterface,
 } from '../types/ExternalMaterial';
 
-// ===== 类型定义 =====
+// ===== Type Definitions =====
 
 export interface UseExternalRendererOptions {
   /** The LiquidRendererManager instance for this LiquidGlass */
@@ -49,7 +50,7 @@ export interface UseExternalRendererReturn {
   calculateCanvasCoords: (config: ExternalMaterialConfig) => ExternalMaterialCanvasCoords;
 }
 
-// ===== 主函数 =====
+// ===== Main Function =====
 
 /**
  * Composable for LiquidGlass to handle rendering external materials (from parent containers).
@@ -65,7 +66,7 @@ export function useExternalRenderer(
 ): UseExternalRendererReturn {
   const { manager, container } = options;
 
-  // ===== 状态存储 =====
+  // ===== State Storage =====
 
   // Store for external material configs
   const externalMaterials = reactive(new Map<string, ExternalMaterialConfig>());
@@ -76,7 +77,7 @@ export function useExternalRenderer(
   // Callbacks for feedback to materials
   const feedbackCallbacks = new Map<string, Set<(feedback: ExternalMaterialFeedback) => void>>();
 
-  // ===== 工具函数 =====
+  // ===== Utility Functions =====
 
   /**
    * Get the container's bounding rect
@@ -94,7 +95,7 @@ export function useExternalRenderer(
     y: manager.scroll.y,
   });
 
-  // ===== 材质注册管理 =====
+  // ===== Material Registration Management =====
 
   /**
    * Register a new external material.
@@ -183,7 +184,7 @@ export function useExternalRenderer(
     manager.markTextureDirty('external');
   };
 
-  // ===== 反馈订阅 =====
+  // ===== Feedback Subscription =====
 
   /**
    * Subscribe to feedback for a material.
@@ -210,7 +211,7 @@ export function useExternalRenderer(
     };
   };
 
-  // ===== 坐标计算 =====
+  // ===== Coordinate Calculation =====
 
   /**
    * Calculate canvas coordinates for an external material.
@@ -276,7 +277,7 @@ export function useExternalRenderer(
     };
   };
 
-  // ===== 代理接口 =====
+  // ===== Proxy Interface =====
 
   // Build the proxy interface that external materials will use
   const proxyInterface: ProxyTargetInterface = {
@@ -288,7 +289,7 @@ export function useExternalRenderer(
     onMaterialFeedback,
   };
 
-  // ===== 清理 =====
+  // ===== Cleanup =====
 
   // Cleanup on unmount
   onUnmounted(() => {
@@ -301,7 +302,7 @@ export function useExternalRenderer(
     feedbackCallbacks.clear();
   });
 
-  // ===== 返回接口 =====
+  // ===== Return Interface =====
 
   return {
     proxyInterface,

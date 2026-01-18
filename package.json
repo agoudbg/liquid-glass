@@ -22,7 +22,10 @@
     "preview": "vite preview",
     "preview:demo": "vite preview --config vite.demo.config.ts",
     "type-check": "vue-tsc --noEmit",
-    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix"
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "peerDependencies": {
     "three": "^0.170.0",
@@ -39,14 +42,18 @@
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "@vitejs/plugin-vue": "^5.2.1",
+    "@vitest/coverage-v8": "^4.0.17",
+    "@vue/test-utils": "^2.4.6",
     "eslint": "^8.57.1",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-vue": "^9.33.0",
+    "jsdom": "^27.4.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.1",
     "vite-plugin-dts": "^4.5.4",
+    "vitest": "^4.0.17",
     "vue": "^3.5.26",
     "vue-eslint-parser": "^10.2.0",
     "vue-tsc": "^2.1.10"

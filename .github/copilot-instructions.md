@@ -10,3 +10,5 @@
 - When adding or finishing features (e.g., implementing `renderMode: 'dedicated'` or adjusting render precision inheritance), update README and relevant docs/demos in the same change set.
 - Call out experimental or unfinished options explicitly; avoid advertising unimplemented modes without a caveat.
 - Keep examples aligned with the uniform render path until the dedicated pipeline is complete.
+
+**每次做出修改后，不要急于结束对话，而是尝试运行 pnpm dev，收集我的反馈后按要求继续对话。**

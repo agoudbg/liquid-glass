@@ -26,7 +26,7 @@
     :is-blurred="isBlurred" :allowing-color-transition="allowingColorTransition"
     :disable-interactions="disableInteractions" :only-click-interactions="onlyClickInteractions" :style="materialStyle"
     @pointerdown="onPointerDown" @pointermove="onPointerMove" @pointerup="onPointerUp" @pointercancel="onPointerUp"
-    @pointerleave="onPointerLeave">
+    @pointerleave="onPointerLeave" @pointerenter="onPointerEnter">
     <div class="liquid-glass-background" :style="backgroundStyle" aria-hidden="true"></div>
     <!-- Dedicated canvas for 'dedicated' render mode -->
     <canvas v-if="renderMode === 'dedicated'" ref="dedicatedCanvas" class="liquid-glass-dedicated-canvas"
@@ -43,12 +43,29 @@ import {
 } from 'vue';
 
 import { useMaterialDelegation } from '../composables/useMaterialDelegation';
+import {
+  BUTTON_PRESET,
+  CONTEXT_MENU_PRESET,
+  InteractionEngine,
+  PRESET_MAP,
+  SLIDER_PRESET,
+} from '../core/InteractionEngine';
 import { useLiquidContext, useLiquidDepth } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import type { ProxyTargetInterface } from '../types/ExternalMaterial';
-import { LiquidRendererMaterialElementTransform } from '../types/LiquidGlass';
+import type {
+  InteractionConfig,
+  InteractionPreset,
+  InteractionTransform,
+  LiquidRendererMaterialElementTransform,
+  PartialInteractionConfig,
+} from '../types/LiquidGlass';
 
-type InteractionConfig = {
+/**
+ * Legacy interaction config type for backward compatibility.
+ * Maps to the new InteractionConfig internally.
+ */
+type LegacyInteractionConfig = {
   baseScale: number;
   activeScale: number;
   translateFactor: number;
@@ -96,8 +113,24 @@ const props = defineProps<{
   disableInteractions?: boolean;
   /** If true, only allow interactions that begin with a click (ignore hover tracking) */
   onlyClickInteractions?: boolean;
-  /** Partial configuration for the material interaction physics/behavior */
-  interaction?: Partial<InteractionConfig>;
+  /**
+   * @deprecated Use `interactionPreset` and `interactionConfig` instead.
+   * Legacy interaction configuration for backward compatibility.
+   */
+  interaction?: Partial<LegacyInteractionConfig>;
+  /**
+   * iOS 26-style interaction preset.
+   * - 'button': Hover follow + press scale + drag stretch (default)
+   * - 'context-menu': No hover, press stretch with partial idle return
+   * - 'slider': Press scale with velocity-based stretch, jelly bounce
+   * - 'custom': Fully custom configuration via interactionConfig
+   */
+  interactionPreset?: InteractionPreset;
+  /**
+   * Custom interaction configuration.
+   * Overrides values from the selected preset.
+   */
+  interactionConfig?: PartialInteractionConfig;
   /** Whether the material is moveable by user interaction */
   isMoveable?: boolean;
   /** Angle (degrees) for the rim illumination effect */
@@ -134,28 +167,92 @@ const props = defineProps<{
   renderOrder?: number;
 }>();
 
-const defaultInteraction: InteractionConfig = {
-  baseScale: 1,
-  activeScale: 1.01,
-  translateFactor: 0.08,
-  stretchFactor: 0.0003,
-  stretchLimit: 1,
-  damping: 0.15,
-  reboundDamping: 0.13,
-  releaseDamping: 0.18,
-  releaseReboundDamping: 0.19,
-  reboundThreshold: 0.12,
-  highlightSize: 200,
-  highlightOpacity: 0.5,
-  highlightHDRFactor: 1.2,
-  followLag: 1,
-};
+/**
+ * Converts legacy interaction config to new InteractionConfig format.
+ * This ensures backward compatibility with existing code.
+ */
+function convertLegacyConfig(legacy: Partial<LegacyInteractionConfig>): PartialInteractionConfig {
+  const config: PartialInteractionConfig = {};
 
-const interaction = computed<InteractionConfig>(() => ({
-  ...defaultInteraction,
-  ...(props.interaction ?? {}),
-  ...props.isMoveable ? { translateFactor: 0 } : {},
-}));
+  if (legacy.baseScale !== undefined) config.baseScale = legacy.baseScale;
+  if (legacy.activeScale !== undefined) config.activeScale = legacy.activeScale;
+  if (legacy.translateFactor !== undefined) config.translateFactor = legacy.translateFactor;
+  if (legacy.stretchFactor !== undefined) config.stretchFactor = legacy.stretchFactor;
+  if (legacy.stretchLimit !== undefined) config.stretchLimit = legacy.stretchLimit;
+  if (legacy.highlightSize !== undefined) config.highlightSize = legacy.highlightSize;
+  if (legacy.highlightOpacity !== undefined) config.highlightOpacity = legacy.highlightOpacity;
+  if (legacy.highlightHDRFactor !== undefined) config.highlightHDRFactor = legacy.highlightHDRFactor;
+
+  // Map damping values to spring configurations
+  // Lower damping in legacy = snappier animation = higher stiffness
+  if (legacy.damping !== undefined || legacy.releaseDamping !== undefined) {
+    const dampingToStiffness = (d: number) => Math.round(300 + (1 - d) * 200);
+    const dampingToDamping = (d: number) => Math.round(15 + d * 15);
+
+    if (legacy.damping !== undefined) {
+      config.activeSpring = {
+        stiffness: dampingToStiffness(legacy.damping),
+        damping: dampingToDamping(legacy.damping),
+        mass: 1,
+      };
+    }
+
+    if (legacy.releaseDamping !== undefined) {
+      config.releaseSpring = {
+        stiffness: dampingToStiffness(legacy.releaseDamping),
+        damping: dampingToDamping(legacy.releaseDamping),
+        mass: 1,
+      };
+    }
+  }
+
+  if (legacy.followLag !== undefined) {
+    config.highlightFollowSpeed = legacy.followLag;
+  }
+
+  return config;
+}
+
+/**
+ * Creates the merged interaction configuration.
+ * Priority: interactionConfig > legacy interaction > preset defaults
+ */
+const interactionConfig = computed<PartialInteractionConfig>(() => {
+  // Start with preset base
+  const preset = props.interactionPreset ?? 'button';
+  const baseConfig = PRESET_MAP[preset];
+
+  // Apply legacy config if present
+  const legacyOverrides = props.interaction
+    ? convertLegacyConfig(props.interaction)
+    : {};
+
+  // Apply new config overrides
+  const newOverrides = props.interactionConfig ?? {};
+
+  // Merge all configurations
+  const merged = {
+    ...baseConfig,
+    ...legacyOverrides,
+    ...newOverrides,
+  };
+
+  // Apply isMoveable override (disable translation for moveable elements)
+  if (props.isMoveable) {
+    merged.translateFactor = 0;
+    merged.enableHoverFollow = false;
+  }
+
+  // For slider preset, hide highlight by default
+  if (preset === 'slider' && props.interactionConfig?.showHighlight === undefined) {
+    merged.showHighlight = false;
+  }
+
+  return merged;
+});
+
+// Create the interaction engine instance
+const interactionEngine = shallowRef<InteractionEngine | null>(null);
 
 const materialElement = ref<HTMLElement | null>(null);
 const materialManager = shallowRef<LiquidRendererMaterialElement | null>(null);
@@ -489,6 +586,9 @@ onMounted(() => {
       setProxyTarget(props.proxyTarget);
     }
 
+    // Initialize the interaction engine
+    initializeInteractionEngine();
+
     // Setup IntersectionObserver for visibility culling
     // This stops animation and Canvas rendering when material is off-screen
     visibilityObserver = new IntersectionObserver(
@@ -529,40 +629,172 @@ watch(isFallbackMode, () => {
 
 const updateTimer = ref<number | null>(null);
 
-const triggerRebound = ref<boolean | undefined>(undefined);
+// =============================================================================
+// New iOS 26-style Interaction System
+// =============================================================================
 
-const interactionState = ref({
-  pointerId: undefined as number | undefined,
-  isPointerDown: false,
-  interacting: false,
-  originX: null as number | null,
-  originY: null as number | null,
-  currentX: 0,
-  currentY: 0,
-  prevX: 0,
-  prevY: 0,
-  targetX: 0,
-  targetY: 0,
-  reboundTargetX: 0,
-  reboundTargetY: 0,
-  currentScaleX: 1,
-  currentScaleY: 1,
-  targetScaleX: 1,
-  targetScaleY: 1,
+/**
+ * Current transform state from the interaction engine.
+ * Updated on each animation frame.
+ */
+const currentTransform = ref<InteractionTransform>({
+  scaleX: 1,
+  scaleY: 1,
+  translateX: 0,
+  translateY: 0,
+  originX: 50,
+  originY: 50,
+  opacity: 1,
+  backgroundColor: null,
   highlightX: 0.5,
   highlightY: 0.5,
   highlightVisible: false,
 });
 
+/**
+ * Animation frame ID for the render loop.
+ */
+const animationFrameId = ref<number | null>(null);
+
+/**
+ * Initializes or updates the interaction engine with current configuration.
+ */
+const initializeInteractionEngine = () => {
+  // Create new engine with current preset and config
+  const preset = props.interactionPreset ?? 'button';
+  const config = interactionConfig.value;
+
+  interactionEngine.value = new InteractionEngine(preset, config);
+
+  // Set element size for origin calculations
+  if (materialElement.value) {
+    const rect = materialElement.value.getBoundingClientRect();
+    interactionEngine.value.setElementSize(rect.width, rect.height);
+  }
+
+  // Set up transform update callback
+  interactionEngine.value.setOnTransformUpdate((transform) => {
+    currentTransform.value = transform;
+
+    // Emit transform to material manager for WebGL rendering
+    emitTransformToManager({
+      scaleX: transform.scaleX,
+      scaleY: transform.scaleY,
+      translateX: transform.translateX,
+      translateY: transform.translateY,
+    });
+  });
+};
+
+/**
+ * Animation step function using the interaction engine.
+ */
+const stepEngineAnimation = (timestamp: number) => {
+  if (!interactionEngine.value) {
+    animationFrameId.value = null;
+    return;
+  }
+
+  // Step the physics simulation
+  const transform = interactionEngine.value.step(timestamp);
+  currentTransform.value = transform;
+
+  // Update material manager
+  emitTransformToManager({
+    scaleX: transform.scaleX,
+    scaleY: transform.scaleY,
+    translateX: transform.translateX,
+    translateY: transform.translateY,
+  });
+
+  // Continue animation if not at rest
+  if (!interactionEngine.value.isAtRest()) {
+    animationFrameId.value = window.requestAnimationFrame(stepEngineAnimation);
+  } else {
+    animationFrameId.value = null;
+  }
+};
+
+/**
+ * Ensures the animation loop is running.
+ */
+const ensureAnimation = () => {
+  // Skip animation if material is not in viewport (visibility culling)
+  if (!isInViewport.value) return;
+
+  if (animationFrameId.value === null && interactionEngine.value) {
+    interactionEngine.value.resetTimestamp();
+    animationFrameId.value = window.requestAnimationFrame(stepEngineAnimation);
+  }
+};
+
+/**
+ * Stops the animation loop.
+ */
+const stopAnimation = () => {
+  if (animationFrameId.value !== null) {
+    window.cancelAnimationFrame(animationFrameId.value);
+    animationFrameId.value = null;
+  }
+};
+
+/**
+ * Emits the current transform to the material manager for WebGL rendering.
+ */
+const emitTransformToManager = (payload: LiquidRendererMaterialElementTransform) => {
+  if (!materialManager.value) return;
+  materialManager.value.setTransform(payload);
+};
+
+/**
+ * Reads normalized pointer position from an event.
+ */
+const readPointerPosition = (event: PointerEvent): {
+  clientX: number;
+  clientY: number;
+  normalizedX: number;
+  normalizedY: number;
+} => {
+  if (!materialElement.value) {
+    return {
+      clientX: event.clientX,
+      clientY: event.clientY,
+      normalizedX: 0.5,
+      normalizedY: 0.5,
+    };
+  }
+
+  const rect = materialElement.value.getBoundingClientRect();
+  const normalizedX = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+  const normalizedY = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
+
+  return {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    normalizedX,
+    normalizedY,
+  };
+};
+
+// =============================================================================
+// Computed Styles
+// =============================================================================
+
 const materialStyle = computed(() => {
   const {
-    currentX, currentY, currentScaleX, currentScaleY,
-  } = interactionState.value;
+    scaleX, scaleY, translateX, translateY, originX, originY, opacity,
+  } = currentTransform.value;
 
   // Base style with transform
   const style: Record<string, string | number> = {
-    transform: `translate3d(${currentX}px, ${currentY}px, 0) scale(${currentScaleX}, ${currentScaleY})`,
+    transform: `translate3d(${translateX}px, ${translateY}px, 0) scale(${scaleX}, ${scaleY})`,
+    transformOrigin: `${originX}% ${originY}%`,
   };
+
+  // Apply opacity if not 1
+  if (opacity !== 1) {
+    style.opacity = opacity;
+  }
 
   // Apply depth-aware z-index only in uniform render mode
   if (renderMode.value === 'uniform') {
@@ -573,9 +805,19 @@ const materialStyle = computed(() => {
 });
 
 // Background layer style is separated so the dedicated canvas no longer hides the tint
-const backgroundStyle = computed(() => ({
-  backgroundColor: calculatedBackgroundColor.value,
-}));
+const backgroundStyle = computed(() => {
+  // If there's an active background color override from interaction, use it
+  const bgOverride = currentTransform.value.backgroundColor;
+  if (bgOverride !== null) {
+    return {
+      backgroundColor: bgOverride,
+    };
+  }
+
+  return {
+    backgroundColor: calculatedBackgroundColor.value,
+  };
+});
 
 // Style for the dedicated canvas that extracts glass content from the manager's canvas
 // The canvas fills the material (100% width/height) and uses CSS to cover the entire area.
@@ -588,323 +830,194 @@ const dedicatedCanvasStyle = computed(() => ({
   height: '100%',
 }));
 
-const highlightVisible = computed(() => interactionState.value.highlightVisible && !isFallbackMode.value);
+/**
+ * Computed flag for highlight visibility.
+ */
+const highlightVisible = computed(() => {
+  const config = interactionConfig.value;
+  return config.showHighlight && currentTransform.value.highlightVisible && !isFallbackMode.value;
+});
 
+/**
+ * Computed highlight style.
+ */
 const highlightStyle = computed(() => {
-  const cfg = interaction.value;
-  const size = `${cfg.highlightSize}px`;
-  const opacity = highlightVisible.value ? cfg.highlightOpacity : 0;
-  const hdr = cfg.highlightHDRFactor;
-  const x = interactionState.value.highlightX * 100;
-  const y = interactionState.value.highlightY * 100;
+  const config = interactionConfig.value;
+  const { highlightX, highlightY } = currentTransform.value;
+
+  const size = `${config.highlightSize ?? 200}px`;
+  const opacityVal = highlightVisible.value ? (config.highlightOpacity ?? 0.5) : 0;
+  const hdr = config.highlightHDRFactor ?? 1.2;
+  const x = highlightX * 100;
+  const y = highlightY * 100;
+
   return {
     width: size,
     height: size,
-    opacity,
+    opacity: opacityVal,
     left: `${x}%`,
     top: `${y}%`,
     transform: `translate(-50%, -50%) scale(${highlightVisible.value ? 1 : 5})`,
     background: `radial-gradient(circle at 50% 50%,
-      rgba(255, 255, 255, ${opacity * hdr}) 0%,
-      rgba(255, 255, 255, ${opacity * hdr * 0.95}) 15%,
-      rgba(255, 255, 255, ${opacity * hdr * 0.03}) 65%,
+      rgba(255, 255, 255, ${opacityVal * hdr}) 0%,
+      rgba(255, 255, 255, ${opacityVal * hdr * 0.95}) 15%,
+      rgba(255, 255, 255, ${opacityVal * hdr * 0.03}) 65%,
       rgba(255, 255, 255, 0) 100%)`,
     filter: `brightness(${hdr}) saturate(1.1)`,
   } as Record<string, string | number>;
 });
 
-const emitTransformToManager = (payload: LiquidRendererMaterialElementTransform) => {
-  if (!materialManager.value) return;
-  materialManager.value.setTransform(payload);
-};
+// =============================================================================
+// Pointer Event Handlers (using new InteractionEngine)
+// =============================================================================
 
-const setInteractionTargets = (deltaX: number, deltaY: number, active: boolean) => {
-  const cfg = interaction.value;
-  const targetScaleBase = active ? cfg.activeScale : cfg.baseScale;
-  const stretchX = Math.max(-cfg.stretchLimit, Math.min(cfg.stretchLimit, deltaX * cfg.stretchFactor));
-  const stretchY = Math.max(-cfg.stretchLimit, Math.min(cfg.stretchLimit, deltaY * cfg.stretchFactor));
-
-  interactionState.value.targetX = deltaX * cfg.translateFactor;
-  interactionState.value.targetY = deltaY * cfg.translateFactor;
-  let targetScaleX = targetScaleBase + stretchX;
-  let targetScaleY = targetScaleBase + stretchY;
-
-  if (targetScaleX * targetScaleY > cfg.activeScale * cfg.activeScale) {
-    const scaleFactor = Math.sqrt((targetScaleX * targetScaleY));
-    targetScaleX /= scaleFactor;
-    targetScaleY /= scaleFactor;
-  }
-
-  interactionState.value.targetScaleX = targetScaleX;
-  interactionState.value.targetScaleY = targetScaleY;
-};
-
-const resetInteractionTargets = () => {
-  const cfg = interaction.value;
-  interactionState.value.targetX = 0;
-  interactionState.value.targetY = 0;
-  interactionState.value.targetScaleX = cfg.baseScale;
-  interactionState.value.targetScaleY = cfg.baseScale;
-  interactionState.value.interacting = false;
-};
-
-const updateHighlightPosition = (nx: number, ny: number) => {
-  const lag = interaction.value.followLag;
-  interactionState.value.highlightX += (nx - interactionState.value.highlightX) * lag;
-  interactionState.value.highlightY += (ny - interactionState.value.highlightY) * lag;
-};
-
-const animationFrameId = ref<number | null>(null);
-const lastTimestamp = ref<number | null>(null);
-
-const toDeltaFrames = (deltaMs: number) => {
-  const frames = deltaMs / (1000 / 60);
-  return Math.min(Math.max(frames, 0.1), 5);
-};
-
-const lerpWithDamping = (current: number, target: number, perFrameDamping: number, deltaFrames: number) => {
-  const factor = 1 - (1 - perFrameDamping) ** deltaFrames;
-  return current + (target - current) * factor;
-};
-
-const scaleWithDelta = (value: number, deltaFrames: number) => 1 - (1 - value) ** deltaFrames;
-
-const stepAnimation = (timestamp: number) => {
-  if (lastTimestamp.value === null) {
-    lastTimestamp.value = timestamp;
-  }
-
-  const deltaMs = timestamp - lastTimestamp.value;
-  const deltaFrames = toDeltaFrames(deltaMs);
-  lastTimestamp.value = timestamp;
-
-  const state = interactionState.value;
-  const cfg = interaction.value;
-  const perFrameDamping = state.interacting ? cfg.damping : cfg.releaseDamping;
-
-  const prevX = state.currentX;
-  const prevY = state.currentY;
-  const prevScaleX = state.currentScaleX;
-  const prevScaleY = state.currentScaleY;
-
-  state.currentX = lerpWithDamping(state.currentX, state.targetX, perFrameDamping, deltaFrames);
-  state.currentY = lerpWithDamping(state.currentY, state.targetY, perFrameDamping, deltaFrames);
-  state.currentScaleX = lerpWithDamping(state.currentScaleX, state.targetScaleX, perFrameDamping, deltaFrames);
-  state.currentScaleY = lerpWithDamping(state.currentScaleY, state.targetScaleY, perFrameDamping, deltaFrames);
-
-  let velocityX = state.currentX - prevX;
-  let velocityY = state.currentY - prevY;
-  let velocityScaleX = state.currentScaleX - prevScaleX;
-  let velocityScaleY = state.currentScaleY - prevScaleY;
-
-  // Returning
-  if (!state.interacting) {
-    if (triggerRebound.value === undefined) {
-      triggerRebound.value = Math.abs(state.targetX) < cfg.reboundThreshold && Math.abs(state.targetY) < cfg.reboundThreshold;
-    }
-
-    if (triggerRebound.value) {
-      const reboundFactor = scaleWithDelta(cfg.releaseReboundDamping, deltaFrames);
-      state.targetX -= state.currentX * reboundFactor;
-      state.targetY -= state.currentY * reboundFactor;
-      state.targetScaleX += (cfg.baseScale - state.currentScaleX) * reboundFactor;
-      state.targetScaleY += (cfg.baseScale - state.currentScaleY) * reboundFactor;
-    }
-  } else {
-    // eslint-disable-next-line no-lonely-if
-    if (triggerRebound.value === undefined
-      && Math.abs(state.currentX - state.targetX) < 1
-      && Math.abs(state.currentY - state.targetY) < 1
-      && state.currentX !== 0
-      && state.currentY !== 0
-      && state.targetX !== 0
-      && state.targetY !== 0
-      && Math.abs(state.currentX - state.reboundTargetX) > 0.5
-      && Math.abs(state.currentY - state.reboundTargetY) > 0.5
-    ) {
-      triggerRebound.value = true;
-
-      state.reboundTargetX = state.targetX / 1.5;
-      state.reboundTargetY = state.targetY / 1.5;
-
-      state.targetX = state.reboundTargetX;
-      state.targetY = state.reboundTargetY;
-      // });
-      // // }
-    }
-  }
-
-  velocityX = state.currentX - prevX;
-  velocityY = state.currentY - prevY;
-  velocityScaleX = state.currentScaleX - prevScaleX;
-  velocityScaleY = state.currentScaleY - prevScaleY;
-
-  emitTransformToManager({
-    scaleX: state.currentScaleX,
-    scaleY: state.currentScaleY,
-    translateX: state.currentX,
-    translateY: state.currentY,
-  });
-
-  const atRest = !state.interacting
-    ? Math.abs(state.targetX) < 0.01
-    && Math.abs(state.targetY) < 0.01
-    && Math.abs(state.currentX) < 0.01
-    && Math.abs(state.currentY) < 0.01
-    && Math.abs(state.currentScaleX - cfg.baseScale) < 0.001
-    && Math.abs(state.currentScaleY - cfg.baseScale) < 0.001
-    && Math.abs(velocityX) < 0.001
-    && Math.abs(velocityY) < 0.001
-    && Math.abs(velocityScaleX) < 0.0005
-    && Math.abs(velocityScaleY) < 0.0005
-    : (
-      (Math.abs(state.targetX) < 0.01
-        && Math.abs(state.targetY) < 0.01
-        && Math.abs(state.currentX) < 0.01
-        && Math.abs(state.currentY) < 0.01)
-      || (
-        triggerRebound.value !== undefined
-        && Math.abs(state.currentX - state.reboundTargetX) < 0.5
-        && Math.abs(state.currentY - state.reboundTargetY) < 0.5));
-
-  if (atRest) {
-    if (!state.interacting) {
-      if (triggerRebound.value) {
-        triggerRebound.value = false;
-      } else {
-        animationFrameId.value = null;
-        // eslint-disable-next-line no-use-before-define
-        stopAnimation();
-
-        return;
-      }
-    } else if (triggerRebound.value) {
-      triggerRebound.value = undefined;
-    } else {
-      triggerRebound.value = undefined;
-    }
-  }
-
-  animationFrameId.value = window.requestAnimationFrame(stepAnimation);
-};
-
-const ensureAnimation = () => {
-  // Skip animation if material is not in viewport (visibility culling)
-  if (!isInViewport.value) return;
-
-  if (animationFrameId.value === null) {
-    animationFrameId.value = window.requestAnimationFrame(stepAnimation);
-  }
-};
-
-const stopAnimation = () => {
-  if (animationFrameId.value !== null) {
-    window.cancelAnimationFrame(animationFrameId.value);
-    animationFrameId.value = null;
-
-    // Reset interaction state
-    interactionState.value.reboundTargetX = 0;
-    interactionState.value.reboundTargetY = 0;
-  }
-
-  lastTimestamp.value = null;
-};
-
-const readPointer = (event: PointerEvent) => {
-  if (!materialElement.value) {
-    return {
-      nx: 0.5, ny: 0.5, dx: 0, dy: 0,
-    };
-  }
-  const rect = materialElement.value.getBoundingClientRect();
-  const nx = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-  const ny = Math.min(1, Math.max(0, (event.clientY - rect.top) / rect.height));
-  const originX = interactionState.value.originX ?? event.clientX;
-  const originY = interactionState.value.originY ?? event.clientY;
-  const dx = event.clientX - originX;
-  const dy = event.clientY - originY;
-  return {
-    nx, ny, dx, dy,
-  };
-};
-
+/**
+ * Handles pointer down events.
+ * Initiates the active interaction phase.
+ */
 const onPointerDown = (event: PointerEvent) => {
   if (props.disableInteractions) return;
+
   const fromInteractiveChild = isFromInteractiveChild(event);
   if (fromInteractiveChild) {
     interactivePointerIds.add(event.pointerId);
   } else {
     interactivePointerIds.delete(event.pointerId);
   }
-  interactionState.value.pointerId = event.pointerId;
-  interactionState.value.isPointerDown = true;
-  interactionState.value.interacting = true;
-  interactionState.value.highlightVisible = true;
-  interactionState.value.originX = event.clientX;
-  interactionState.value.originY = event.clientY;
 
+  // Capture pointer for non-interactive children
   if (!fromInteractiveChild) {
     materialElement.value?.setPointerCapture(event.pointerId);
   }
 
+  // Update element size for accurate origin calculations
+  if (materialElement.value && interactionEngine.value) {
+    const rect = materialElement.value.getBoundingClientRect();
+    interactionEngine.value.setElementSize(rect.width, rect.height);
+  }
+
+  // Forward to interaction engine
   const {
-    nx, ny, dx, dy,
-  } = readPointer(event);
-  updateHighlightPosition(nx, ny);
-  setInteractionTargets(dx, dy, true);
+    clientX, clientY, normalizedX, normalizedY,
+  } = readPointerPosition(event);
+  interactionEngine.value?.onPointerDown({
+    clientX,
+    clientY,
+    pointerId: event.pointerId,
+    pointerType: event.pointerType,
+    normalizedX,
+    normalizedY,
+  });
+
   ensureAnimation();
 };
 
+/**
+ * Handles pointer move events.
+ * Updates hover or active state based on current interaction.
+ */
 const onPointerMove = (event: PointerEvent) => {
   if (props.disableInteractions) return;
-  if (event.pointerType === 'mouse' && props.onlyClickInteractions && !interactionState.value.isPointerDown) return;
+
+  const engine = interactionEngine.value;
+  if (!engine) return;
+
+  const state = engine.getState();
+
+  // Skip if mouse hover tracking is disabled and not pressing
+  if (event.pointerType === 'mouse' && props.onlyClickInteractions && !state.isPointerDown) {
+    return;
+  }
+
   const fromInteractiveChild = interactivePointerIds.has(event.pointerId) || isFromInteractiveChild(event);
-  if (fromInteractiveChild && interactionState.value.pointerId === undefined) {
+  if (fromInteractiveChild && state.pointerId === undefined) {
     interactivePointerIds.add(event.pointerId);
   }
 
-  if (interactionState.value.originX === null || interactionState.value.originY === null) {
-    interactionState.value.originX = event.clientX;
-    interactionState.value.originY = event.clientY;
-  }
-
-  const shouldActivate = interactionState.value.isPointerDown
-    || (event.pointerType === 'mouse' && !props.onlyClickInteractions)
-    || fromInteractiveChild;
-  interactionState.value.interacting = shouldActivate;
-  interactionState.value.highlightVisible = shouldActivate || event.pointerType !== 'mouse';
-
+  // Forward to interaction engine
   const {
-    nx, ny, dx, dy,
-  } = readPointer(event);
-  updateHighlightPosition(nx, ny);
-  setInteractionTargets(dx, dy, shouldActivate);
+    clientX, clientY, normalizedX, normalizedY,
+  } = readPointerPosition(event);
+  engine.onPointerMove({
+    clientX,
+    clientY,
+    pointerId: event.pointerId,
+    pointerType: event.pointerType,
+    normalizedX,
+    normalizedY,
+  });
+
   ensureAnimation();
 };
 
-const onPointerUp = () => {
+/**
+ * Handles pointer up events.
+ * Transitions to the releasing phase.
+ */
+const onPointerUp = (event: PointerEvent) => {
   if (props.disableInteractions) return;
-  if (interactionState.value.pointerId !== undefined) {
-    interactivePointerIds.delete(interactionState.value.pointerId);
+
+  const engine = interactionEngine.value;
+  if (!engine) return;
+
+  const state = engine.getState();
+  if (state.pointerId !== undefined) {
+    interactivePointerIds.delete(state.pointerId);
   }
-  interactionState.value.isPointerDown = false;
-  interactionState.value.highlightVisible = false;
-  resetInteractionTargets();
+
+  engine.onPointerUp();
   ensureAnimation();
 };
 
-const onPointerLeave = () => {
+/**
+ * Handles pointer leave events.
+ * Resets hover state and transitions to releasing if not pressed.
+ */
+const onPointerLeave = (event: PointerEvent) => {
   if (props.disableInteractions) return;
-  if (interactionState.value.pointerId !== undefined) {
-    interactivePointerIds.delete(interactionState.value.pointerId);
+
+  const engine = interactionEngine.value;
+  if (!engine) return;
+
+  const state = engine.getState();
+  if (state.pointerId !== undefined) {
+    interactivePointerIds.delete(state.pointerId);
   }
-  interactionState.value.isPointerDown = false;
-  interactionState.value.highlightVisible = false;
-  interactionState.value.originX = null;
-  interactionState.value.originY = null;
-  resetInteractionTargets();
+
+  engine.onPointerLeave();
   ensureAnimation();
 };
+
+/**
+ * Handles pointer enter events (for hover tracking).
+ */
+const onPointerEnter = (event: PointerEvent) => {
+  if (props.disableInteractions) return;
+
+  const engine = interactionEngine.value;
+  if (!engine) return;
+
+  // Only track enter for mouse hover follow
+  if (event.pointerType === 'mouse' && !props.onlyClickInteractions) {
+    const {
+      clientX, clientY, normalizedX, normalizedY,
+    } = readPointerPosition(event);
+    engine.onPointerEnter({
+      clientX,
+      clientY,
+      pointerId: event.pointerId,
+      pointerType: event.pointerType,
+      normalizedX,
+      normalizedY,
+    });
+
+    ensureAnimation();
+  }
+};
+
+// =============================================================================
+// Border Illumination Effect
+// =============================================================================
 
 const borderImage = computed(() => {
   const angle = props.illuminationAngle ?? 45;
@@ -958,26 +1071,48 @@ const borderImage = computed(() => {
   return `conic-gradient(${gradientStops})`;
 });
 
-watch(() => interactionState.value.interacting, () => {
-  triggerRebound.value = undefined;
-});
+// =============================================================================
+// Lifecycle and Watchers
+// =============================================================================
+
+// Watch for interaction configuration changes
+watch(
+  () => [props.interactionPreset, props.interactionConfig, props.interaction, props.isMoveable],
+  () => {
+    if (interactionEngine.value) {
+      // Update engine configuration
+      interactionEngine.value.setConfig(interactionConfig.value);
+    }
+  },
+  { deep: true },
+);
 
 onUnmounted(() => {
   manager.off('fallbackModeChanged', onFallbackModeChanged);
   manager.off('blurredChanged', onBlurredChanged);
   manager.off('materialsRendered', onMaterialsRendered);
+
+  // Cleanup interaction engine
+  if (interactionEngine.value) {
+    interactionEngine.value.destroy();
+    interactionEngine.value = null;
+  }
+
   if (materialManager.value) {
     materialManager.value.destroy();
   }
+
   if (updateTimer.value !== null) {
     clearInterval(updateTimer.value);
     updateTimer.value = null;
   }
+
   // Cleanup visibility observer
   if (visibilityObserver) {
     visibilityObserver.disconnect();
     visibilityObserver = null;
   }
+
   stopAnimation();
 });
 
@@ -1034,9 +1169,8 @@ watch(() => calculatedBackgroundColor.value, () => {
 });
 
 watch(() => props.disableInteractions, (disabled) => {
-  if (disabled) {
-    resetInteractionTargets();
-    interactionState.value.highlightVisible = false;
+  if (disabled && interactionEngine.value) {
+    interactionEngine.value.reset();
     stopAnimation();
   }
 });

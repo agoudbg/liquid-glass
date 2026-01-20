@@ -55,7 +55,7 @@
 
           <div class="demo-material-2" :style="demoMaterial1Style" @pointerdown="onDemoMaterial1DragStart">
             <LiquidGlassMaterial :radius="28" :radiusBR="60" :dispersion="0.1" :blur="0" :thickness="28"
-              ref="demoMaterial1" :only-click-interactions="true" :is-moveable="true" :background-color="'#00000000'">
+              ref="demoMaterial1" :interaction-preset="'slider'" :is-moveable="true" :background-color="'#00000000'">
               <div class="demo-card">
                 <span>Drag or Resize</span>
               </div>

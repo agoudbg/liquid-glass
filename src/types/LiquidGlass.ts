@@ -9,9 +9,283 @@
  * - Material element configuration (glass effect parameters)
  * - Event payloads
  * - Viewport optimization types
+ * - iOS 26-style interaction configurations
  *
  * @module types/LiquidGlass
  */
+
+// =============================================================================
+// Interaction System Types (iOS 26-style)
+// =============================================================================
+
+/**
+ * Interaction preset names for iOS 26-style effects.
+ *
+ * - 'button': Hover follow + press scale + drag stretch with origin shift
+ * - 'context-menu': No hover, press stretch with partial idle return
+ * - 'slider': Press scale with velocity-based stretch, jelly bounce
+ * - 'custom': Fully custom configuration
+ */
+export type InteractionPreset = 'button' | 'context-menu' | 'slider' | 'custom';
+
+/**
+ * Spring physics configuration for smooth, bouncy animations.
+ */
+export interface SpringConfig {
+  /** Spring stiffness (higher = faster, snappier). Default: 300 */
+  stiffness: number;
+  /** Damping coefficient (lower = more bounce). Default: 20 */
+  damping: number;
+  /** Mass of the spring (affects inertia). Default: 1 */
+  mass: number;
+}
+
+/**
+ * Pointer event data passed to the interaction engine.
+ */
+export interface PointerData {
+  /** X coordinate in client space */
+  clientX: number;
+  /** Y coordinate in client space */
+  clientY: number;
+  /** Unique pointer identifier */
+  pointerId?: number;
+  /** Pointer type: 'mouse', 'touch', 'pen' */
+  pointerType?: string;
+  /** X position normalized to element (0-1) */
+  normalizedX?: number;
+  /** Y position normalized to element (0-1) */
+  normalizedY?: number;
+}
+
+/**
+ * Current transform state output from the interaction engine.
+ */
+export interface InteractionTransform {
+  /** Horizontal scale factor */
+  scaleX: number;
+  /** Vertical scale factor */
+  scaleY: number;
+  /** Horizontal translation in pixels */
+  translateX: number;
+  /** Vertical translation in pixels */
+  translateY: number;
+  /** Transform origin X percentage (can be outside 0-100 for extreme shifts) */
+  originX: number;
+  /** Transform origin Y percentage (can be outside 0-100 for extreme shifts) */
+  originY: number;
+  /** Element opacity (0-1) */
+  opacity: number;
+  /** Background color override (e.g., 'transparent') */
+  backgroundColor: string | null;
+  /** Highlight X position (0-1) */
+  highlightX: number;
+  /** Highlight Y position (0-1) */
+  highlightY: number;
+  /** Whether highlight is visible */
+  highlightVisible: boolean;
+}
+
+/**
+ * Internal state of the interaction engine.
+ */
+export interface InteractionState {
+  // Pointer tracking
+  isPointerDown: boolean;
+  isHovering: boolean;
+  pointerId: number | undefined;
+  pointerOrigin: { x: number; y: number } | null;
+  currentPointer: { x: number; y: number } | null;
+  previousPointer: { x: number; y: number } | null;
+
+  // Animation phase
+  phase: 'idle' | 'hover' | 'active' | 'releasing';
+
+  // Current transform values
+  scaleX: number;
+  scaleY: number;
+  translateX: number;
+  translateY: number;
+  originX: number;
+  originY: number;
+  opacity: number;
+
+  // Target values
+  targetScaleX: number;
+  targetScaleY: number;
+  targetTranslateX: number;
+  targetTranslateY: number;
+  targetOriginX: number;
+  targetOriginY: number;
+  targetOpacity: number;
+
+  // Velocities for spring physics
+  velocityScaleX: number;
+  velocityScaleY: number;
+  velocityTranslateX: number;
+  velocityTranslateY: number;
+  velocityOriginX: number;
+  velocityOriginY: number;
+  velocityOpacity: number;
+
+  // Highlight state
+  highlightX: number;
+  highlightY: number;
+  highlightVisible: boolean;
+  highlightTargetX: number;
+  highlightTargetY: number;
+
+  // Velocity tracking
+  pointerVelocityX: number;
+  pointerVelocityY: number;
+
+  // Idle tracking
+  lastMoveTime: number;
+  idleReturnTarget: {
+    scaleX: number;
+    scaleY: number;
+    translateX: number;
+    translateY: number;
+    originX: number;
+    originY: number;
+  } | null;
+
+  // Background color state
+  backgroundColor: string | null;
+  targetBackgroundColor: string | null;
+}
+
+/**
+ * Full interaction configuration for iOS 26-style effects.
+ *
+ * All numeric values support both absolute values and can be configured
+ * per-preset or with custom overrides.
+ */
+export interface InteractionConfig {
+  /** Preset identifier */
+  preset?: InteractionPreset;
+
+  // =========================================================================
+  // Scale Configuration
+  // =========================================================================
+
+  /** Base scale when idle. Default: 1.0 */
+  baseScale: number;
+  /** Scale when hovering (mouse only). Default varies by preset */
+  hoverScale: number;
+  /** Scale when pressed/active. Default varies by preset */
+  activeScale: number;
+  /** Maximum allowed scale. Default varies by preset */
+  maxScale: number;
+
+  // =========================================================================
+  // Translation Configuration
+  // =========================================================================
+
+  /** Enable mouse following on hover. Default: true for button, false for others */
+  enableHoverFollow: boolean;
+  /** Factor for hover follow translation. Default: 0.08 */
+  hoverFollowFactor: number;
+  /** Maximum pixels to translate during hover follow. Default: 15 */
+  hoverFollowMaxDistance: number;
+  /** Factor for drag-based translation. Default varies by preset */
+  translateFactor: number;
+  /** Maximum pixels to translate during drag. Default varies by preset */
+  maxTranslate: number;
+
+  // =========================================================================
+  // Stretch Configuration
+  // =========================================================================
+
+  /** Factor for drag-based stretch effect. Default varies by preset */
+  stretchFactor: number;
+  /** Maximum stretch amount (additive to scale). Default varies by preset */
+  stretchLimit: number;
+  /** Whether to preserve visual area during stretch. Default: true */
+  preserveArea: boolean;
+  /** Use velocity instead of position for stretch (slider mode). Default: false */
+  velocityStretch?: boolean;
+  /** Factor for velocity-based stretch. Default: 0.05 */
+  velocityStretchFactor?: number;
+  /** Ignore pointer position for stretch (only Material movement affects scale). Default: false */
+  ignorePointerPosition?: boolean;
+
+  // =========================================================================
+  // Transform Origin Configuration
+  // =========================================================================
+
+  /** Enable origin shift during drag. Default: true for button/context-menu */
+  enableOriginShift: boolean;
+  /** Sensitivity of origin shift (0-1). Default: 0.3 */
+  originShiftSensitivity: number;
+
+  // =========================================================================
+  // Idle Return Configuration
+  // =========================================================================
+
+  /** Enable return to rest after idle period. Default: true for button/context-menu */
+  enableIdleReturn: boolean;
+  /** Milliseconds before idle return triggers. Default: 800 */
+  idleReturnDelay: number;
+  /** Only return partially while pressed. Default: true for context-menu */
+  idleReturnPartial: boolean;
+  /** Ratio to return (0-1). Default: 0.5 */
+  idleReturnRatio?: number;
+
+  // =========================================================================
+  // Spring Physics Configuration
+  // =========================================================================
+
+  /** Spring config for hover animations */
+  hoverSpring: SpringConfig;
+  /** Spring config for active/press animations */
+  activeSpring: SpringConfig;
+  /** Spring config for release animations */
+  releaseSpring: SpringConfig;
+
+  // =========================================================================
+  // Highlight Configuration
+  // =========================================================================
+
+  /** Show the highlight effect. Default: true for button */
+  showHighlight: boolean;
+  /** Highlight size in pixels. Default: 200 */
+  highlightSize: number;
+  /** Highlight opacity (0-1). Default: 0.5 */
+  highlightOpacity: number;
+  /** HDR brightness multiplier. Default: 1.2 */
+  highlightHDRFactor: number;
+  /** Highlight follow speed (0-1). Default: 0.15 */
+  highlightFollowSpeed: number;
+
+  // =========================================================================
+  // Opacity and Background Configuration (Slider Mode)
+  // =========================================================================
+
+  /** Opacity when active (for slider transparency). Default: undefined */
+  activeOpacity?: number;
+  /** Enable opacity transitions. Default: false */
+  enableOpacityTransition?: boolean;
+  /** Background color when active (e.g., 'transparent'). Default: undefined */
+  activeBackgroundColor?: string;
+  /** Enable background color transitions. Default: false */
+  enableBackgroundTransition?: boolean;
+
+  // =========================================================================
+  // Thresholds
+  // =========================================================================
+
+  /** Position threshold for "at rest" detection. Default: 0.001 */
+  restThreshold: number;
+  /** Velocity threshold for "at rest" detection. Default: 0.001 */
+  velocityThreshold: number;
+}
+
+/**
+ * Partial interaction configuration for overriding specific values.
+ * Used as props in LiquidGlassMaterial.
+ */
+export type PartialInteractionConfig = Partial<InteractionConfig>;
 
 // =============================================================================
 // Rendering Configuration Types

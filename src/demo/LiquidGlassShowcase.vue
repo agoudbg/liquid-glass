@@ -104,6 +104,84 @@
             <span>Circular</span>
           </div>
         </LiquidGlassMaterial>
+
+        <!-- iOS 26 Interaction Presets Section -->
+        <div class="preset-section-header">
+          <h2>🍎 iOS 26 Interaction Presets</h2>
+          <p>Three preset interaction modes that mimic iOS 26 liquid glass behavior</p>
+        </div>
+
+        <!-- Button Preset Demo -->
+        <LiquidGlassMaterial :radius="28" :thickness="30" interaction-preset="button"
+          class="glass-card preset-card button-preset-card">
+          <div class="card-content preset-content">
+            <div class="preset-icon">🔘</div>
+            <h2>Button Preset</h2>
+            <p>Hover to see follow effect. Click and drag to stretch.</p>
+            <ul class="preset-features">
+              <li>✨ Hover follow with slight enlarge</li>
+              <li>🖱️ Click enlarges significantly</li>
+              <li>↔️ Drag stretches with origin shift</li>
+              <li>⏱️ Idle returns to center</li>
+            </ul>
+            <code>interaction-preset="button"</code>
+          </div>
+        </LiquidGlassMaterial>
+
+        <!-- Context Menu Preset Demo -->
+        <LiquidGlassMaterial :radius="28" :thickness="30" interaction-preset="context-menu"
+          class="glass-card preset-card context-menu-preset-card">
+          <div class="card-content preset-content">
+            <div class="preset-icon">📋</div>
+            <h2>Context Menu Preset</h2>
+            <p>No hover response. Click and drag to see stretch effect.</p>
+            <ul class="preset-features">
+              <li>🚫 No hover tracking</li>
+              <li>📐 Slight scale on press</li>
+              <li>↔️ Drag stretches with origin shift</li>
+              <li>⏱️ Partial return on idle</li>
+            </ul>
+            <code>interaction-preset="context-menu"</code>
+          </div>
+        </LiquidGlassMaterial>
+
+        <!-- Slider Preset Demo -->
+        <LiquidGlassMaterial :radius="28" :thickness="30" interaction-preset="slider" :background-color="'#ff000033'"
+          class="glass-card preset-card slider-preset-card">
+          <div class="card-content preset-content">
+            <div class="preset-icon">🎚️</div>
+            <h2>Slider Preset</h2>
+            <p>Click and drag horizontally for jelly-like stretch effect.</p>
+            <ul class="preset-features">
+              <li>🔍 Large scale on press</li>
+              <li>🌊 Velocity-based jelly stretch</li>
+              <li>🎯 Fixed center (no origin shift)</li>
+              <li>💫 Extra bouncy release</li>
+            </ul>
+            <code>interaction-preset="slider"</code>
+          </div>
+        </LiquidGlassMaterial>
+
+        <!-- Custom Configuration Demo -->
+        <LiquidGlassMaterial :radius="28" :thickness="30" interaction-preset="button" :interaction-config="{
+          hoverScale: 1.05,
+          activeScale: 1.12,
+          stretchFactor: 0.002,
+          releaseSpring: { stiffness: 250, damping: 8, mass: 1 }
+        }" class="glass-card preset-card custom-preset-card">
+          <div class="card-content preset-content">
+            <div class="preset-icon">⚙️</div>
+            <h2>Custom Config</h2>
+            <p>Override preset values with custom configuration.</p>
+            <ul class="preset-features">
+              <li>🎨 Based on button preset</li>
+              <li>📈 Higher scales (1.05/1.12)</li>
+              <li>💨 More stretch (0.002)</li>
+              <li>🎾 Extra bouncy spring</li>
+            </ul>
+            <code>:interaction-config="{...}"</code>
+          </div>
+        </LiquidGlassMaterial>
       </div>
     </LiquidGlass>
 
@@ -668,5 +746,91 @@ onUnmounted(() => {
   font-size: 0.75rem;
   overflow-x: auto;
   margin: 0;
+}
+
+/* iOS 26 Interaction Presets Section */
+.preset-section-header {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px 20px;
+  margin-top: 40px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.preset-section-header h2 {
+  font-size: 1.8rem;
+  margin-bottom: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.preset-section-header p {
+  opacity: 0.7;
+  font-size: 1rem;
+}
+
+.preset-card {
+  min-height: 280px;
+}
+
+.preset-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.preset-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+}
+
+.preset-content h2 {
+  margin-bottom: 8px;
+}
+
+.preset-content p {
+  font-size: 0.9rem;
+  opacity: 0.8;
+  margin-bottom: 12px;
+}
+
+.preset-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 auto 0;
+  font-size: 0.85rem;
+}
+
+.preset-features li {
+  padding: 4px 0;
+  opacity: 0.9;
+}
+
+.preset-content code {
+  display: block;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  margin-top: auto;
+  text-align: center;
+}
+
+.button-preset-card {
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
+.context-menu-preset-card {
+  border: 1px solid rgba(118, 75, 162, 0.3);
+}
+
+.slider-preset-card {
+  border: 1px solid rgba(234, 102, 126, 0.3);
+}
+
+.custom-preset-card {
+  border: 1px solid rgba(126, 234, 102, 0.3);
 }
 </style>

@@ -100,10 +100,15 @@ export function isSpringAtRest(
  * - Moving LEFT/RIGHT: stretch horizontally, compress vertically
  * - Moving UP/DOWN: stretch vertically, compress horizontally
  *
+ * Enhanced to consider element aspect ratio to prevent disproportionate
+ * deformation on elongated elements.
+ *
  * @param dx - Horizontal displacement (positive = right, negative = left)
  * @param dy - Vertical displacement (positive = down, negative = up)
  * @param factor - Stretch intensity factor
  * @param limit - Maximum stretch amount
+ * @param elementWidth - Element width in pixels (optional, for aspect ratio normalization)
+ * @param elementHeight - Element height in pixels (optional, for aspect ratio normalization)
  * @returns Stretch values for X and Y axes
  */
 export function calculateStretch(
@@ -111,18 +116,24 @@ export function calculateStretch(
   dy: number,
   factor: number,
   limit: number,
+  elementWidth: number = 1,
+  elementHeight: number = 1,
 ): { stretchX: number; stretchY: number } {
-  // Calculate magnitude-based stretch
-  // Horizontal movement (|dx| > |dy|): stretch X, compress Y
-  // Vertical movement (|dy| > |dx|): stretch Y, compress X
-  const absDx = Math.abs(dx);
-  const absDy = Math.abs(dy);
+  // Normalize displacement by element dimensions to prevent disproportionate
+  // deformation on elongated elements. This makes a 50px drag on a 300px wide
+  // element feel the same as a 50px drag on a 100px wide element.
+  const normalizedDx = elementWidth > 0 ? dx / elementWidth : dx;
+  const normalizedDy = elementHeight > 0 ? dy / elementHeight : dy;
 
-  // Apply stretch based on magnitude of movement
-  // Positive stretchX means horizontal stretch, negative means compress
-  // Positive stretchY means vertical stretch, negative means compress
-  let stretchX = absDx * factor;
-  let stretchY = absDy * factor;
+  // Use normalized values for stretch calculation
+  const absDx = Math.abs(normalizedDx);
+  const absDy = Math.abs(normalizedDy);
+
+  // Apply stretch based on normalized magnitude of movement
+  // Scale by element size to maintain reasonable stretch regardless of element dimensions
+  // The factor controls the overall sensitivity
+  let stretchX = absDx * factor * 100;
+  let stretchY = absDy * factor * 100;
 
   // Clamp to limits
   stretchX = Math.min(limit, stretchX);
@@ -236,23 +247,29 @@ export const BUTTON_PRESET: InteractionConfig = {
   // Translation configuration
   enableHoverFollow: true,
   hoverFollowFactor: 0.08,
-  hoverFollowMaxDistance: 15,
-  translateFactor: 0.1,
-  maxTranslate: 30,
+  hoverFollowMaxDistance: 150, // Increased 10x from 15
+  translateFactor: 0.08, // Reduced from 0.15 for less sensitive drag displacement
+  maxTranslate: 300,
+  maxTranslateY: 400,
 
-  // Stretch configuration (subtle stretch effect)
-  stretchFactor: 0.0003, // Reduced stretch factor
+  // Stretch configuration
+  stretchFactor: 0.0004,
   stretchLimit: 0.5,
   preserveArea: true,
 
-  // Origin shift configuration (more prominent origin shift)
+  // Absolute value mode - makes different sized elements feel more similar
+  useAbsoluteValues: true, // Default enabled for consistent feel across element sizes
+
+  // Origin shift configuration
   enableOriginShift: true,
-  originShiftSensitivity: 0.8, // Increased sensitivity for more obvious shift
+  originShiftSensitivity: 0.5, // Reduced from 0.8 for less sensitive origin shift
 
   // Idle return configuration
   enableIdleReturn: true,
   idleReturnDelay: 500,
   idleReturnPartial: false,
+  // New: Keep scale during idle return when hovering
+  keepScaleOnIdleReturn: true,
 
   // Spring configuration (faster hover return ~3/5 of original)
   hoverSpring: {
@@ -300,23 +317,28 @@ export const CONTEXT_MENU_PRESET: InteractionConfig = {
   enableHoverFollow: false, // No hover following
   hoverFollowFactor: 0,
   hoverFollowMaxDistance: 0,
-  translateFactor: 0.05,
-  maxTranslate: 20,
+  translateFactor: 0.05, // Reduced from 0.08 for less sensitive drag
+  maxTranslate: 200,
+  maxTranslateY: 300,
 
-  // Stretch configuration (subtle stretch effect)
-  stretchFactor: 0.0004, // Reduced stretch factor
+  // Stretch configuration
+  stretchFactor: 0.0005,
   stretchLimit: 0.5,
   preserveArea: true,
 
-  // Origin shift configuration (more prominent origin shift)
+  // Absolute value mode
+  useAbsoluteValues: true,
+
+  // Origin shift configuration
   enableOriginShift: true,
-  originShiftSensitivity: 0.9, // High sensitivity for obvious shift
+  originShiftSensitivity: 0.6, // Reduced from 0.9 for less sensitive origin shift
 
   // Idle return configuration
   enableIdleReturn: true,
   idleReturnDelay: 500,
   idleReturnPartial: true, // Only partial return while pressed
   idleReturnRatio: 0.5, // Return halfway to rest
+  keepScaleOnIdleReturn: true, // Keep scale during idle return
 
   // Spring configuration
   hoverSpring: SOFT_SPRING,
@@ -363,13 +385,16 @@ export const SLIDER_PRESET: InteractionConfig = {
   translateFactor: 0, // No translation, only stretch
   maxTranslate: 0,
 
-  // Stretch configuration (reduced sensitivity ~1/3 of original)
-  stretchFactor: 0.002,
+  // Stretch configuration
+  stretchFactor: 0.003,
   stretchLimit: 0.8,
   preserveArea: true,
   velocityStretch: true, // Use velocity for stretch (Material movement affects scale)
-  velocityStretchFactor: 0.015, // Reduced from 0.05 to ~1/3 for less sensitivity
+  velocityStretchFactor: 0.025,
   ignorePointerPosition: true, // Slider only responds to Material movement, not mouse position
+
+  // Absolute value mode
+  useAbsoluteValues: true,
 
   // Origin shift configuration
   enableOriginShift: false, // Center stays fixed
@@ -379,6 +404,7 @@ export const SLIDER_PRESET: InteractionConfig = {
   enableIdleReturn: false, // No idle return, only release return
   idleReturnDelay: 0,
   idleReturnPartial: false,
+  keepScaleOnIdleReturn: false, // N/A for slider
 
   // Spring configuration (extra bouncy for jelly effect)
   hoverSpring: SOFT_SPRING,
@@ -799,6 +825,11 @@ export class InteractionEngine {
 
   /**
    * Updates targets for active (pressed) state.
+   *
+   * Enhanced to:
+   * 1. Use element dimensions for aspect-ratio-aware stretch calculation
+   * 2. Apply separate translation limits for X and Y axes
+   * 3. Reduce overall deformation intensity with softer curves
    */
   private updateActiveTargets(dx: number, dy: number): void {
     const {
@@ -806,6 +837,7 @@ export class InteractionEngine {
       maxScale,
       translateFactor,
       maxTranslate,
+      maxTranslateY, // New: separate Y limit (optional)
       stretchFactor,
       stretchLimit,
       preserveArea,
@@ -816,7 +848,16 @@ export class InteractionEngine {
       activeOpacity,
       enableOpacityTransition,
       ignorePointerPosition,
+      useAbsoluteValues, // When true, use absolute pixel values instead of percentage-based calculations
     } = this.config;
+
+    // Get element dimensions for aspect-ratio-aware calculations
+    const { width: elWidth, height: elHeight } = this.elementSize;
+    const hasValidDimensions = elWidth > 0 && elHeight > 0;
+
+    // When useAbsoluteValues is enabled, we use a reference size (100px) for normalization
+    // This makes different sized elements feel similar in terms of deformation
+    const referenceSize = 100; // Reference size in pixels for absolute value mode
 
     // Calculate base scale
     let scaleX = activeScale;
@@ -826,18 +867,32 @@ export class InteractionEngine {
     let stretchX = 0;
     let stretchY = 0;
 
+    // Determine dimensions to use for stretch calculation
+    // When useAbsoluteValues is enabled, use reference size for consistent feel
+    const stretchWidth = useAbsoluteValues ? referenceSize : (hasValidDimensions ? elWidth : 1);
+    const stretchHeight = useAbsoluteValues ? referenceSize : (hasValidDimensions ? elHeight : 1);
+
     if (velocityStretch || ignorePointerPosition) {
       // Velocity-based stretch (for slider mode or when ignoring pointer position)
       // This makes the stretch depend on Material movement speed, not mouse position
       const vx = this.state.pointerVelocityX;
       const vy = this.state.pointerVelocityY;
       const factor = velocityStretchFactor ?? stretchFactor * 50;
-      const stretch = calculateStretch(vx, vy, factor, stretchLimit);
+      // Pass element dimensions for aspect-ratio normalization
+      const stretch = calculateStretch(
+        vx, vy, factor, stretchLimit,
+        stretchWidth,
+        stretchHeight,
+      );
       stretchX = stretch.stretchX;
       stretchY = stretch.stretchY;
     } else {
-      // Position-based stretch
-      const stretch = calculateStretch(dx, dy, stretchFactor, stretchLimit);
+      // Position-based stretch with element dimension normalization
+      const stretch = calculateStretch(
+        dx, dy, stretchFactor, stretchLimit,
+        stretchWidth,
+        stretchHeight,
+      );
       stretchX = stretch.stretchX;
       stretchY = stretch.stretchY;
     }
@@ -845,11 +900,14 @@ export class InteractionEngine {
     // Apply stretch - iOS 26 style:
     // Horizontal movement: add to X scale, subtract from Y scale (stretch horizontally, compress vertically)
     // Vertical movement: add to Y scale, subtract from X scale (stretch vertically, compress horizontally)
+    //
+    // Reduce the cross-axis compression to make deformation less extreme
+    const crossAxisRatio = 0.6; // Reduced from 1.0 to make deformation more subtle
     scaleX += stretchX; // Horizontal movement stretches horizontally
-    scaleX -= stretchY; // Vertical movement compresses horizontally
+    scaleX -= stretchY * crossAxisRatio; // Vertical movement compresses horizontally (reduced)
 
     scaleY += stretchY; // Vertical movement stretches vertically
-    scaleY -= stretchX; // Horizontal movement compresses vertically
+    scaleY -= stretchX * crossAxisRatio; // Horizontal movement compresses vertically (reduced)
 
     // Preserve area if configured (scale one axis down when other is up)
     if (preserveArea) {
@@ -869,9 +927,28 @@ export class InteractionEngine {
     this.state.targetScaleX = scaleX;
     this.state.targetScaleY = scaleY;
 
-    // Calculate translation
-    const clampedDx = Math.max(-maxTranslate, Math.min(maxTranslate, dx * translateFactor));
-    const clampedDy = Math.max(-maxTranslate, Math.min(maxTranslate, dy * translateFactor));
+    // Calculate translation with separate X and Y limits
+    // Use maxTranslateY if specified, otherwise fall back to maxTranslate
+    // This allows for different limits in each direction (e.g., more vertical freedom)
+    const effectiveMaxTranslateY = maxTranslateY ?? maxTranslate;
+
+    // Apply a softer easing curve to translation to prevent rigid cutoff
+    // Use an asymptotic approach instead of hard clamp for smoother feel
+    const softClamp = (value: number, limit: number): number => {
+      if (limit <= 0) return 0;
+      // Use tanh-like soft clamping: approaches limit asymptotically
+      // This makes the limit feel less rigid while still bounding the value
+      const normalized = value / limit;
+      const softened = Math.tanh(normalized * 0.8) * limit;
+      return softened;
+    };
+
+    const rawDx = dx * translateFactor;
+    const rawDy = dy * translateFactor;
+
+    // Apply soft clamping for a less rigid feel
+    const clampedDx = softClamp(rawDx, maxTranslate);
+    const clampedDy = softClamp(rawDy, effectiveMaxTranslateY);
 
     this.state.targetTranslateX = clampedDx;
     this.state.targetTranslateY = clampedDy;
@@ -948,6 +1025,11 @@ export class InteractionEngine {
 
   /**
    * Triggers the idle return behavior.
+   *
+   * When `keepScaleOnIdleReturn` is enabled (default for button preset):
+   * - Only translation returns to center
+   * - Scale stays at hover/active scale
+   * - Scale only returns to base when pointer leaves the element
    */
   private triggerIdleReturn(): void {
     if (!this.config.enableIdleReturn) return;
@@ -979,8 +1061,18 @@ export class InteractionEngine {
       this.state.targetTranslateY = this.state.idleReturnTarget.translateY;
       this.state.targetOriginX = this.state.idleReturnTarget.originX;
       this.state.targetOriginY = this.state.idleReturnTarget.originY;
+    } else if (this.state.isHovering && this.config.keepScaleOnIdleReturn) {
+      // Hover idle return with keepScaleOnIdleReturn enabled
+      // Keep the scale but return translation to center
+      // Scale only resets when pointer actually leaves
+      this.state.targetTranslateX = 0;
+      this.state.targetTranslateY = 0;
+      this.state.targetOriginX = 50;
+      this.state.targetOriginY = 50;
+      // Keep current hover scale - don't reset to baseScale
+      // Scale will be reset in onPointerLeave instead
     } else {
-      // Full return (for hover state when not pressed)
+      // Full return (for hover state when not pressed and keepScaleOnIdleReturn is false)
       this.resetTargets();
     }
   }

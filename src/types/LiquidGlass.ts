@@ -190,8 +190,15 @@ export interface InteractionConfig {
   hoverFollowMaxDistance: number;
   /** Factor for drag-based translation. Default varies by preset */
   translateFactor: number;
-  /** Maximum pixels to translate during drag. Default varies by preset */
+  /** Maximum pixels to translate during drag (horizontal). Default varies by preset */
   maxTranslate: number;
+  /**
+   * Maximum pixels to translate during drag (vertical).
+   * If not specified, falls back to maxTranslate.
+   * Use this to allow more vertical freedom while limiting horizontal movement.
+   * Default: undefined (uses maxTranslate)
+   */
+  maxTranslateY?: number;
 
   // =========================================================================
   // Stretch Configuration
@@ -231,6 +238,31 @@ export interface InteractionConfig {
   idleReturnPartial: boolean;
   /** Ratio to return (0-1). Default: 0.5 */
   idleReturnRatio?: number;
+  /**
+   * Keep scale unchanged during idle return while hovering.
+   * When true, only translation returns to center but scale stays at hover/active scale.
+   * Scale only returns to base when pointer actually leaves the element.
+   * Default: false
+   */
+  keepScaleOnIdleReturn?: boolean;
+
+  // =========================================================================
+  // Absolute Value Mode Configuration
+  // =========================================================================
+
+  /**
+   * When enabled, uses absolute pixel values instead of percentage-based calculations
+   * for stretch and displacement. This makes different sized elements experience
+   * more similar transformation effects.
+   *
+   * When false (default in old behavior): Larger elements need more drag distance
+   * to achieve the same stretch effect as smaller elements.
+   *
+   * When true: A 50px drag produces the same stretch effect regardless of element size.
+   *
+   * Default: true (for consistent feel across element sizes)
+   */
+  useAbsoluteValues?: boolean;
 
   // =========================================================================
   // Spring Physics Configuration

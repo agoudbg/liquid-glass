@@ -44,17 +44,13 @@ import {
 
 import { useMaterialDelegation } from '../composables/useMaterialDelegation';
 import {
-  BUTTON_PRESET,
-  CONTEXT_MENU_PRESET,
   InteractionEngine,
   PRESET_MAP,
-  SLIDER_PRESET,
 } from '../core/InteractionEngine';
 import { useLiquidContext, useLiquidDepth } from '../core/LiquidContext';
 import { LiquidRendererMaterialElement } from '../core/LiquidRendererMaterialElement';
 import type { ProxyTargetInterface } from '../types/ExternalMaterial';
 import type {
-  InteractionConfig,
   InteractionPreset,
   InteractionTransform,
   LiquidRendererMaterialElementTransform,
@@ -587,6 +583,7 @@ onMounted(() => {
     }
 
     // Initialize the interaction engine
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
     initializeInteractionEngine();
 
     // Setup IntersectionObserver for visibility culling
@@ -604,7 +601,7 @@ onMounted(() => {
 
         // Stop animation when leaving viewport to save CPU/GPU resources
         if (!entry.isIntersecting && wasInViewport) {
-          // eslint-disable-next-line @typescript-eslint/no-use-before-define
+          // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
           stopAnimation();
         }
       },
@@ -677,6 +674,7 @@ const initializeInteractionEngine = () => {
     currentTransform.value = transform;
 
     // Emit transform to material manager for WebGL rendering
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
     emitTransformToManager({
       scaleX: transform.scaleX,
       scaleY: transform.scaleY,
@@ -700,6 +698,7 @@ const stepEngineAnimation = (timestamp: number) => {
   currentTransform.value = transform;
 
   // Update material manager
+  // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
   emitTransformToManager({
     scaleX: transform.scaleX,
     scaleY: transform.scaleY,
@@ -954,7 +953,8 @@ const onPointerMove = (event: PointerEvent) => {
  * Handles pointer up events.
  * Transitions to the releasing phase.
  */
-const onPointerUp = (event: PointerEvent) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const onPointerUp = (_event: PointerEvent) => {
   if (props.disableInteractions) return;
 
   const engine = interactionEngine.value;
@@ -973,7 +973,8 @@ const onPointerUp = (event: PointerEvent) => {
  * Handles pointer leave events.
  * Resets hover state and transitions to releasing if not pressed.
  */
-const onPointerLeave = (event: PointerEvent) => {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const onPointerLeave = (_event: PointerEvent) => {
   if (props.disableInteractions) return;
 
   const engine = interactionEngine.value;

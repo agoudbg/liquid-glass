@@ -880,7 +880,10 @@ export class InteractionEngine {
       const factor = velocityStretchFactor ?? stretchFactor * 50;
       // Pass element dimensions for aspect-ratio normalization
       const stretch = calculateStretch(
-        vx, vy, factor, stretchLimit,
+        vx,
+        vy,
+        factor,
+        stretchLimit,
         stretchWidth,
         stretchHeight,
       );
@@ -889,7 +892,10 @@ export class InteractionEngine {
     } else {
       // Position-based stretch with element dimension normalization
       const stretch = calculateStretch(
-        dx, dy, stretchFactor, stretchLimit,
+        dx,
+        dy,
+        stretchFactor,
+        stretchLimit,
         stretchWidth,
         stretchHeight,
       );

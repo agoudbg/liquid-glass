@@ -248,6 +248,7 @@ export function useMaterialDelegation(
 
         // Mark as delegating and tell parent manager to skip this material
         isDelegating.value = true;
+        // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
         markParentToSkip(true);
 
         // Start position sync
@@ -255,6 +256,7 @@ export function useMaterialDelegation(
       }
     } else {
       isDelegating.value = false;
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define, no-use-before-define
       markParentToSkip(false);
       proxyFeedback.value = null;
     }

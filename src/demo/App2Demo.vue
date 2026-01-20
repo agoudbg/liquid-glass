@@ -92,7 +92,7 @@
 import { computed, ref } from 'vue';
 
 import LiquidGlassMaterial from '../components/LiquidGlassMaterial.vue';
-import { LgBackdropConverter, LiquidGlass, LiquidGlassDebugger } from '../index';
+import { LgBackdropConverter, LiquidGlass } from '../index';
 
 type Post = {
   id: number

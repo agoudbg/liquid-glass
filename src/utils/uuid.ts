@@ -4,7 +4,7 @@ export function generateUUID(): string {
     if (typeof crypto !== 'undefined' && typeof (crypto as any).randomUUID === 'function') {
       return (crypto as any).randomUUID();
     }
-  } catch (e) {
+  } catch {
     // ignore and fallback
   }
 
@@ -14,7 +14,9 @@ export function generateUUID(): string {
     (crypto as any).getRandomValues(bytes);
 
     // Per RFC4122 v4
+    // eslint-disable-next-line no-bitwise
     bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    // eslint-disable-next-line no-bitwise
     bytes[8] = (bytes[8] & 0x3f) | 0x80;
 
     const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0'));

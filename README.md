@@ -114,6 +114,8 @@ Individual glass material with refraction and interaction effects.
 | `onlyClickInteractions` | `boolean` | `false` | Only allow click, no drag |
 | `colorDebounceMs` | `number` | `200` | Theme color update debounce |
 | `zIndex` | `number` | - | Custom z-index |
+| `interactionPreset` | `'button' \| 'context-menu' \| 'slider'` | `'button'` | Interaction behavior preset |
+| `interactionConfig` | `PartialInteractionConfig` | - | Custom interaction configuration (overrides preset) |
 
 **Slot Props:**
 
@@ -149,6 +151,119 @@ For custom canvas drawing as backdrop content.
 |------|------|---------|-------------|
 | `draw` | `(ctx, w, h) => void` | - | Custom draw callback |
 | `zIndex` | `number` | - | Stacking order |
+
+## 🎮 Interaction Presets (iOS 26-Style)
+
+`LiquidGlassMaterial` uses an interaction engine that provides iOS 26-style physics-based animations. You can choose from built-in presets or create custom configurations.
+
+### Built-in Presets
+
+| Preset | Best For | Description |
+|--------|----------|-------------|
+| `'button'` | Buttons, cards | Quick response with subtle stretch and strong rebound |
+| `'context-menu'` | Menus, panels | Smooth dragging with origin shift following pointer |
+| `'slider'` | Sliders, scroll indicators | Velocity-based stretch, follows movement speed |
+
+### Using Presets
+
+```vue
+<template>
+  <!-- Button-style interaction (default) -->
+  <LiquidGlassMaterial :radius="16" interaction-preset="button">
+    <button>Press Me</button>
+  </LiquidGlassMaterial>
+
+  <!-- Context menu style -->
+  <LiquidGlassMaterial :radius="12" interaction-preset="context-menu">
+    <div class="menu">Menu Content</div>
+  </LiquidGlassMaterial>
+
+  <!-- Slider style -->
+  <LiquidGlassMaterial :radius="8" interaction-preset="slider">
+    <div class="slider-track">...</div>
+  </LiquidGlassMaterial>
+</template>
+```
+
+### Custom Interaction Config
+
+For fine-grained control, pass a custom configuration object:
+
+```vue
+<template>
+  <LiquidGlassMaterial
+    :radius="20"
+    :interaction-config="{
+      // Scale settings
+      baseScale: 1,
+      hoverScale: 1.02,
+      activeScale: 0.98,
+      maxScale: 1.1,
+
+      // Deformation
+      stretchFactor: 0.0001,
+      stretchLimit: 0.05,
+      translateFactor: 0.08,
+      maxTranslate: 300,
+      maxTranslateY: 400,
+
+      // Spring physics
+      stiffness: 400,
+      damping: 25,
+      mass: 1,
+
+      // Origin shift (transform-origin follows pointer)
+      enableOriginShift: true,
+      originShiftSensitivity: 0.5,
+
+      // Feature flags
+      enableOpacityTransition: false,
+      useAbsoluteValues: true,
+      keepScaleOnIdleReturn: true,
+    }"
+  >
+    <div class="custom-card">Custom Physics</div>
+  </LiquidGlassMaterial>
+</template>
+```
+
+### Key Configuration Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `baseScale` | `number` | Default scale at rest (1.0) |
+| `hoverScale` | `number` | Scale when hovering |
+| `activeScale` | `number` | Scale when pressed |
+| `stretchFactor` | `number` | How much drag stretches the element |
+| `stretchLimit` | `number` | Maximum stretch deformation |
+| `translateFactor` | `number` | Displacement sensitivity |
+| `maxTranslate` | `number` | Maximum X displacement (pixels) |
+| `maxTranslateY` | `number` | Maximum Y displacement (pixels) |
+| `stiffness` | `number` | Spring stiffness (higher = snappier) |
+| `damping` | `number` | Spring damping (higher = less bounce) |
+| `enableOriginShift` | `boolean` | Transform-origin follows pointer |
+| `useAbsoluteValues` | `boolean` | Use pixel values for consistent feel across element sizes |
+| `keepScaleOnIdleReturn` | `boolean` | Keep scale during hover idle (only translation returns) |
+
+### Importing Presets Directly
+
+For programmatic use, you can import the preset configurations:
+
+```typescript
+import {
+  BUTTON_PRESET,
+  CONTEXT_MENU_PRESET,
+  SLIDER_PRESET,
+  InteractionEngine,
+} from '@agou/liquid-glass';
+
+// Use presets as base and customize
+const customConfig = {
+  ...BUTTON_PRESET,
+  stiffness: 500,
+  hoverScale: 1.05,
+};
+```
 
 ## 🎮 Advanced Usage
 

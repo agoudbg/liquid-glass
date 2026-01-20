@@ -248,6 +248,7 @@ export class ExternalMaterialElement extends EventEmitter {
    * Update position and size.
    * For external materials, this recalculates based on the last config and current scroll.
    */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   public updatePositionAndSize(_options?: { suppressReRender?: boolean }) {
     // Recalculate position using stored config and current scroll
     this.recalculatePosition();

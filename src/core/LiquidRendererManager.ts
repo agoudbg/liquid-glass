@@ -1635,9 +1635,11 @@ export class LiquidRendererManager extends EventEmitter {
       // Same z-index: use DOM order (later in DOM = rendered later = on top)
       // compareDocumentPosition returns bitmask, DOCUMENT_POSITION_FOLLOWING means b comes after a
       const position = aElement.compareDocumentPosition(bElement);
+      // eslint-disable-next-line no-bitwise
       if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
         return -1; // b is after a, so a should render first
       }
+      // eslint-disable-next-line no-bitwise
       if (position & Node.DOCUMENT_POSITION_PRECEDING) {
         return 1; // a is after b, so b should render first
       }

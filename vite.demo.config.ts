@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import vue from '@vitejs/plugin-vue';
 import { dirname, resolve } from 'path';
 import { fileURLToPath } from 'url';

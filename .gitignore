@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-demo/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+
+# Development notes and planning (never committed)
+.development/
+
+# Plan files and reference code (never committed)
+.plan/
+
+# Debug logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Local development
+*.local

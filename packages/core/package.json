@@ -1,0 +1,45 @@
+{
+  "name": "@agou/liquid-glass-core",
+  "version": "0.1.0",
+  "description": "Framework-agnostic WebGL2 liquid glass rendering engine",
+  "type": "module",
+  "license": "MIT",
+  "author": "agou",
+  "keywords": [
+    "webgl2",
+    "glass",
+    "refraction",
+    "shader",
+    "liquid-glass",
+    "ui-effect"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest",
+    "test:browser": "vitest --config vitest.browser.config.ts"
+  },
+  "dependencies": {
+    "html-to-image": "^1.11.11"
+  },
+  "devDependencies": {
+    "@types/web": "^0.0.150",
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^2.0.0"
+  },
+  "peerDependencies": {}
+}

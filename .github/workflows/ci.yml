@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main, rewrite]
+  pull_request:
+    branches: [main, rewrite]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check all packages
+        run: pnpm -r typecheck
+
+      - name: Lint all packages
+        run: pnpm -r lint
+
+      - name: Run all tests
+        run: pnpm -r test run
+
+      - name: Build all packages
+        run: pnpm -r build

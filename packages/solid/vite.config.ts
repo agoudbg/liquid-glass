@@ -1,0 +1,34 @@
+import { defineConfig } from 'vite'
+import solid from 'vite-plugin-solid'
+import dts from 'vite-plugin-dts'
+
+/**
+ * Vite library build configuration for @agou/liquid-glass-solid.
+ *
+ * Externals:
+ *   - solid-js (peer dependency)
+ *   - @agou/liquid-glass-core (peer dependency)
+ */
+export default defineConfig({
+  plugins: [
+    solid(),
+    dts({
+      rollupTypes: true,
+      tsconfigPath: './tsconfig.json',
+    }),
+  ],
+  build: {
+    lib: {
+      entry: './src/index.ts',
+      name: 'LiquidGlassSolid',
+      formats: ['es'],
+      fileName: () => 'index.js',
+    },
+    outDir: 'dist',
+    sourcemap: true,
+    minify: false,
+    rollupOptions: {
+      external: ['solid-js', '@agou/liquid-glass-core'],
+    },
+  },
+})

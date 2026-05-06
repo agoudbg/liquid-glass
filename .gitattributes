@@ -1,0 +1,9 @@
+# Auto-detect line endings based on file type
+* text=auto
+
+# Shaders must use LF line endings (critical for WebGL compilation)
+*.vert text eol=lf
+*.frag text eol=lf
+
+# Lock file
+pnpm-lock.yaml binary

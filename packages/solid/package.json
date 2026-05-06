@@ -1,0 +1,46 @@
+{
+  "name": "@agou/liquid-glass-solid",
+  "version": "0.1.0",
+  "description": "Solid adapter for @agou/liquid-glass-core",
+  "type": "module",
+  "license": "MIT",
+  "author": "agou",
+  "keywords": [
+    "solid",
+    "glass",
+    "refraction",
+    "liquid-glass",
+    "webgl2",
+    "ui-effect"
+  ],
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test": "vitest"
+  },
+  "peerDependencies": {
+    "@agou/liquid-glass-core": "workspace:*",
+    "solid-js": "^1.9.0"
+  },
+  "devDependencies": {
+    "@agou/liquid-glass-core": "workspace:*",
+    "solid-js": "^1.9.0",
+    "vite": "^6.0.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vite-plugin-solid": "^2.0.0",
+    "vitest": "^2.0.0"
+  }
+}

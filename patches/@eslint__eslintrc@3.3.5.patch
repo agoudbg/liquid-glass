@@ -1,0 +1,23 @@
+diff --git a/dist/eslintrc-universal.cjs b/dist/eslintrc-universal.cjs
+index 6000445f7ad1c90b22987842d8b68217c1d9b007..bf48fe0e09e0d340c3b178b618cc2250821acd29 100644
+--- a/dist/eslintrc-universal.cjs
++++ b/dist/eslintrc-universal.cjs
+@@ -374,7 +374,6 @@ var ajvOrig = (additionalOptions = {}) => {
+         meta: false,
+         useDefaults: true,
+         validateSchema: false,
+-        missingRefs: "ignore",
+         verbose: true,
+         schemaId: "auto",
+         ...additionalOptions
+@@ -382,7 +381,9 @@ var ajvOrig = (additionalOptions = {}) => {
+ 
+     ajv.addMetaSchema(metaSchema);
+     // eslint-disable-next-line no-underscore-dangle -- part of the API
+-    ajv._opts.defaultMeta = metaSchema.id;
++    if (ajv._opts) {
++        ajv._opts.defaultMeta = metaSchema.id;
++    }
+ 
+     return ajv;
+ };

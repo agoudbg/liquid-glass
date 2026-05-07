@@ -1,3 +1,6 @@
+# Vitest temp files
+*.timestamp-*.mjs
+
 # Dependencies
 node_modules/
 

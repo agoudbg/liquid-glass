@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import dts from 'vite-plugin-dts'
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 
 /**
  * Vite library build configuration for @agou/liquid-glass-react.
@@ -13,7 +13,6 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
-      rollupTypes: true,
       tsconfigPath: './tsconfig.json',
     }),
   ],
@@ -31,4 +30,4 @@ export default defineConfig({
       external: ['react', 'react-dom', '@agou/liquid-glass-core'],
     },
   },
-})
+});

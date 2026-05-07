@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite'
-import solid from 'vite-plugin-solid'
-import dts from 'vite-plugin-dts'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
+import solid from 'vite-plugin-solid';
 
 /**
  * Vite library build configuration for @agou/liquid-glass-solid.
@@ -13,7 +13,6 @@ export default defineConfig({
   plugins: [
     solid(),
     dts({
-      rollupTypes: true,
       tsconfigPath: './tsconfig.json',
     }),
   ],
@@ -31,4 +30,4 @@ export default defineConfig({
       external: ['solid-js', '@agou/liquid-glass-core'],
     },
   },
-})
+});

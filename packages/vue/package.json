@@ -28,7 +28,7 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "vue-tsc --noEmit",
-    "lint": "eslint src/",
+    "lint": "eslint .",
     "test": "vitest"
   },
   "peerDependencies": {

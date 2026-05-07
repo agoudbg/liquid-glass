@@ -15,11 +15,12 @@
   ],
   "main": "./dist/index.js",
   "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./src/index.ts",
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     }
   },
   "files": [
@@ -28,7 +29,7 @@
   "scripts": {
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
+    "lint": "eslint .",
     "test": "vitest",
     "test:browser": "vitest --config vitest.browser.config.ts"
   },

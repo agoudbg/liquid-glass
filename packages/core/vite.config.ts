@@ -1,5 +1,5 @@
-import { defineConfig } from 'vite'
-import dts from 'vite-plugin-dts'
+import { defineConfig } from 'vite';
+import dts from 'vite-plugin-dts';
 
 /**
  * Vite library build configuration for @agou/liquid-glass-core.
@@ -13,7 +13,6 @@ import dts from 'vite-plugin-dts'
 export default defineConfig({
   plugins: [
     dts({
-      rollupTypes: true,
       tsconfigPath: './tsconfig.json',
     }),
   ],
@@ -28,4 +27,4 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
   },
-})
+});

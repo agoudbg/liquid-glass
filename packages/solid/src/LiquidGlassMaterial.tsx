@@ -25,7 +25,6 @@ export function LiquidGlassMaterial(
   sourceProps: LiquidGlassMaterialProps,
 ): import('solid-js').JSX.Element {
   const props = mergeProps({
-    blur: 0,
     dispersion: 0.01,
     illuminationAngle: 45,
     illuminationIntensity: 0.5,
@@ -147,6 +146,7 @@ export function LiquidGlassMaterial(
         ? (local.backgroundColor ?? 'transparent')
         : 'rgba(255, 255, 255, 0.12)',
       '--lg-border-radius': radii.map((value) => `${value}px`).join(' '),
+      '--lg-fallback-blur': `${Math.min(local.blur ?? 6, 6)}px`,
       '--lg-illumination-angle': `${local.illuminationAngle}deg`,
       '--lg-illumination-intensity': local.illuminationIntensity,
       ...local.style,

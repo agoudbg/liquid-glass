@@ -25,6 +25,10 @@ describe('adapter material CSS contract', () => {
     expect(style).toContain('mix-blend-mode: screen;');
     expect(style).toContain('filter: var(--lg-highlight-filter);');
     expect(style).toContain('scale(var(--lg-highlight-scale))');
+    expect(style).toContain(".liquid-glass-material[is-fallback-mode='true'] {");
+    expect(style).not.toContain(
+      ".liquid-glass-container[data-lg-fallback='true'] .liquid-glass-material",
+    );
     expect(style).not.toContain('0 16px 44px rgba(15, 23, 42, 0.16)');
     expect(style).not.toContain('--lg-highlight-size, 160px');
   });

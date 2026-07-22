@@ -105,6 +105,59 @@ afterEach(() => {
 });
 
 describe('React adapter lifecycle', () => {
+  it.each([
+    { blur: undefined, expectedFallbackBlur: '6px' },
+    { blur: 0, expectedFallbackBlur: '0px' },
+    { blur: 12, expectedFallbackBlur: '6px' },
+  ])(
+    'preserves blur=$blur while exposing a $expectedFallbackBlur fallback blur',
+    async ({ blur, expectedFallbackBlur }) => {
+      const contextHarness = createContextHarness();
+      const engineHarness = createEngineHarness(contextHarness.context);
+      const materialProps = blur === undefined ? {} : { blur };
+      const mounted = render(
+        <LiquidGlass engine={engineHarness.engine}>
+          <LiquidGlassMaterial {...materialProps}>Glass content</LiquidGlassMaterial>
+        </LiquidGlass>,
+      );
+
+      await waitFor(() => {
+        expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+      });
+      const material = mounted.container.querySelector<HTMLElement>('.liquid-glass-material');
+      expect(material?.style.getPropertyValue('--lg-fallback-blur')).toBe(expectedFallbackBlur);
+      expect(contextHarness.addMaterial.mock.calls[0]?.[0].blur).toBe(blur);
+    },
+  );
+
+  it('preserves explicit zero and omitted blur in material changes', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    const view = (materialProps: { blur?: number }) => (
+      <LiquidGlass engine={engineHarness.engine}>
+        <LiquidGlassMaterial {...materialProps}>Glass content</LiquidGlassMaterial>
+      </LiquidGlass>
+    );
+    const mounted = render(view({ blur: 2 }));
+
+    await waitFor(() => {
+      expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+    });
+    mounted.rerender(view({ blur: 0 }));
+    await waitFor(() => {
+      expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ blur: 0 }),
+      );
+    });
+
+    mounted.rerender(view({}));
+    await waitFor(() => {
+      expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ blur: undefined }),
+      );
+    });
+  });
+
   it('updates options without replacing the context or material registration', async () => {
     const contextHarness = createContextHarness();
     const engineHarness = createEngineHarness(contextHarness.context);

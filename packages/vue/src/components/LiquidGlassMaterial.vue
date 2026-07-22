@@ -22,7 +22,6 @@ const props = withDefaults(defineProps<LiquidGlassMaterialProps>(), {
   thickness: 10,
   refractIndex: 1.1,
   refractIntensity: 0.5,
-  blur: 0,
   dispersion: 0.01,
   illuminationAngle: 45,
   illuminationIntensity: 0.5,
@@ -68,6 +67,7 @@ const materialStyle = computed<Record<string, string>>(() => {
       : 'rgba(255, 255, 255, 0.12)',
     '--lg-illumination-angle': `${props.illuminationAngle}deg`,
     '--lg-illumination-intensity': String(props.illuminationIntensity),
+    '--lg-fallback-blur': `${Math.min(props.blur ?? 6, 6)}px`,
   };
 });
 

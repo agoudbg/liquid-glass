@@ -27,7 +27,7 @@ export const LiquidGlassMaterial = forwardRef<
 >(function LiquidGlassMaterial(
   {
     backgroundColor,
-    blur = 0,
+    blur,
     children,
     className,
     disableInteractions,
@@ -134,6 +134,7 @@ export const LiquidGlassMaterial = forwardRef<
       ? (backgroundColor ?? 'transparent')
       : 'rgba(255, 255, 255, 0.12)',
     '--lg-border-radius': radiusValues.map((value) => `${value}px`).join(' '),
+    '--lg-fallback-blur': `${Math.min(blur ?? 6, 6)}px`,
     '--lg-illumination-angle': `${illuminationAngle}deg`,
     '--lg-illumination-intensity': illuminationIntensity,
     ...style,

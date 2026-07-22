@@ -131,6 +131,38 @@ afterEach(() => {
 });
 
 describe('Solid adapter lifecycle', () => {
+  it('preserves fallback blur defaults and explicit zero values', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    mountSolid(() => (
+      <LiquidGlass engine={engineHarness.engine}>
+        <LiquidGlassMaterial>Default blur</LiquidGlassMaterial>
+        <LiquidGlassMaterial blur={0}>No blur</LiquidGlassMaterial>
+        <LiquidGlassMaterial blur={12}>Capped blur</LiquidGlassMaterial>
+      </LiquidGlass>
+    ));
+    await Promise.resolve();
+
+    const materials = Array.from(
+      document.querySelectorAll<HTMLElement>('.liquid-glass-material'),
+    );
+    expect(materials.map((material) => (
+      material.style.getPropertyValue('--lg-fallback-blur')
+    ))).toEqual(['6px', '0px', '6px']);
+
+    expect(contextHarness.addMaterial.mock.calls.map(([config]) => config.blur)).toEqual([
+      undefined,
+      0,
+      12,
+    ]);
+    expect(contextHarness.material.handle.update).toHaveBeenCalledWith(
+      expect.objectContaining({ blur: undefined }),
+    );
+    expect(contextHarness.material.handle.update).toHaveBeenCalledWith(
+      expect.objectContaining({ blur: 0 }),
+    );
+  });
+
   it('updates options without replacing the context or material registration', async () => {
     const contextHarness = createContextHarness();
     const engineHarness = createEngineHarness(contextHarness.context);

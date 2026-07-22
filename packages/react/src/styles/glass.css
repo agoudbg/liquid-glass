@@ -167,13 +167,11 @@
   z-index: 1;
 }
 
-.liquid-glass-container[data-lg-fallback='true'] .liquid-glass-material,
 .liquid-glass-material[is-fallback-mode='true'] {
   -webkit-backdrop-filter: blur(var(--lg-fallback-blur, 6px)) saturate(80%);
   backdrop-filter: blur(var(--lg-fallback-blur, 6px)) saturate(80%);
 }
 
-.liquid-glass-container[data-lg-fallback='true'] .liquid-glass-highlight,
 .liquid-glass-material[is-fallback-mode='true'] .liquid-glass-highlight {
   opacity: 0;
 }

@@ -296,4 +296,35 @@ describe('Vue adapter behavior', () => {
     wrapper.unmount();
     expect(backdropHandle.destroy).toHaveBeenCalledTimes(1);
   });
+
+  it('preserves blur input while exposing the bounded CSS fallback value', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const wrapper = mount(LiquidGlassMaterial, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    const material = wrapper.get('.liquid-glass-material').element as HTMLElement;
+    expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('6px');
+    expect(harness.addMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      blur: undefined,
+    }));
+
+    await wrapper.setProps({ blur: 0 });
+    expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('0px');
+    expect(materialHandle.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      blur: 0,
+    }));
+
+    await wrapper.setProps({ blur: 9 });
+    expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('6px');
+    wrapper.unmount();
+  });
 });

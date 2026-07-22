@@ -14,4 +14,14 @@ describe('@agou/liquid-glass-core', () => {
     const { CORE_VERSION } = await import('../src/index.js');
     expect(typeof CORE_VERSION).toBe('string');
   });
+
+  it('exposes the framework-neutral primitive contract', async () => {
+    const core = await import('../src/index.js');
+
+    expect(core.TypedEventEmitter).toBeTypeOf('function');
+    expect(core.GlassError).toBeTypeOf('function');
+    expect(core.generateUUID).toBeTypeOf('function');
+    expect(core.LIQUID_GLASS_VERTEX_SHADER).toContain('#version 300 es');
+    expect(core.LIQUID_GLASS_FRAGMENT_SHADER).toContain('float sdfRect');
+  });
 });

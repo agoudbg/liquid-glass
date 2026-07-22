@@ -20,4 +20,14 @@ describe('SSR-safe primitive imports', () => {
       CORE_VERSION: '0.1.0',
     });
   });
+
+  it('imports renderer and engine modules without creating browser objects', async () => {
+    const [renderer, engine] = await Promise.all([
+      import('../../src/renderer/index'),
+      import('../../src/engine/index'),
+    ]);
+
+    expect(renderer.WebGLRenderer).toBeTypeOf('function');
+    expect(engine.GlassEngine).toBeTypeOf('function');
+  });
 });

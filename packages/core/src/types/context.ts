@@ -274,6 +274,8 @@ export interface ScissorRect {
  * Imperative framework-neutral API owned by one container.
  */
 export interface GlassContext {
+  /** Core-owned uniform presentation canvas appended to the container. */
+  readonly canvas: HTMLCanvasElement;
   /** Whether this context has released all owned resources. */
   readonly destroyed: boolean;
   /** Register a DOM capture source and return its lifecycle handle. */

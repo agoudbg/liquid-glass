@@ -6,7 +6,10 @@ import type {
   GlassContextOptions,
   GlassEngine,
   MaterialHandle,
+  MaterialPresentationListener,
+  MaterialPresentationState,
 } from '@agou/liquid-glass-core';
+import { InteractionEngine } from '@agou/liquid-glass-core';
 import type { JSX } from 'solid-js';
 import { createSignal } from 'solid-js';
 import { render } from 'solid-js/web';
@@ -20,24 +23,66 @@ import type {
   LiquidGlassMaterialHandle,
 } from '../src/types';
 
-function createMaterialHarness(id = 'material-1') {
+function createPresentation(
+  overrides: Partial<MaterialPresentationState> = {},
+): MaterialPresentationState {
+  const interaction = new InteractionEngine('button');
+  return {
+    blurred: false,
+    fallbackMode: false,
+    interactionConfig: interaction.getConfig(),
+    interactionOutput: interaction.getOutput(),
+    themeColorMode: 'light',
+    ...overrides,
+  };
+}
+
+function createMaterialHarness(
+  id = 'material-1',
+  initialPresentation = createPresentation(),
+) {
   let destroyed = false;
+  let presentation = initialPresentation;
+  const listeners = new Set<MaterialPresentationListener>();
   const destroy = vi.fn<MaterialHandle['destroy']>(() => {
     destroyed = true;
   });
+  const unsubscribe = vi.fn();
+  const setInteractionState = vi.fn<MaterialHandle['setInteractionState']>();
   const handle: MaterialHandle = {
     id,
     get destroyed() {
       return destroyed;
     },
     destroy,
-    getPresentation: vi.fn<MaterialHandle['getPresentation']>(),
-    onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
+    getPresentation: vi.fn<MaterialHandle['getPresentation']>(() => presentation),
+    onPresentation: vi.fn<MaterialHandle['onPresentation']>((listener) => {
+      listeners.add(listener);
+      listener(presentation);
+      let subscribed = true;
+      return () => {
+        if (!subscribed) return;
+        subscribed = false;
+        listeners.delete(listener);
+        unsubscribe();
+      };
+    }),
     refreshLayout: vi.fn<MaterialHandle['refreshLayout']>(),
-    setInteractionState: vi.fn<MaterialHandle['setInteractionState']>(),
+    setInteractionState,
     update: vi.fn<MaterialHandle['update']>(),
   };
-  return { destroy, handle };
+  const emitPresentation = (next: MaterialPresentationState): void => {
+    presentation = next;
+    for (const listener of [...listeners]) listener(next);
+  };
+  return {
+    destroy,
+    emitPresentation,
+    handle,
+    listenerCount: () => listeners.size,
+    setInteractionState,
+    unsubscribe,
+  };
 }
 
 function createBackdropHarness(id = 'backdrop-1') {
@@ -59,8 +104,8 @@ function createBackdropHarness(id = 'backdrop-1') {
   return { destroy, handle, refresh, update };
 }
 
-function createContextHarness() {
-  const material = createMaterialHarness();
+function createContextHarness(initialPresentation?: MaterialPresentationState) {
+  const material = createMaterialHarness('material-1', initialPresentation);
   const backdrop = createBackdropHarness();
   const addMaterial = vi.fn((_config: Parameters<GlassContext['addMaterial']>[0]) => material.handle);
   const addBackdropSource = vi.fn((_config: CanvasBackdropSourceConfig) => backdrop.handle);
@@ -88,6 +133,44 @@ function createContextHarness() {
     destroy,
     material,
     updateOptions,
+  };
+}
+
+function dispatchPointer(
+  element: HTMLElement,
+  type: string,
+  overrides: Partial<PointerEvent> = {},
+): void {
+  const event = new Event(type, {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  }) as PointerEvent;
+  const values: Partial<PointerEvent> = {
+    clientX: 60,
+    clientY: 45,
+    pointerId: 1,
+    pointerType: 'mouse',
+    pressure: 0.5,
+    ...overrides,
+  };
+  for (const [key, value] of Object.entries(values)) {
+    Object.defineProperty(event, key, { configurable: true, value });
+  }
+  element.dispatchEvent(event);
+}
+
+function materialRect(): DOMRect {
+  return {
+    bottom: 70,
+    height: 50,
+    left: 10,
+    right: 110,
+    top: 20,
+    width: 100,
+    x: 10,
+    y: 20,
+    toJSON: () => ({ height: 50, width: 100, x: 10, y: 20 }),
   };
 }
 
@@ -302,5 +385,112 @@ describe('Solid adapter lifecycle', () => {
       zIndex: 3,
     });
     expect(contextHarness.backdrop.refresh).not.toHaveBeenCalled();
+  });
+
+  it('forwards native pointers without replacing consumer handlers and syncs policy', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    const consumerPointerDown = vi.fn();
+    let setDisabled: ((disabled: boolean) => void) | undefined;
+    mountSolid(() => {
+      const [disabled, updateDisabled] = createSignal(false);
+      setDisabled = updateDisabled;
+      return (
+        <LiquidGlass engine={engineHarness.engine}>
+          <LiquidGlassMaterial
+            disableInteractions={disabled()}
+            onPointerDown={consumerPointerDown}
+            renderMode="dedicated"
+          />
+        </LiquidGlass>
+      );
+    });
+    await Promise.resolve();
+    const material = document.querySelector<HTMLElement>('.liquid-glass-material');
+    if (!material || !setDisabled) throw new Error('Material did not mount.');
+    material.getBoundingClientRect = materialRect;
+    material.setPointerCapture = vi.fn();
+    expect(material.getAttribute('disable-interactions')).toBe('false');
+    expect(material.getAttribute('only-click-interactions')).toBe('false');
+    expect(material.getAttribute('render-mode')).toBe('dedicated');
+
+    dispatchPointer(material, 'pointerdown');
+    expect(consumerPointerDown).toHaveBeenCalledTimes(1);
+    expect(contextHarness.material.setInteractionState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pointerState: expect.objectContaining({
+          isActive: true,
+          normalizedX: 0.5,
+          normalizedY: 0.5,
+        }),
+      }),
+    );
+    setDisabled(true);
+    await Promise.resolve();
+    expect(material.getAttribute('disable-interactions')).toBe('true');
+    dispatchPointer(material, 'pointerdown', { pointerId: 2 });
+    expect(consumerPointerDown).toHaveBeenCalledTimes(2);
+    expect(contextHarness.material.setInteractionState).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies presentation frames directly and fully cleans up the subscription', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    const childRender = vi.fn(() => <span>Stable child</span>);
+    let setColor: ((color: string) => void) | undefined;
+    const dispose = mountSolid(() => {
+      const [color, updateColor] = createSignal('#123456');
+      setColor = updateColor;
+      return (
+        <LiquidGlass engine={engineHarness.engine}>
+          <LiquidGlassMaterial
+            backgroundColor={color()}
+            blur={12}
+            children={childRender}
+            radius={20}
+            radiusTR={4}
+            thickness={14}
+            useCustomColor
+          />
+        </LiquidGlass>
+      );
+    });
+    await Promise.resolve();
+    const material = document.querySelector<HTMLElement>('.liquid-glass-material');
+    const highlight = material?.querySelector<HTMLElement>('.liquid-glass-highlight');
+    if (!material || !highlight || !setColor) throw new Error('Material did not mount.');
+    expect(material.style.getPropertyValue('--lg-border-radius')).toBe('20px 4px 20px 20px');
+    expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('6px');
+    expect(material.style.getPropertyValue('--lg-background-tint')).toBe('#123456');
+
+    const active = createPresentation();
+    for (let frame = 1; frame <= 4; frame += 1) {
+      contextHarness.material.emitPresentation({
+        ...active,
+        blurred: true,
+        interactionOutput: {
+          ...active.interactionOutput,
+          highlightVisible: true,
+          scaleX: 1.1,
+          translateX: frame * 3,
+        },
+      });
+    }
+    expect(material.style.getPropertyValue('--lg-scale-x')).toBe('1.1');
+    expect(material.style.getPropertyValue('--lg-translate-x')).toBe('12px');
+    expect(material.getAttribute('is-blurred')).toBe('true');
+    expect(highlight.classList.contains('visible')).toBe(true);
+    expect(childRender).toHaveBeenCalledTimes(1);
+    expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+
+    setColor('#abcdef');
+    await Promise.resolve();
+    expect(material.style.getPropertyValue('--lg-background-tint')).toBe('#abcdef');
+    dispose();
+    expect(contextHarness.material.unsubscribe).toHaveBeenCalledTimes(1);
+    expect(contextHarness.material.listenerCount()).toBe(0);
+    expect(contextHarness.material.destroy).toHaveBeenCalledTimes(1);
+    expect(material.hasAttribute('is-blurred')).toBe(false);
+    expect(highlight.classList.contains('visible')).toBe(false);
   });
 });

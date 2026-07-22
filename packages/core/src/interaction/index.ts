@@ -13,6 +13,7 @@ export {
 export { InteractionEngine } from './InteractionEngine';
 export type { MaterialPointerPolicy } from './MaterialPointerController';
 export {
+  bindMaterialPointerEvents,
   isInteractiveMaterialPointer,
   MaterialPointerController,
 } from './MaterialPointerController';

@@ -1,10 +1,18 @@
 import type {
   MaterialChanges,
   MaterialConfig,
+  MaterialDomAppearance,
   MaterialHandle,
+  MaterialPointerPolicy,
+} from '@agou/liquid-glass-core';
+import {
+  bindMaterialPointerEvents,
+  MaterialDomPresentationController,
+  MaterialPointerController,
 } from '@agou/liquid-glass-core';
 import {
   forwardRef,
+  useCallback,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -56,7 +64,10 @@ export const LiquidGlassMaterial = forwardRef<
 ) {
   const { context } = useLiquidGlassContext();
   const materialRef = useRef<HTMLDivElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<MaterialHandle | null>(null);
+  const pointerControllerRef = useRef<MaterialPointerController | null>(null);
+  const presentationControllerRef = useRef<MaterialDomPresentationController | null>(null);
   const [updating, setUpdating] = useState(false);
 
   const changes = useMemo<MaterialChanges>(() => ({
@@ -97,24 +108,77 @@ export const LiquidGlassMaterial = forwardRef<
     thickness,
   ]);
   const changesRef = useRef(changes);
+  changesRef.current = changes;
 
-  useEffect(() => {
-    changesRef.current = changes;
-  }, [changes]);
+  const appearance = useMemo<MaterialDomAppearance>(() => ({
+    backgroundColor,
+    illuminationAngle,
+    illuminationIntensity,
+    thickness,
+    useCustomColor,
+  }), [
+    backgroundColor,
+    illuminationAngle,
+    illuminationIntensity,
+    thickness,
+    useCustomColor,
+  ]);
+  const appearanceRef = useRef(appearance);
+  appearanceRef.current = appearance;
+
+  const pointerPolicy = useMemo<MaterialPointerPolicy>(() => ({
+    disableInteractions,
+    onlyClickInteractions,
+  }), [disableInteractions, onlyClickInteractions]);
+  const pointerPolicyRef = useRef(pointerPolicy);
+  pointerPolicyRef.current = pointerPolicy;
+
+  // React treats `only-*` as an event prop, so preserve the legacy attribute through the ref.
+  const setMaterialElement = useCallback((element: HTMLDivElement | null) => {
+    materialRef.current = element;
+    element?.setAttribute(
+      'only-click-interactions',
+      String(onlyClickInteractions === true),
+    );
+  }, [onlyClickInteractions]);
 
   useEffect(() => {
     const element = materialRef.current;
-    if (!context || !element) {
+    const highlight = highlightRef.current;
+    if (!context || !element || !highlight) {
       return undefined;
     }
 
     const config: MaterialConfig = { element, ...changesRef.current };
     const registration = context.addMaterial(config);
+    const pointerController = new MaterialPointerController(
+      element,
+      registration,
+      pointerPolicyRef.current,
+    );
+    const unbindPointerEvents = bindMaterialPointerEvents(element, pointerController);
+    const presentationController = new MaterialDomPresentationController(
+      element,
+      highlight,
+      registration,
+      appearanceRef.current,
+    );
     handleRef.current = registration;
+    pointerControllerRef.current = pointerController;
+    presentationControllerRef.current = presentationController;
     return () => {
+      unbindPointerEvents();
+      pointerController.destroy();
+      presentationController.destroy();
       registration.destroy();
       if (handleRef.current === registration) {
         handleRef.current = null;
+      }
+      if (pointerControllerRef.current === pointerController) {
+        pointerControllerRef.current = null;
+      }
+      if (presentationControllerRef.current === presentationController) {
+        presentationControllerRef.current = null;
       }
     };
   }, [context]);
@@ -123,6 +187,14 @@ export const LiquidGlassMaterial = forwardRef<
     handleRef.current?.update(changes);
   }, [changes]);
 
+  useEffect(() => {
+    presentationControllerRef.current?.updateAppearance(appearance);
+  }, [appearance]);
+
+  useEffect(() => {
+    pointerControllerRef.current?.updatePolicy(pointerPolicy);
+  }, [pointerPolicy]);
+
   useImperativeHandle(forwardedRef, () => ({
     getHandle: () => handleRef.current,
     refreshLayout: () => handleRef.current?.refreshLayout(),
@@ -130,13 +202,8 @@ export const LiquidGlassMaterial = forwardRef<
 
   const radiusValues = [radiusTL ?? radius, radiusTR ?? radius, radiusBR ?? radius, radiusBL ?? radius];
   const materialStyle: GlassStyle = {
-    '--lg-background-tint': useCustomColor
-      ? (backgroundColor ?? 'transparent')
-      : 'rgba(255, 255, 255, 0.12)',
     '--lg-border-radius': radiusValues.map((value) => `${value}px`).join(' '),
     '--lg-fallback-blur': `${Math.min(blur ?? 6, 6)}px`,
-    '--lg-illumination-angle': `${illuminationAngle}deg`,
-    '--lg-illumination-intensity': illuminationIntensity,
     ...style,
   };
 
@@ -155,12 +222,14 @@ export const LiquidGlassMaterial = forwardRef<
   return (
     <div
       {...elementProps}
-      ref={materialRef}
+      ref={setMaterialElement}
       className={['liquid-glass-material', className].filter(Boolean).join(' ')}
+      disable-interactions={String(disableInteractions === true)}
+      render-mode={renderMode}
       style={materialStyle}
     >
       <div className="liquid-glass-background" aria-hidden="true" />
-      <div className="liquid-glass-highlight" aria-hidden="true" />
+      <div ref={highlightRef} className="liquid-glass-highlight" aria-hidden="true" />
       <div className="liquid-glass-content">
         {typeof children === 'function' ? children(controls) : children}
       </div>

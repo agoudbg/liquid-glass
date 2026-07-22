@@ -1,7 +1,14 @@
 import type {
   MaterialChanges,
   MaterialConfig,
+  MaterialDomAppearance,
   MaterialHandle,
+  MaterialPointerPolicy,
+} from '@agou/liquid-glass-core';
+import {
+  bindMaterialPointerEvents,
+  MaterialDomPresentationController,
+  MaterialPointerController,
 } from '@agou/liquid-glass-core';
 import {
   createEffect,
@@ -63,7 +70,10 @@ export function LiquidGlassMaterial(
   const { context } = useLiquidGlassContext();
   const [updating, setUpdating] = createSignal(false);
   let materialElement: HTMLDivElement | undefined;
+  let highlightElement: HTMLDivElement | undefined;
   let handle: MaterialHandle | null = null;
+  let pointerController: MaterialPointerController | null = null;
+  let presentationController: MaterialDomPresentationController | null = null;
 
   function readChanges(): MaterialChanges {
     return {
@@ -87,9 +97,26 @@ export function LiquidGlassMaterial(
     };
   }
 
+  function readAppearance(): MaterialDomAppearance {
+    return {
+      backgroundColor: local.backgroundColor,
+      illuminationAngle: local.illuminationAngle,
+      illuminationIntensity: local.illuminationIntensity,
+      thickness: local.thickness,
+      useCustomColor: local.useCustomColor,
+    };
+  }
+
+  function readInteractionPolicy(): MaterialPointerPolicy {
+    return {
+      disableInteractions: local.disableInteractions,
+      onlyClickInteractions: local.onlyClickInteractions,
+    };
+  }
+
   createEffect(() => {
     const currentContext = context();
-    if (!currentContext || !materialElement) {
+    if (!currentContext || !materialElement || !highlightElement) {
       return;
     }
 
@@ -98,11 +125,34 @@ export function LiquidGlassMaterial(
       ...untrack(readChanges),
     };
     const registration = currentContext.addMaterial(config);
+    const pointer = new MaterialPointerController(
+      materialElement,
+      registration,
+      untrack(readInteractionPolicy),
+    );
+    const unbindPointerEvents = bindMaterialPointerEvents(materialElement, pointer);
+    const presentation = new MaterialDomPresentationController(
+      materialElement,
+      highlightElement,
+      registration,
+      untrack(readAppearance),
+    );
     handle = registration;
+    pointerController = pointer;
+    presentationController = presentation;
     onCleanup(() => {
+      presentation.destroy();
+      unbindPointerEvents();
+      pointer.destroy();
       registration.destroy();
       if (handle === registration) {
         handle = null;
+      }
+      if (pointerController === pointer) {
+        pointerController = null;
+      }
+      if (presentationController === presentation) {
+        presentationController = null;
       }
     });
   });
@@ -110,6 +160,16 @@ export function LiquidGlassMaterial(
   createEffect(() => {
     const changes = readChanges();
     handle?.update(changes);
+  });
+
+  createEffect(() => {
+    const policy = readInteractionPolicy();
+    pointerController?.updatePolicy(policy);
+  });
+
+  createEffect(() => {
+    const appearance = readAppearance();
+    presentationController?.updateAppearance(appearance);
   });
 
   const controls: MaterialRenderControls = {
@@ -142,13 +202,8 @@ export function LiquidGlassMaterial(
       local.radiusBL ?? radius,
     ];
     return {
-      '--lg-background-tint': local.useCustomColor
-        ? (local.backgroundColor ?? 'transparent')
-        : 'rgba(255, 255, 255, 0.12)',
       '--lg-border-radius': radii.map((value) => `${value}px`).join(' '),
       '--lg-fallback-blur': `${Math.min(local.blur ?? 6, 6)}px`,
-      '--lg-illumination-angle': `${local.illuminationAngle}deg`,
-      '--lg-illumination-intensity': local.illuminationIntensity,
       ...local.style,
     };
   };
@@ -158,10 +213,17 @@ export function LiquidGlassMaterial(
       {...elementProps}
       ref={materialElement}
       class={['liquid-glass-material', local.class].filter(Boolean).join(' ')}
+      attr:disable-interactions={String(local.disableInteractions === true)}
+      attr:only-click-interactions={String(local.onlyClickInteractions === true)}
+      attr:render-mode={local.renderMode}
       style={materialStyle()}
     >
       <div class="liquid-glass-background" aria-hidden="true" />
-      <div class="liquid-glass-highlight" aria-hidden="true" />
+      <div
+        ref={highlightElement}
+        class="liquid-glass-highlight"
+        aria-hidden="true"
+      />
       <div class="liquid-glass-content">
         {typeof local.children === 'function' ? local.children(controls) : local.children}
       </div>

@@ -4,6 +4,11 @@ import type {
   MaterialConfig,
   MaterialHandle,
 } from '@agou/liquid-glass-core';
+import {
+  bindMaterialPointerEvents,
+  MaterialDomPresentationController,
+  MaterialPointerController,
+} from '@agou/liquid-glass-core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useLiquidGlassContext } from '../composables/liquidGlassContext';
@@ -29,8 +34,11 @@ const props = withDefaults(defineProps<LiquidGlassMaterialProps>(), {
 
 const { context } = useLiquidGlassContext();
 const materialElement = ref<HTMLElement | null>(null);
+const highlightElement = ref<HTMLElement | null>(null);
 const handle = shallowRef<MaterialHandle | null>(null);
 const updating = ref(false);
+let pointerController: MaterialPointerController | null = null;
+let presentationController: MaterialDomPresentationController | null = null;
 
 const materialChanges = computed<MaterialChanges>(() => ({
   radius: props.radius,
@@ -62,19 +70,31 @@ const materialStyle = computed<Record<string, string>>(() => {
   ];
   return {
     '--lg-border-radius': radii.map((value) => `${value}px`).join(' '),
-    '--lg-background-tint': props.useCustomColor
-      ? (props.backgroundColor ?? 'transparent')
-      : 'rgba(255, 255, 255, 0.12)',
-    '--lg-illumination-angle': `${props.illuminationAngle}deg`,
-    '--lg-illumination-intensity': String(props.illuminationIntensity),
     '--lg-fallback-blur': `${Math.min(props.blur ?? 6, 6)}px`,
   };
 });
 
+function materialAppearance() {
+  return {
+    backgroundColor: props.backgroundColor,
+    illuminationAngle: props.illuminationAngle,
+    illuminationIntensity: props.illuminationIntensity,
+    thickness: props.thickness,
+    useCustomColor: props.useCustomColor,
+  };
+}
+
+function interactionPolicy() {
+  return {
+    disableInteractions: props.disableInteractions,
+    onlyClickInteractions: props.onlyClickInteractions,
+  };
+}
+
 watch(
-  [context, materialElement],
-  ([currentContext, element], _previous, onCleanup) => {
-    if (!currentContext || !element) {
+  [context, materialElement, highlightElement],
+  ([currentContext, element, highlight], _previous, onCleanup) => {
+    if (!currentContext || !element || !highlight) {
       return;
     }
 
@@ -83,13 +103,32 @@ watch(
       ...materialChanges.value,
     };
     const registration = currentContext.addMaterial(config);
+    const pointer = new MaterialPointerController(
+      element,
+      registration,
+      interactionPolicy(),
+    );
+    const unbindPointerEvents = bindMaterialPointerEvents(element, pointer);
+    const presentation = new MaterialDomPresentationController(
+      element,
+      highlight,
+      registration,
+      materialAppearance(),
+    );
     handle.value = registration;
+    pointerController = pointer;
+    presentationController = presentation;
 
     onCleanup(() => {
+      presentation.destroy();
+      unbindPointerEvents();
+      pointer.destroy();
       registration.destroy();
       if (handle.value === registration) {
         handle.value = null;
       }
+      if (pointerController === pointer) pointerController = null;
+      if (presentationController === presentation) presentationController = null;
     });
   },
   { immediate: true, flush: 'post' },
@@ -98,6 +137,22 @@ watch(
 watch(materialChanges, (changes) => {
   handle.value?.update(changes);
 }, { deep: true });
+
+watch(
+  () => [props.disableInteractions, props.onlyClickInteractions],
+  () => pointerController?.updatePolicy(interactionPolicy()),
+);
+
+watch(
+  () => [
+    props.backgroundColor,
+    props.illuminationAngle,
+    props.illuminationIntensity,
+    props.thickness,
+    props.useCustomColor,
+  ],
+  () => presentationController?.updateAppearance(materialAppearance()),
+);
 
 function startUpdating(): void {
   updating.value = true;
@@ -121,11 +176,14 @@ defineExpose(exposed);
   <div
     ref="materialElement"
     class="liquid-glass-material"
+    :disable-interactions="String(props.disableInteractions === true)"
+    :only-click-interactions="String(props.onlyClickInteractions === true)"
+    :render-mode="props.renderMode"
     :style="materialStyle"
     v-bind="$attrs"
   >
     <div class="liquid-glass-background" aria-hidden="true" />
-    <div class="liquid-glass-highlight" aria-hidden="true" />
+    <div ref="highlightElement" class="liquid-glass-highlight" aria-hidden="true" />
     <div class="liquid-glass-content">
       <slot
         :updating="updating"

@@ -6,7 +6,9 @@ import type {
   GlassContextOptions,
   GlassEngine,
   MaterialHandle,
+  MaterialPresentationState,
 } from '@agou/liquid-glass-core';
+import { InteractionEngine } from '@agou/liquid-glass-core';
 import { cleanup, render, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -16,8 +18,25 @@ import { LiquidGlass } from '../src/LiquidGlass';
 import { LiquidGlassMaterial } from '../src/LiquidGlassMaterial';
 import type { LiquidGlassMaterialHandle } from '../src/types';
 
-function createMaterialHarness(id = 'material-1') {
+function createPresentation(
+  overrides: Partial<MaterialPresentationState> = {},
+): MaterialPresentationState {
+  const interaction = new InteractionEngine('button');
+  return {
+    blurred: false,
+    fallbackMode: false,
+    interactionConfig: interaction.getConfig(),
+    interactionOutput: interaction.getOutput(),
+    themeColorMode: 'light',
+    ...overrides,
+  };
+}
+
+function createMaterialHarness(
+  id = 'material-1',
+) {
   let destroyed = false;
+  const presentation = createPresentation();
   const destroy = vi.fn<MaterialHandle['destroy']>(() => {
     destroyed = true;
   });
@@ -27,8 +46,11 @@ function createMaterialHarness(id = 'material-1') {
       return destroyed;
     },
     destroy,
-    getPresentation: vi.fn<MaterialHandle['getPresentation']>(),
-    onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
+    getPresentation: vi.fn<MaterialHandle['getPresentation']>(() => presentation),
+    onPresentation: vi.fn<MaterialHandle['onPresentation']>((listener) => {
+      listener(presentation);
+      return vi.fn();
+    }),
     refreshLayout: vi.fn<MaterialHandle['refreshLayout']>(),
     setInteractionState: vi.fn<MaterialHandle['setInteractionState']>(),
     update: vi.fn<MaterialHandle['update']>(),

@@ -4,7 +4,9 @@ import type {
   GlassContext,
   GlassEngine,
   MaterialHandle,
+  MaterialPresentationState,
 } from '@agou/liquid-glass-core';
+import { InteractionEngine } from '@agou/liquid-glass-core';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -28,17 +30,75 @@ interface ContextHarness {
   updateOptions: ReturnType<typeof vi.fn>;
 }
 
-function createMaterialHandle(id = 'material-1'): MaterialHandle {
+interface TestMaterialHandle extends MaterialHandle {
+  emitPresentation(presentation: MaterialPresentationState): void;
+  presentationUnsubscribed: ReturnType<typeof vi.fn>;
+}
+
+function createPresentation(
+  overrides: Partial<MaterialPresentationState> = {},
+): MaterialPresentationState {
+  const engine = new InteractionEngine('button');
   return {
+    blurred: false,
+    fallbackMode: false,
+    interactionConfig: engine.getConfig(),
+    interactionOutput: engine.getOutput(),
+    themeColorMode: 'light',
+    ...overrides,
+  };
+}
+
+function dispatchPointer(
+  target: EventTarget,
+  type: string,
+  overrides: Partial<Pick<
+    PointerEvent,
+    'clientX' | 'clientY' | 'pointerId' | 'pointerType' | 'pressure'
+  >> = {},
+): void {
+  const event = new Event(type, { bubbles: true, composed: true });
+  const pointer = {
+    clientX: 24,
+    clientY: 18,
+    pointerId: 7,
+    pointerType: 'mouse',
+    pressure: 0.5,
+    ...overrides,
+  };
+  for (const [property, value] of Object.entries(pointer)) {
+    Object.defineProperty(event, property, { configurable: true, value });
+  }
+  target.dispatchEvent(event);
+}
+
+function createMaterialHandle(id = 'material-1'): TestMaterialHandle {
+  let currentPresentation = createPresentation();
+  const listeners = new Set<(presentation: MaterialPresentationState) => void>();
+  const presentationUnsubscribed = vi.fn();
+  const handle: TestMaterialHandle = {
     id,
     destroyed: false,
     destroy: vi.fn(),
-    getPresentation: vi.fn<MaterialHandle['getPresentation']>(),
-    onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
+    emitPresentation: (presentation) => {
+      currentPresentation = presentation;
+      for (const listener of [...listeners]) listener(presentation);
+    },
+    getPresentation: vi.fn(() => currentPresentation),
+    onPresentation: vi.fn((listener) => {
+      listeners.add(listener);
+      listener(currentPresentation);
+      return () => {
+        listeners.delete(listener);
+        presentationUnsubscribed();
+      };
+    }),
+    presentationUnsubscribed,
     refreshLayout: vi.fn(),
     setInteractionState: vi.fn(),
     update: vi.fn(),
   };
+  return handle;
 }
 
 function createBackdropHandle(
@@ -328,5 +388,80 @@ describe('Vue adapter behavior', () => {
     await wrapper.setProps({ blur: 9 });
     expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('6px');
     wrapper.unmount();
+  });
+
+  it('bridges pointer input and applies presentation snapshots without consuming child events', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const onChildClick = vi.fn();
+    const onPointerdown = vi.fn();
+    const wrapper = mount(LiquidGlassMaterial, {
+      attrs: { onPointerdown },
+      props: {
+        illuminationAngle: 90,
+        illuminationIntensity: 0.8,
+        thickness: 14,
+      },
+      slots: {
+        default: () => h('button', { onClick: onChildClick }, 'Action'),
+      },
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    const material = wrapper.get('.liquid-glass-material').element as HTMLElement;
+    const child = wrapper.get('button').element;
+    const setPointerCapture = vi.fn();
+    Object.defineProperty(material, 'setPointerCapture', {
+      configurable: true,
+      value: setPointerCapture,
+    });
+
+    expect(material.style.getPropertyValue('--lg-background-tint')).toBe('#ffffff99');
+    expect(material.style.getPropertyValue('--lg-inset-shadow-size')).toBe('14px');
+    dispatchPointer(child, 'pointerdown');
+    expect(onPointerdown).toHaveBeenCalledTimes(1);
+    expect(setPointerCapture).not.toHaveBeenCalled();
+    expect(materialHandle.setInteractionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pointerState: expect.objectContaining({ isActive: true, pointerId: 7 }),
+      }),
+    );
+
+    dispatchPointer(document.body, 'pointerup');
+    expect(materialHandle.setInteractionState).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pointerState: expect.objectContaining({ isActive: false, pointerId: 7 }),
+      }),
+    );
+    child.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onChildClick).toHaveBeenCalledTimes(1);
+
+    const base = createPresentation();
+    materialHandle.emitPresentation({
+      ...base,
+      blurred: true,
+      interactionOutput: {
+        ...base.interactionOutput,
+        highlightVisible: true,
+        highlightX: 0.2,
+        highlightY: 0.7,
+        scaleX: 1.1,
+        translateX: 12,
+      },
+    });
+    expect(material.style.getPropertyValue('--lg-scale-x')).toBe('1.1');
+    expect(material.style.getPropertyValue('--lg-translate-x')).toBe('12px');
+    expect(material.getAttribute('is-blurred')).toBe('true');
+    expect(wrapper.get('.liquid-glass-highlight').classes()).toContain('visible');
+
+    wrapper.unmount();
+    expect(materialHandle.presentationUnsubscribed).toHaveBeenCalledTimes(1);
   });
 });

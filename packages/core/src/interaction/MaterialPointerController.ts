@@ -33,12 +33,52 @@ export interface MaterialPointerPolicy {
   onlyClickInteractions?: boolean;
 }
 
+/** Attach native pointer listeners without replacing framework listener props. */
+export function bindMaterialPointerEvents(
+  element: HTMLElement,
+  controller: MaterialPointerController,
+): () => void {
+  const listeners: Array<readonly [string, EventListener]> = [
+    ['lostpointercapture', (event) => {
+      controller.onLostPointerCapture(event as PointerEvent);
+    }],
+    ['pointercancel', (event) => {
+      controller.onPointerCancel(event as PointerEvent);
+    }],
+    ['pointerdown', (event) => {
+      controller.onPointerDown(event as PointerEvent);
+    }],
+    ['pointerenter', (event) => {
+      controller.onPointerEnter(event as PointerEvent);
+    }],
+    ['pointerleave', (event) => {
+      controller.onPointerLeave(event as PointerEvent);
+    }],
+    ['pointermove', (event) => {
+      controller.onPointerMove(event as PointerEvent);
+    }],
+    ['pointerup', (event) => {
+      controller.onPointerUp(event as PointerEvent);
+    }],
+  ];
+  for (const [type, listener] of listeners) {
+    element.addEventListener(type, listener);
+  }
+  let bound = true;
+  return () => {
+    if (!bound) return;
+    bound = false;
+    for (const [type, listener] of listeners) {
+      element.removeEventListener(type, listener);
+    }
+  };
+}
+
 function isHtmlElement(node: EventTarget): node is HTMLElement {
   return typeof node === 'object'
     && node !== null
     && 'dataset' in node
     && 'getAttribute' in node
-    && 'isContentEditable' in node
     && 'tagName' in node;
 }
 

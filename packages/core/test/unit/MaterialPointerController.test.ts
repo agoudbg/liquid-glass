@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+  bindMaterialPointerEvents,
   isInteractiveMaterialPointer,
   MaterialPointerController,
 } from '../../src/interaction';
@@ -18,6 +19,7 @@ function fakeElement(options: FakeElementOptions = {}) {
   const rect = options.rect ?? { x: 10, y: 20, width: 100, height: 50 };
   const setPointerCapture = vi.fn<(pointerId: number) => void>();
   const documentListeners = new Map<string, Set<EventListener>>();
+  const elementListeners = new Map<string, Set<EventListener>>();
   const ownerDocument = {
     addEventListener: (type: string, listener: EventListener) => {
       const listeners = documentListeners.get(type) ?? new Set<EventListener>();
@@ -29,6 +31,11 @@ function fakeElement(options: FakeElementOptions = {}) {
     },
   };
   const element = {
+    addEventListener: (type: string, listener: EventListener) => {
+      const listeners = elementListeners.get(type) ?? new Set<EventListener>();
+      listeners.add(listener);
+      elementListeners.set(type, listeners);
+    },
     dataset: options.dataset ?? {},
     getAttribute: (name: string) => (
       name === 'role' ? (options.role ?? null) : null
@@ -43,6 +50,9 @@ function fakeElement(options: FakeElementOptions = {}) {
     }),
     isContentEditable: options.contentEditable ?? false,
     ownerDocument,
+    removeEventListener: (type: string, listener: EventListener) => {
+      elementListeners.get(type)?.delete(listener);
+    },
     setPointerCapture,
     tagName: options.tagName ?? 'DIV',
   } as unknown as HTMLElement;
@@ -51,7 +61,12 @@ function fakeElement(options: FakeElementOptions = {}) {
       listener(event);
     }
   };
-  return { dispatchDocument, element, setPointerCapture };
+  const dispatchElement = (type: string, event: Event): void => {
+    for (const listener of [...(elementListeners.get(type) ?? [])]) {
+      listener(event);
+    }
+  };
+  return { dispatchDocument, dispatchElement, element, setPointerCapture };
 }
 
 function pointerEvent(
@@ -85,6 +100,23 @@ function materialHandle() {
 }
 
 describe('MaterialPointerController', () => {
+  it('binds every native event without retaining listeners after cleanup', () => {
+    const { dispatchElement, element } = fakeElement();
+    const { handle, setInteractionState } = materialHandle();
+    const controller = new MaterialPointerController(element, handle);
+    const unbind = bindMaterialPointerEvents(element, controller);
+    const event = pointerEvent([element]);
+
+    dispatchElement('pointerdown', event);
+    dispatchElement('pointermove', event);
+    dispatchElement('pointerup', event);
+    expect(setInteractionState).toHaveBeenCalledTimes(3);
+    unbind();
+    unbind();
+    dispatchElement('pointerdown', event);
+    expect(setInteractionState).toHaveBeenCalledTimes(3);
+  });
+
   it.each<{ label: string; options: FakeElementOptions }>([
     { options: { tagName: 'BUTTON' }, label: 'native control' },
     { options: { role: 'switch' }, label: 'interactive role' },

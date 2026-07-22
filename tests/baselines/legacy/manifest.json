@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-07-22",
+  "status": "partial-visual-evidence",
+  "oracle": {
+    "branch": "dev",
+    "commit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
+    "parent": "7859f347cdfb983189d37524a8fe6ffb0e1bc3d9",
+    "commitDate": "2026-01-20T17:39:25+08:00"
+  },
+  "referenceIdentity": {
+    "localPath": ".plan/reference",
+    "trackedFileCount": 52,
+    "identicalGitBlobCount": 52,
+    "trackedSourceFileCount": 37,
+    "identicalSourceGitBlobCount": 37,
+    "productionOrCiDependencyAllowed": false
+  },
+  "shaders": [
+    {
+      "path": "src/shaders/LiquidGlass.vert",
+      "role": "active-vertex",
+      "sha256": "8ea709d1d999118002a6fdeca57ac499f878b1279d065a9dc59c42a102803a31",
+      "rewriteDisposition": "preserve-byte-for-byte"
+    },
+    {
+      "path": "src/shaders/LiquidGlassAdvanced.frag",
+      "role": "active-fragment",
+      "sha256": "73de43a716b9b3418955ca582b2da8c624c7918f668459414062dff6c9126b38",
+      "rewriteDisposition": "preserve-byte-for-byte"
+    },
+    {
+      "path": "src/shaders/LiquidGlass.frag",
+      "role": "inactive-fragment",
+      "sha256": "b8626f2b0e405bba33bb813d79c94635f3c8ae042930cc417cd1bf2f7bd60d3d",
+      "rewriteDisposition": "drop"
+    }
+  ],
+  "buildEvidence": {
+    "isolatedVerificationCopy": true,
+    "command": "pnpm build:demo",
+    "outputDirectory": "dist-demo",
+    "result": "pass",
+    "typecheck": {
+      "command": "pnpm type-check",
+      "result": "fail",
+      "errorCode": "TS6310",
+      "baselineGate": false
+    }
+  },
+  "browserEvidence": {
+    "automation": "global playwright-cli policy",
+    "browser": "installed Google Chrome channel",
+    "headless": true,
+    "isolatedContext": true,
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "browserVersion": null,
+    "devicePixelRatio": null,
+    "scenes": [
+      {
+        "id": "blog",
+        "label": "Blog Demo",
+        "source": "src/demo/LiquidGlassBlogDemo.vue",
+        "browserValidated": true,
+        "nonEmptyCanvas": true,
+        "consoleErrorCount": 0,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      },
+      {
+        "id": "showcase",
+        "label": "Showcase",
+        "source": "src/demo/LiquidGlassShowcase.vue",
+        "browserValidated": true,
+        "nonEmptyCanvas": true,
+        "consoleErrorCount": 0,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      },
+      {
+        "id": "playground",
+        "label": "Playground",
+        "source": "src/demo/LiquidGlassPlayground.vue",
+        "browserValidated": false,
+        "nonEmptyCanvas": null,
+        "consoleErrorCount": null,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      },
+      {
+        "id": "multi",
+        "label": "Multi Glass",
+        "source": "src/demo/MultiGlassDemo.vue",
+        "browserValidated": true,
+        "nonEmptyCanvas": true,
+        "consoleErrorCount": 0,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      },
+      {
+        "id": "app",
+        "label": "App Demo",
+        "source": "src/demo/AppDemo.vue",
+        "browserValidated": true,
+        "nonEmptyCanvas": true,
+        "consoleErrorCount": 0,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      },
+      {
+        "id": "app2",
+        "label": "App2 Demo",
+        "source": "src/demo/App2Demo.vue",
+        "browserValidated": false,
+        "nonEmptyCanvas": null,
+        "consoleErrorCount": null,
+        "screenshot": null,
+        "canvasDimensions": null,
+        "materialRectangles": null,
+        "keyPixels": null
+      }
+    ]
+  },
+  "physicsEvidence": {
+    "path": "tests/baselines/legacy/physics-traces.json",
+    "source": "src/core/InteractionEngine.ts",
+    "generatorNodeVersion": "22.22.0",
+    "presets": [
+      "button",
+      "context-menu",
+      "slider",
+      "custom"
+    ],
+    "storedSignificantDigits": 12,
+    "comparisonAbsoluteTolerance": 1e-9
+  },
+  "missingEvidence": [
+    "durable screenshots for all six scenes",
+    "browser version and device pixel ratio",
+    "canvas dimensions and material rectangles",
+    "glass-on and glass-off material-region pixels",
+    "key pixel probes",
+    "twenty-run self-diff calibration per scene",
+    "browser validation for playground and app2"
+  ]
+}

@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "oracleCommit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
+  "source": "src/core/InteractionEngine.ts",
+  "generatorNodeVersion": "22.22.0",
+  "storedSignificantDigits": 12,
+  "comparisonAbsoluteTolerance": 1e-9,
+  "elementSize": [240, 120],
+  "transformFields": [
+    "scaleX",
+    "scaleY",
+    "translateX",
+    "translateY",
+    "originX",
+    "originY",
+    "opacity",
+    "highlightX",
+    "highlightY"
+  ],
+  "targetFields": [
+    "scaleX",
+    "scaleY",
+    "translateX",
+    "translateY",
+    "originX",
+    "originY"
+  ],
+  "sequence": {
+    "maxDeltaSeconds": 0.05,
+    "operations": [
+      { "operation": "step", "timestampMs": 0, "sample": "initial" },
+      { "operation": "pointer-enter", "clockMs": 8, "client": [120, 60], "normalized": [0.5, 0.5], "pointerType": "mouse" },
+      { "operation": "pointer-move", "clockMs": 16, "client": [150, 72], "normalized": [0.625, 0.6], "pointerType": "mouse" },
+      { "operation": "step", "timestampMs": 16.666666666666668, "sample": "hover" },
+      { "operation": "pointer-down", "clockMs": 32, "client": [150, 72], "normalized": [0.625, 0.6], "pointerType": "mouse", "pointerId": 7 },
+      { "operation": "step", "timestampMs": 33.333333333333336 },
+      { "operation": "pointer-move", "clockMs": 48, "client": [190, 40], "normalized": [0.791666666666667, 0.333333333333333], "pointerType": "mouse" },
+      { "operation": "step", "timestampMs": 50, "sample": "drag-up-right" },
+      { "operation": "step", "timestampMs": 66.66666666666667 },
+      { "operation": "pointer-move", "clockMs": 64, "client": [210, 96], "normalized": [0.875, 0.8], "pointerType": "mouse" },
+      { "operation": "step", "timestampMs": 83.33333333333334 },
+      { "operation": "step", "timestampMs": 100, "sample": "drag-down-right" },
+      { "operation": "pointer-up", "clockMs": 112 },
+      { "operation": "step", "timestampMs": 116.66666666666667 },
+      { "operation": "step", "timestampMs": 133.33333333333334, "sample": "release" },
+      { "operation": "step", "timestampMs": 166.66666666666669 },
+      { "operation": "step", "timestampMs": 216.66666666666669, "sample": "release-capped-delta" }
+    ]
+  },
+  "traces": [
+    {
+      "name": "button",
+      "config": {
+        "preset": "button",
+        "hoverScale": 1.02,
+        "activeScale": 1.05,
+        "maxScale": 1.5,
+        "translateFactor": 0.08,
+        "stretchFactor": 0.0004,
+        "stretchLimit": 0.5,
+        "preserveArea": true,
+        "useAbsoluteValues": true,
+        "enableOriginShift": true,
+        "originShiftSensitivity": 0.5,
+        "activeSpring": { "stiffness": 180, "damping": 18, "mass": 1 },
+        "releaseSpring": { "stiffness": 200, "damping": 10, "mass": 1 },
+        "highlightFollowSpeed": 0.15,
+        "activeBackgroundColor": null
+      },
+      "samples": [
+        {
+          "event": "initial",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "hover",
+          "phase": "hover",
+          "transform": [1.00111111111, 1.00111111111, 0.133333333333, 0.0533333333333, 50, 50, 1, 0.51875, 0.515],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.02, 1.02, 2.4, 0.96, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "drag-up-right",
+          "phase": "active",
+          "transform": [1.0089996786, 1.00874507453, 0.397663559865, 0.00546756144214, 49.5833333333, 50.6666666667, 1, 0.573234375, 0.4985875],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.05254912749, 1.04745704614, 2.55993786397, -2.04798210449, 41.6666666667, 63.3333333333],
+          "pointerVelocity": [40, -32]
+        },
+        {
+          "event": "drag-down-right",
+          "phase": "active",
+          "transform": [1.02696758878, 1.02286350756, 1.32393252662, -0.11623828814, 46.5918229167, 51.4780833333, 1, 0.680646935547, 0.564320048438],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.06150982091, 1.03861497867, 3.83979029854, 1.5359924503, 37.5, 40],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release",
+          "phase": "releasing",
+          "transform": [1.03222806422, 1.0257583575, 1.66861985981, 0.000221896990388, 45.2615261703, 50.5533173868, 1, 0.734579910933, 0.629721234996],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release-capped-delta",
+          "phase": "releasing",
+          "transform": [1.00959299348, 1.00664409984, 0.553184107976, 0.0910222729407, 48.1545069945, 49.3716674097, 1, 0.812694860499, 0.724446407362],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        }
+      ]
+    },
+    {
+      "name": "context-menu",
+      "config": {
+        "preset": "context-menu",
+        "hoverScale": 1,
+        "activeScale": 1.01,
+        "maxScale": 1.5,
+        "translateFactor": 0.05,
+        "stretchFactor": 0.0005,
+        "stretchLimit": 0.5,
+        "preserveArea": true,
+        "useAbsoluteValues": true,
+        "enableOriginShift": true,
+        "originShiftSensitivity": 0.6,
+        "activeSpring": { "stiffness": 280, "damping": 24, "mass": 1 },
+        "releaseSpring": { "stiffness": 180, "damping": 18, "mass": 1 },
+        "highlightFollowSpeed": 0.2,
+        "activeBackgroundColor": null
+      },
+      "samples": [
+        {
+          "event": "initial",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "hover",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.525, 0.52],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "drag-up-right",
+          "phase": "active",
+          "transform": [1.00220924553, 1.0017149887, 0.124441789698, -0.0995549514421, 49.2222222222, 51.2444444444, 1, 0.594333333333, 0.495466666667],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.01318236314, 1.00682763252, 1.59996586754, -1.27999223283, 40, 66],
+          "pointerVelocity": [40, -32]
+        },
+        {
+          "event": "drag-down-right",
+          "phase": "active",
+          "transform": [1.00949963037, 1.00220665814, 0.896100284485, -0.15192636474, 44.3991752782, 51.8990973327, 1, 0.720632, 0.5843456],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.02438363549, 0.99581832885, 2.39988480664, 0.959996723213, 35, 38],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release",
+          "phase": "releasing",
+          "transform": [1.01165873594, 1.00132407183, 1.13117583056, -0.0210272180276, 42.9298774733, 50.2628515982, 1, 0.77620448, 0.661981184],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release-capped-delta",
+          "phase": "releasing",
+          "transform": [1.00509518766, 1.00031071924, 0.500434630409, 0.0228341300729, 46.8721580618, 49.7145763234, 1, 0.842626684006, 0.754773994373],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        }
+      ]
+    },
+    {
+      "name": "slider",
+      "config": {
+        "preset": "slider",
+        "hoverScale": 1,
+        "activeScale": 1.15,
+        "maxScale": 1.8,
+        "translateFactor": 0,
+        "stretchFactor": 0.003,
+        "stretchLimit": 0.8,
+        "preserveArea": true,
+        "useAbsoluteValues": true,
+        "enableOriginShift": false,
+        "originShiftSensitivity": 0,
+        "activeSpring": { "stiffness": 200, "damping": 10, "mass": 1 },
+        "releaseSpring": { "stiffness": 180, "damping": 8, "mass": 1 },
+        "highlightFollowSpeed": 0,
+        "activeBackgroundColor": "transparent"
+      },
+      "samples": [
+        {
+          "event": "initial",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "hover",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "drag-up-right",
+          "phase": "active",
+          "transform": [1.02314814815, 1.02314814815, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": "transparent",
+          "highlightVisible": false,
+          "targets": [1.15, 1.15, 0, 0, 50, 50],
+          "pointerVelocity": [40, -32]
+        },
+        {
+          "event": "drag-down-right",
+          "phase": "active",
+          "transform": [1.05982793456, 1.12113763143, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": "transparent",
+          "highlightVisible": false,
+          "targets": [0.968386662069, 1.36567349779, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release",
+          "phase": "releasing",
+          "transform": [1.05966113498, 1.17411475832, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release-capped-delta",
+          "phase": "releasing",
+          "transform": [1.01185057536, 1.08882682536, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        }
+      ]
+    },
+    {
+      "name": "custom",
+      "config": {
+        "preset": "custom",
+        "hoverScale": 1.01,
+        "activeScale": 1.08,
+        "maxScale": 1.4,
+        "translateFactor": 0.1,
+        "stretchFactor": 0.0006,
+        "stretchLimit": 0.5,
+        "preserveArea": true,
+        "useAbsoluteValues": true,
+        "enableOriginShift": true,
+        "originShiftSensitivity": 0.4,
+        "activeSpring": { "stiffness": 240, "damping": 16, "mass": 1 },
+        "releaseSpring": { "stiffness": 200, "damping": 10, "mass": 1 },
+        "highlightFollowSpeed": 0.25,
+        "activeBackgroundColor": null
+      },
+      "samples": [
+        {
+          "event": "initial",
+          "phase": "idle",
+          "transform": [1, 1, 0, 0, 50, 50, 1, 0.5, 0.5],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "hover",
+          "phase": "hover",
+          "transform": [1.00055555556, 1.00055555556, 0.133333333333, 0.0533333333333, 50, 50, 1, 0.53125, 0.525],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.01, 1.01, 2.4, 0.96, 50, 50],
+          "pointerVelocity": [0, 0]
+        },
+        {
+          "event": "drag-up-right",
+          "phase": "active",
+          "transform": [1.01561244245, 1.01510450278, 0.48591783543, -0.0616272994989, 49.5555555556, 50.7111111111, 1, 0.613932291667, 0.491145833333],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.08381626631, 1.07619717129, 3.19987864256, -2.55996504804, 43.3333333333, 60.6666666667],
+          "pointerVelocity": [40, -32]
+        },
+        {
+          "event": "drag-down-right",
+          "phase": "active",
+          "transform": [1.05344599817, 1.04520965028, 2.01804386151, -0.275517594358, 46.3423868313, 51.5855144033, 1, 0.753143310547, 0.604077148438],
+          "backgroundColor": null,
+          "highlightVisible": true,
+          "targets": [1.09725808359, 1.06301335797, 4.79959044194, 1.91998525454, 40, 42],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release",
+          "phase": "releasing",
+          "transform": [1.06502133228, 1.05202884701, 2.62617587768, -0.0618001656565, 44.9193314027, 50.570222019, 1, 0.806455612183, 0.689793395996],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        },
+        {
+          "event": "release-capped-delta",
+          "phase": "releasing",
+          "transform": [1.020105887, 1.01417962766, 0.921917783487, 0.156452129655, 48.0238186365, 49.3038197655, 1, 0.858734095469, 0.773847456276],
+          "backgroundColor": null,
+          "highlightVisible": false,
+          "targets": [1, 1, 0, 0, 50, 50],
+          "pointerVelocity": [20, 56]
+        }
+      ]
+    }
+  ]
+}

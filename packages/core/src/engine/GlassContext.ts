@@ -174,7 +174,9 @@ export class GlassContextImpl implements GlassContext {
           onScrollPosition: () => this.presentation.syncScrollPosition(
             this.optionsSnapshot.scrollable ?? false,
           ),
+          onBlurredChange: (blurred) => this.materials.setBlurred(blurred),
         },
+        this.optionsSnapshot.enableBlurredEffect ?? false,
       );
     } catch (error) {
       renderer?.destroy();
@@ -228,6 +230,9 @@ export class GlassContextImpl implements GlassContext {
     this.precision = nextPrecision;
     const fallbackChanged = this.fallback.updateOptions(nextSnapshot);
     this.contextEvents.refreshTargets();
+    this.contextEvents.setBlurredEffectEnabled(
+      nextSnapshot.enableBlurredEffect ?? false,
+    );
     this.domCapture.markAllDirty();
     this.presentation.update(nextSnapshot);
     if (fallbackChanged) {

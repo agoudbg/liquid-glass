@@ -26,6 +26,56 @@ function target(overflow = 'visible'): FakeTarget {
   return { overflow, parentElement: null };
 }
 
+interface InactivePageHarness {
+  readonly browserDocument: Document;
+  readonly browserWindow: Window;
+  readonly container: HTMLElement;
+  readonly runtime: GlassEngineRuntime;
+  emitDocument(type: string): void;
+  emitWindow(type: string): void;
+  setFocused(focused: boolean): void;
+  setHidden(hidden: boolean): void;
+}
+
+function createInactivePageHarness(
+  initial: { focused?: boolean; hidden?: boolean } = {},
+): InactivePageHarness {
+  let focused = initial.focused ?? true;
+  let hidden = initial.hidden ?? false;
+  const browserWindow = new EventTarget();
+  const browserDocument = new EventTarget();
+  const container = Object.assign(new EventTarget(), target());
+  Object.defineProperties(browserDocument, {
+    hasFocus: { value: () => focused },
+    hidden: { get: () => hidden },
+  });
+  return {
+    browserDocument: browserDocument as unknown as Document,
+    browserWindow: browserWindow as unknown as Window,
+    container: container as unknown as HTMLElement,
+    emitDocument: (type) => browserDocument.dispatchEvent(new Event(type)),
+    emitWindow: (type) => browserWindow.dispatchEvent(new Event(type)),
+    runtime: {
+      createCanvas: vi.fn(),
+      createResizeObserver: () => null,
+      devicePixelRatio: () => 1,
+      getComputedStyle: (element) => ({
+        overflow: (element as unknown as FakeTarget).overflow,
+        overflowX: 'visible',
+        overflowY: 'visible',
+      }) as CSSStyleDeclaration,
+      getDocument: () => browserDocument as unknown as Document,
+      getWindow: () => browserWindow as unknown as Window,
+    },
+    setFocused: (nextFocused) => {
+      focused = nextFocused;
+    },
+    setHidden: (nextHidden) => {
+      hidden = nextHidden;
+    },
+  };
+}
+
 describe('ContextEventController', () => {
   it('coalesces all scroll targets, prioritizes layout, and owns cleanup', () => {
     const container = target();
@@ -90,10 +140,11 @@ describe('ContextEventController', () => {
     const onLayout = vi.fn();
     const onScroll = vi.fn();
     const onScrollPosition = vi.fn();
+    const onBlurredChange = vi.fn();
     const controller = new ContextEventController(
       container as unknown as HTMLElement,
       runtime,
-      { onLayout, onScroll, onScrollPosition },
+      { onBlurredChange, onLayout, onScroll, onScrollPosition },
     );
     const emit = (eventTarget: FakeTarget, type: string): void => {
       for (const record of listeners) {
@@ -146,5 +197,110 @@ describe('ContextEventController', () => {
     emit(container, 'scroll');
     expect(onScroll).toHaveBeenCalledOnce();
     expect(onScrollPosition).toHaveBeenCalledTimes(5);
+    expect(onBlurredChange).not.toHaveBeenCalled();
+  });
+
+  it('combines initial visibility and window focus into one blurred state', () => {
+    const harness = createInactivePageHarness({ focused: false, hidden: true });
+    const onBlurredChange = vi.fn();
+    const controller = new ContextEventController(
+      harness.container,
+      harness.runtime,
+      {
+        onBlurredChange,
+        onLayout: vi.fn(),
+        onScroll: vi.fn(),
+        onScrollPosition: vi.fn(),
+      },
+      true,
+    );
+
+    expect(onBlurredChange).toHaveBeenLastCalledWith(true);
+    harness.setHidden(false);
+    harness.setFocused(false);
+    harness.emitDocument('visibilitychange');
+    expect(onBlurredChange).toHaveBeenCalledTimes(1);
+
+    harness.emitWindow('focus');
+    expect(onBlurredChange).toHaveBeenLastCalledWith(false);
+    harness.emitWindow('blur');
+    expect(onBlurredChange).toHaveBeenLastCalledWith(true);
+
+    harness.setHidden(true);
+    harness.emitDocument('visibilitychange');
+    harness.emitWindow('focus');
+    expect(onBlurredChange).toHaveBeenCalledTimes(3);
+
+    harness.setHidden(false);
+    harness.setFocused(false);
+    harness.emitDocument('visibilitychange');
+    expect(onBlurredChange).toHaveBeenCalledTimes(3);
+    harness.setFocused(true);
+    harness.emitDocument('visibilitychange');
+    expect(onBlurredChange).toHaveBeenLastCalledWith(false);
+    controller.destroy();
+  });
+
+  it('dynamically owns inactive-page listeners and clears presentation on disable', () => {
+    const harness = createInactivePageHarness({ hidden: true });
+    const onBlurredChange = vi.fn();
+    const controller = new ContextEventController(
+      harness.container,
+      harness.runtime,
+      {
+        onBlurredChange,
+        onLayout: vi.fn(),
+        onScroll: vi.fn(),
+        onScrollPosition: vi.fn(),
+      },
+    );
+
+    harness.emitWindow('blur');
+    harness.emitDocument('visibilitychange');
+    expect(onBlurredChange).not.toHaveBeenCalled();
+
+    controller.setBlurredEffectEnabled(true);
+    controller.setBlurredEffectEnabled(true);
+    expect(onBlurredChange).toHaveBeenLastCalledWith(true);
+    controller.setBlurredEffectEnabled(false);
+    controller.setBlurredEffectEnabled(false);
+    expect(onBlurredChange.mock.calls).toEqual([[true], [false]]);
+
+    harness.emitWindow('blur');
+    harness.emitDocument('visibilitychange');
+    expect(onBlurredChange).toHaveBeenCalledTimes(2);
+    controller.destroy();
+    controller.destroy();
+    controller.setBlurredEffectEnabled(true);
+    expect(onBlurredChange).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not require browser globals when inactive-page observation is enabled', () => {
+    const container = Object.assign(new EventTarget(), target());
+    const onBlurredChange = vi.fn();
+    const runtime: GlassEngineRuntime = {
+      createCanvas: vi.fn(),
+      createResizeObserver: () => null,
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+      getDocument: () => null,
+      getWindow: () => null,
+    };
+
+    const controller = new ContextEventController(
+      container as unknown as HTMLElement,
+      runtime,
+      {
+        onBlurredChange,
+        onLayout: vi.fn(),
+        onScroll: vi.fn(),
+        onScrollPosition: vi.fn(),
+      },
+      true,
+    );
+
+    expect(onBlurredChange).not.toHaveBeenCalled();
+    expect(() => controller.refreshTargets()).not.toThrow();
+    expect(() => controller.destroy()).not.toThrow();
   });
 });

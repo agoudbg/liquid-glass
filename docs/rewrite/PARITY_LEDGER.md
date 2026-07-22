@@ -67,6 +67,7 @@ mark the rewrite acceptance rows complete.
 | CMP-016 | Resource cleanup | Partial `dispose`/`destroy` implementations | Fix | Textures, shaders, programs, buffers, canvases, observers, listeners, timers, and RAF counters return to zero. |
 | CMP-017 | Capture lock and error recovery | Manager and converter async capture | Fix | Locks and temporary nodes are released in `finally`; a later capture can succeed after a failure. |
 | CMP-018 | SSR-safe imports | Browser globals in runtime modules | Fix | Importing core and adapter entry points in Node does not access `window` or `document`. |
+| CMP-019 | Inactive-page blurred appearance | Container blur, focus, and visibility listeners | Preserve intent | When enabled, window focus and document visibility update material presentation without redrawing WebGL; dynamic disable and context teardown release all listeners. |
 
 ## Vue compatibility contract
 
@@ -132,7 +133,7 @@ mark the rewrite acceptance rows complete.
 | S009 Dedicated mode | CMP-002 | Pending |
 | S010 CSS fallback | CMP-014 | Pending |
 | S011 Theme feedback | OPT-011, VUE-006 | Pending |
-| S012 Lifecycle stress | CMP-015 through CMP-018 | Pending |
+| S012 Lifecycle stress | CMP-015 through CMP-019 | Pending |
 | S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending |
 | S014 Packed React/Solid consumers | PKG-003 through PKG-005 | Pending |
 

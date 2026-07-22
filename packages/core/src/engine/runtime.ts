@@ -29,6 +29,8 @@ export interface GlassEngineRuntime {
   devicePixelRatio(): number;
   /** Read computed material styles. */
   getComputedStyle(element: Element): CSSStyleDeclaration;
+  /** Resolve the current browser document without touching it during SSR import. */
+  getDocument?(): Document | null;
   /** Read the current top-level viewport in client coordinates. */
   getViewportRect?(): RectLike;
   /** Resolve the current browser window without touching it during SSR import. */
@@ -82,6 +84,9 @@ export const DEFAULT_GLASS_ENGINE_RUNTIME: GlassEngineRuntime = {
     }
     return globalThis.getComputedStyle(element);
   },
+  getDocument: () => (
+    typeof globalThis.document === 'undefined' ? null : globalThis.document
+  ),
   getViewportRect: () => ({
     x: 0,
     y: 0,

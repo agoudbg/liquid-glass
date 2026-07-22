@@ -1,4 +1,11 @@
-export type { MaterialAppearanceOptions } from './appearance';
+export type {
+  MaterialAppearanceInput,
+  MaterialAppearanceOptions,
+  MaterialAppearanceTokens,
+  MaterialHighlightAppearanceConfig,
+  MaterialInteractionAppearanceOutput,
+  MaterialThemeAppearance,
+} from './appearance';
 export type {
   CanvasLike,
   CornerRadii,

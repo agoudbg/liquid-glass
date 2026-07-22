@@ -16,6 +16,7 @@
  */
 export const CORE_VERSION = '0.1.0';
 
+export * from './appearance/index';
 export * from './engine/index';
 export * from './errors/index';
 export * from './events/index';

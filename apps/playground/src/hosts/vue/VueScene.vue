@@ -11,8 +11,11 @@ import { computed, useTemplateRef, watchEffect } from 'vue';
 
 import {
   getBackdropDraw,
+  isDomCaptureScene,
   resolveDomCaptureContent,
   resolveSceneMaterials,
+  resolveViewportCapture,
+  SCROLL_BANDS,
 } from '../../shared/scenes';
 import type { FrameworkHostProps } from '../../shared/types';
 
@@ -25,6 +28,8 @@ const contextOptions = computed<GlassContextOptions>(() => ({
 }));
 const materials = computed(() => resolveSceneMaterials(props.state));
 const domContent = computed(() => resolveDomCaptureContent(props.state.domVariant));
+const domScene = computed(() => isDomCaptureScene(props.state.scene));
+const viewportCapture = computed(() => resolveViewportCapture(props.state));
 const backdropDraw = computed(() => getBackdropDraw(
   props.state.scene,
   props.state.oracleMode,
@@ -32,7 +37,7 @@ const backdropDraw = computed(() => getBackdropDraw(
 const backdropConverter = useTemplateRef<LgBackdropConverterExposed>('backdropConverter');
 
 watchEffect((onCleanup) => {
-  if (props.state.scene !== 'S003' || !backdropConverter.value) {
+  if (!isDomCaptureScene(props.state.scene) || !backdropConverter.value) {
     props.callbacks.onBackdropRefreshReady(null);
     return;
   }
@@ -64,38 +69,62 @@ function handleError(error: unknown): void {
     @ready="handleReady"
   >
     <LgBackdropConverter
-      v-if="state.scene === 'S003'"
+      v-if="domScene"
       ref="backdropConverter"
       background-color="#dce4df"
-      class="scene-backdrop dom-capture-backdrop"
+      class="scene-backdrop"
+      :class="state.scene === 'S003'
+        ? 'dom-capture-backdrop'
+        : ['scroll-backdrop', state.scene === 'S005'
+          ? 'body-scroll-backdrop'
+          : 'internal-scroll-backdrop']"
+      :viewport-capture="viewportCapture"
     >
-      <div class="dom-capture-photo">
-        <img
-          alt="Boats crossing a turquoise alpine lake below the Dolomites"
-          data-testid="dom-capture-image"
-          :draggable="false"
-          src="/dolomites.jpg"
-        >
-        <span>IMG / LOCAL ASSET</span>
-      </div>
-      <article
-        :key="state.domVariant"
-        class="dom-capture-copy"
-        :class="domContent.phaseClass"
-        :data-dom-phase="state.domVariant"
-        data-testid="dom-capture-copy"
-      >
-        <p>{{ domContent.eyebrow }}</p>
-        <h3>{{ domContent.title }}</h3>
-        <span>{{ domContent.description }}</span>
-        <div
-          class="dom-capture-swatches"
-          aria-hidden="true"
-        >
-          <i /><i /><i />
+      <template v-if="state.scene === 'S003'">
+        <div class="dom-capture-photo">
+          <img
+            alt="Boats crossing a turquoise alpine lake below the Dolomites"
+            data-testid="dom-capture-image"
+            :draggable="false"
+            src="/dolomites.jpg"
+          >
+          <span>IMG / LOCAL ASSET</span>
         </div>
-        <small>Pietro De Grandi / Unsplash</small>
-      </article>
+        <article
+          :key="state.domVariant"
+          class="dom-capture-copy"
+          :class="domContent.phaseClass"
+          :data-dom-phase="state.domVariant"
+          data-testid="dom-capture-copy"
+        >
+          <p>{{ domContent.eyebrow }}</p>
+          <h3>{{ domContent.title }}</h3>
+          <span>{{ domContent.description }}</span>
+          <div
+            class="dom-capture-swatches"
+            aria-hidden="true"
+          >
+            <i /><i /><i />
+          </div>
+          <small>Pietro De Grandi / Unsplash</small>
+        </article>
+      </template>
+      <div
+        v-else
+        class="scroll-band-grid"
+        data-testid="scroll-band-grid"
+      >
+        <section
+          v-for="band in SCROLL_BANDS"
+          :key="band.id"
+          class="scroll-band"
+          :class="`tone-${band.tone}`"
+        >
+          <span>{{ state.scene === 'S005' ? 'BODY' : 'INTERNAL' }} {{ band.id }}</span>
+          <strong>{{ band.title }}</strong>
+          <small>{{ band.detail }}</small>
+        </section>
+      </div>
     </LgBackdropConverter>
     <LgBackdropCanvas
       v-else

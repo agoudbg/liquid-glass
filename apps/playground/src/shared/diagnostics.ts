@@ -94,7 +94,7 @@ export function observeGlassContext(
   firstFrameRequest = window.requestAnimationFrame(() => {
     firstFrameRequest = window.requestAnimationFrame(() => {
       try {
-        context.refresh('external');
+        context.refresh('structural');
       } catch {
         // The context event carries the structured failure to the shell.
       }

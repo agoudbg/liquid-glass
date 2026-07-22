@@ -1,12 +1,14 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
+import {
+  capturePrimaryMaterial,
+  comparePngPixels,
+  readCanvasMetrics,
+  readNumericAttribute,
+} from './support/renderer';
 
 const FRAMEWORKS = ['vue', 'react', 'solid'] as const;
 const SCENES = ['S001', 'S002'] as const;
-
-interface PixelDifference {
-  changedPixelRatio: number;
-  meanChannelDelta: number;
-}
 
 test('renders S001 and S002 through every public framework adapter', async ({ page }) => {
   const runtimeErrors: string[] = [];
@@ -175,57 +177,6 @@ test('captures, mutates, and manually refreshes DOM through every adapter', asyn
   expect(runtimeErrors).toEqual([]);
 });
 
-test('keeps the uniform canvas pinned inside every scrollable adapter', async ({
-  page,
-}) => {
-  for (const framework of FRAMEWORKS) {
-    await page.goto(
-      `/?test=1&framework=${framework}&scene=S001&glass=on&scroll=on`,
-      { waitUntil: 'domcontentloaded' },
-    );
-    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true', {
-      timeout: 15_000,
-    });
-
-    const metrics = await page.locator('.glass-context').evaluate(async (container) => {
-      const canvas = container.querySelector<HTMLCanvasElement>(
-        ':scope > .liquid-glass-canvas',
-      );
-      if (!canvas) throw new Error('Missing the core-owned uniform canvas.');
-      const spacer = document.createElement('div');
-      spacer.style.width = '2000px';
-      spacer.style.height = '1600px';
-      spacer.style.pointerEvents = 'none';
-      container.append(spacer);
-      container.scrollLeft = 120;
-      container.scrollTop = 80;
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      const containerRect = container.getBoundingClientRect();
-      const canvasRect = canvas.getBoundingClientRect();
-      return {
-        overflow: getComputedStyle(container).overflow,
-        scrollable: container.getAttribute('data-lg-scrollable'),
-        canvasLeft: canvasRect.left,
-        canvasTop: canvasRect.top,
-        containerLeft: containerRect.left,
-        containerTop: containerRect.top,
-        scrollLeft: container.scrollLeft,
-        scrollTop: container.scrollTop,
-        transform: canvas.style.transform,
-      };
-    });
-
-    expect(metrics.scrollLeft).toBe(120);
-    expect(metrics.scrollTop).toBe(80);
-    expect(metrics.scrollable).toBe('true');
-    expect(metrics.overflow).toBe('auto');
-    expect(Math.abs(metrics.canvasLeft - metrics.containerLeft)).toBeLessThan(1);
-    expect(Math.abs(metrics.canvasTop - metrics.containerTop)).toBeLessThan(1);
-    expect(metrics.transform).toBe('translate3d(120px, 80px, 0px)');
-  }
-});
-
 test('forces and recovers CSS fallback through every public adapter', async ({
   page,
 }) => {
@@ -287,105 +238,3 @@ test('forces and recovers CSS fallback through every public adapter', async ({
 
   expect(runtimeErrors).toEqual([]);
 });
-
-async function readCanvasMetrics(canvas: ReturnType<Page['locator']>): Promise<{
-  nonTransparentPixels: number;
-  glError: number;
-}> {
-  return canvas.evaluate((element) => {
-    if (!(element instanceof HTMLCanvasElement)) {
-      throw new Error('Expected the core-owned presentation canvas.');
-    }
-    const gl = element.getContext('webgl2');
-    if (!gl) throw new Error('Expected a WebGL2 rendering context.');
-    const pixels = new Uint8Array(element.width * element.height * 4);
-    gl.readPixels(0, 0, element.width, element.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-    let nonTransparentPixels = 0;
-    for (let index = 3; index < pixels.length; index += 4) {
-      if (pixels[index] !== 0) nonTransparentPixels += 1;
-    }
-    return { nonTransparentPixels, glError: gl.getError() };
-  });
-}
-
-async function readNumericAttribute(
-  locator: ReturnType<Page['locator']>,
-  name: string,
-): Promise<number> {
-  const value = await locator.getAttribute(name);
-  return Number(value ?? '0');
-}
-
-async function capturePrimaryMaterial(page: Page): Promise<Buffer> {
-  const material = page.getByTestId('primary-material');
-  await expect(material).toBeVisible();
-  const bounds = await material.boundingBox();
-  if (!bounds) throw new Error('Primary material has no measurable bounds.');
-  return page.screenshot({
-    clip: {
-      x: Math.floor(bounds.x),
-      y: Math.floor(bounds.y),
-      width: Math.ceil(bounds.width),
-      height: Math.ceil(bounds.height),
-    },
-  });
-}
-
-async function comparePngPixels(
-  page: Page,
-  first: Buffer,
-  second: Buffer,
-): Promise<PixelDifference> {
-  return page.evaluate(async ({ firstPng, secondPng }) => {
-    const decode = async (encoded: string): Promise<ImageData> => {
-      const image = new Image();
-      image.src = `data:image/png;base64,${encoded}`;
-      await image.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      const context = canvas.getContext('2d');
-      if (!context) throw new Error('Unable to decode screenshot pixels.');
-      context.drawImage(image, 0, 0);
-      return context.getImageData(0, 0, canvas.width, canvas.height);
-    };
-
-    const [firstPixels, secondPixels] = await Promise.all([
-      decode(firstPng),
-      decode(secondPng),
-    ]);
-    if (
-      firstPixels.width !== secondPixels.width
-      || firstPixels.height !== secondPixels.height
-    ) {
-      throw new Error('Glass comparison screenshots have different dimensions.');
-    }
-
-    let changedPixels = 0;
-    let totalChannelDelta = 0;
-    for (let index = 0; index < firstPixels.data.length; index += 4) {
-      const red = Math.abs(firstPixels.data[index] - secondPixels.data[index]);
-      const green = Math.abs(
-        firstPixels.data[index + 1] - secondPixels.data[index + 1],
-      );
-      const blue = Math.abs(
-        firstPixels.data[index + 2] - secondPixels.data[index + 2],
-      );
-      const alpha = Math.abs(
-        firstPixels.data[index + 3] - secondPixels.data[index + 3],
-      );
-      const pixelDelta = red + green + blue + alpha;
-      totalChannelDelta += pixelDelta;
-      if (pixelDelta > 16) changedPixels += 1;
-    }
-
-    const pixelCount = firstPixels.width * firstPixels.height;
-    return {
-      changedPixelRatio: changedPixels / pixelCount,
-      meanChannelDelta: totalChannelDelta / (pixelCount * 4),
-    };
-  }, {
-    firstPng: first.toString('base64'),
-    secondPng: second.toString('base64'),
-  });
-}

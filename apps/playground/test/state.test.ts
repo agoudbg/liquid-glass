@@ -23,4 +23,33 @@ describe('playground URL state', () => {
       scene: 'S003',
     });
   });
+
+  it('defaults S006 to bounded internal scrolling while preserving overrides', () => {
+    expect(createInitialState(new URL('https://example.test/?scene=S006')))
+      .toMatchObject({
+        scene: 'S006',
+        scrollable: true,
+        viewportEnabled: true,
+      });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S006&scroll=off&viewport=off',
+    ))).toMatchObject({
+      scene: 'S006',
+      scrollable: false,
+      viewportEnabled: false,
+    });
+    expect(createInitialState(new URL('https://example.test/?scene=S005')))
+      .toMatchObject({
+        scene: 'S005',
+        scrollable: false,
+        viewportEnabled: false,
+      });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S005&scroll=on&viewport=on',
+    ))).toMatchObject({
+      scene: 'S005',
+      scrollable: false,
+      viewportEnabled: false,
+    });
+  });
 });

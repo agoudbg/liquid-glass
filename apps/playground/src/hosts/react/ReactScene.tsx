@@ -11,8 +11,11 @@ import { useEffect, useRef } from 'react';
 
 import {
   getBackdropDraw,
+  isDomCaptureScene,
   resolveDomCaptureContent,
   resolveSceneMaterials,
+  resolveViewportCapture,
+  SCROLL_BANDS,
 } from '../../shared/scenes';
 import type { FrameworkHostProps } from '../../shared/types';
 
@@ -30,9 +33,10 @@ export function ReactScene({
   const materials = resolveSceneMaterials(state);
   const converterRef = useRef<BackdropConverterHandle>(null);
   const domContent = resolveDomCaptureContent(state.domVariant);
+  const domScene = isDomCaptureScene(state.scene);
 
   useEffect(() => {
-    if (state.scene !== 'S003') {
+    if (!isDomCaptureScene(state.scene)) {
       callbacks.onBackdropRefreshReady(null);
       return undefined;
     }
@@ -56,35 +60,56 @@ export function ReactScene({
       onError={callbacks.onError}
       onReady={callbacks.onContextReady}
     >
-      {state.scene === 'S003' ? (
+      {domScene ? (
         <BackdropConverter
           ref={converterRef}
           backgroundColor="#dce4df"
-          className="scene-backdrop dom-capture-backdrop"
+          className={state.scene === 'S003'
+            ? 'scene-backdrop dom-capture-backdrop'
+            : `scene-backdrop scroll-backdrop ${
+                state.scene === 'S005'
+                  ? 'body-scroll-backdrop'
+                  : 'internal-scroll-backdrop'
+              }`}
+          viewportCapture={resolveViewportCapture(state)}
         >
-          <div className="dom-capture-photo">
-            <img
-              alt="Boats crossing a turquoise alpine lake below the Dolomites"
-              data-testid="dom-capture-image"
-              draggable={false}
-              src="/dolomites.jpg"
-            />
-            <span>IMG / LOCAL ASSET</span>
-          </div>
-          <article
-            key={state.domVariant}
-            className={`dom-capture-copy ${domContent.phaseClass}`}
-            data-dom-phase={state.domVariant}
-            data-testid="dom-capture-copy"
-          >
-            <p>{domContent.eyebrow}</p>
-            <h3>{domContent.title}</h3>
-            <span>{domContent.description}</span>
-            <div className="dom-capture-swatches" aria-hidden="true">
-              <i /><i /><i />
+          {state.scene === 'S003' ? (
+            <>
+              <div className="dom-capture-photo">
+                <img
+                  alt="Boats crossing a turquoise alpine lake below the Dolomites"
+                  data-testid="dom-capture-image"
+                  draggable={false}
+                  src="/dolomites.jpg"
+                />
+                <span>IMG / LOCAL ASSET</span>
+              </div>
+              <article
+                key={state.domVariant}
+                className={`dom-capture-copy ${domContent.phaseClass}`}
+                data-dom-phase={state.domVariant}
+                data-testid="dom-capture-copy"
+              >
+                <p>{domContent.eyebrow}</p>
+                <h3>{domContent.title}</h3>
+                <span>{domContent.description}</span>
+                <div className="dom-capture-swatches" aria-hidden="true">
+                  <i /><i /><i />
+                </div>
+                <small>Pietro De Grandi / Unsplash</small>
+              </article>
+            </>
+          ) : (
+            <div className="scroll-band-grid" data-testid="scroll-band-grid">
+              {SCROLL_BANDS.map((band) => (
+                <section className={`scroll-band tone-${band.tone}`} key={band.id}>
+                  <span>{state.scene === 'S005' ? 'BODY' : 'INTERNAL'} {band.id}</span>
+                  <strong>{band.title}</strong>
+                  <small>{band.detail}</small>
+                </section>
+              ))}
             </div>
-            <small>Pietro De Grandi / Unsplash</small>
-          </article>
+          )}
         </BackdropConverter>
       ) : (
         <BackdropCanvas

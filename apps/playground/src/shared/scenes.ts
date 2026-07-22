@@ -2,6 +2,7 @@ import type {
   CustomDrawCallback,
   MaterialAppearanceOptions,
   MaterialConfig,
+  ViewportCaptureConfig,
 } from '@agou/liquid-glass-core';
 
 import type { PlaygroundState, SceneId } from './types';
@@ -37,6 +38,57 @@ export interface DomCaptureContent {
   description: string;
   /** CSS phase class used to change captured colors. */
   phaseClass: string;
+}
+
+/** One deterministic color band shared by the body and internal scroll scenes. */
+export interface ScrollBand {
+  /** Stable band identifier. */
+  id: string;
+  /** Compact visual category. */
+  tone: 'coral' | 'ink' | 'mist' | 'sun' | 'teal';
+  /** Primary band label. */
+  title: string;
+  /** Secondary edge label. */
+  detail: string;
+}
+
+/** Long-form DOM content used to exercise coordinate mapping while scrolling. */
+export const SCROLL_BANDS: readonly ScrollBand[] = [
+  { id: '01', tone: 'mist', title: 'Glacial field', detail: 'NORTH / 01' },
+  { id: '02', tone: 'sun', title: 'High noon', detail: 'EAST / 02' },
+  { id: '03', tone: 'ink', title: 'Slate current', detail: 'SOUTH / 03' },
+  { id: '04', tone: 'coral', title: 'Signal coral', detail: 'WEST / 04' },
+  { id: '05', tone: 'teal', title: 'Tectonic blue', detail: 'NORTH / 05' },
+  { id: '06', tone: 'mist', title: 'Cloud shelf', detail: 'EAST / 06' },
+  { id: '07', tone: 'ink', title: 'Deep contour', detail: 'SOUTH / 07' },
+  { id: '08', tone: 'sun', title: 'Solar marker', detail: 'WEST / 08' },
+  { id: '09', tone: 'teal', title: 'Lake interval', detail: 'NORTH / 09' },
+  { id: '10', tone: 'coral', title: 'Last light', detail: 'EAST / 10' },
+];
+
+const VIEWPORT_CAPTURE_POLICY: ViewportCaptureConfig = {
+  bufferX: 80,
+  bufferY: 180,
+  enabled: true,
+};
+
+/** Return whether a scene uses a real DOM backdrop converter. */
+export function isDomCaptureScene(scene: SceneId): boolean {
+  return scene === 'S003' || scene === 'S005' || scene === 'S006';
+}
+
+/** Return whether a scene exercises body or internal scrolling. */
+export function isScrollCaptureScene(scene: SceneId): boolean {
+  return scene === 'S005' || scene === 'S006';
+}
+
+/** Resolve the bounded source policy without recreating option objects. */
+export function resolveViewportCapture(
+  state: PlaygroundState,
+): boolean | ViewportCaptureConfig {
+  return state.scene === 'S006' && state.viewportEnabled
+    ? VIEWPORT_CAPTURE_POLICY
+    : false;
 }
 
 /** Resolve one of the two deterministic DOM capture states. */
@@ -102,17 +154,9 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
 
   const primary: SceneMaterial = {
     id: 'primary',
-    className: state.scene === 'S003'
-      ? 'scene-material material-dom'
-      : multiple
-        ? 'scene-material material-primary'
-        : 'scene-material material-single',
+    className: resolvePrimaryMaterialClass(state.scene, multiple),
     label: 'MATERIAL 01',
-    name: state.scene === 'S003'
-      ? 'Captured detail'
-      : state.scene === 'S007'
-        ? 'Fallback surface'
-        : multiple ? 'Primary lens' : 'Optical surface',
+    name: resolvePrimaryMaterialName(state.scene, multiple),
     options: {
       radius: state.radius,
       radiusTR: Math.max(8, state.radius - 12),
@@ -121,6 +165,7 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
       refractIndex: state.refractIndex,
       refractIntensity: state.refractIntensity,
       dispersion: 0.018,
+      disableInteractions: isScrollCaptureScene(state.scene),
       renderOrder: 10,
       illuminationAngle: 34,
       illuminationIntensity: 0.62,
@@ -170,6 +215,23 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
       },
     },
   ];
+}
+
+function resolvePrimaryMaterialClass(scene: SceneId, multiple: boolean): string {
+  if (scene === 'S003') return 'scene-material material-dom';
+  if (scene === 'S005') return 'scene-material material-body-scroll';
+  if (scene === 'S006') return 'scene-material material-internal-scroll';
+  return multiple
+    ? 'scene-material material-primary'
+    : 'scene-material material-single';
+}
+
+function resolvePrimaryMaterialName(scene: SceneId, multiple: boolean): string {
+  if (scene === 'S003') return 'Captured detail';
+  if (scene === 'S005') return 'Body scroll';
+  if (scene === 'S006') return 'Internal scroll';
+  if (scene === 'S007') return 'Fallback surface';
+  return multiple ? 'Primary lens' : 'Optical surface';
 }
 
 function resolveOracleMaterials(scene: SceneId): readonly SceneMaterial[] {

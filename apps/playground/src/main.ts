@@ -1,7 +1,10 @@
 import './styles.css';
+import './styles/scroll-scenes.css';
+import './styles/scene-controls.css';
 import './styles/responsive.css';
 
 import { observeGlassContext } from './shared/diagnostics';
+import { isDomCaptureScene } from './shared/scenes';
 import type {
   FrameworkHostController,
   FrameworkHostMount,
@@ -50,6 +53,8 @@ const SCENE_META: Record<SceneId, {
   S001: { kicker: 'SCENE 001', title: 'Single material', materialCount: '1' },
   S002: { kicker: 'SCENE 002', title: 'Material overlap', materialCount: '3' },
   S003: { kicker: 'SCENE 003', title: 'DOM capture', materialCount: '1' },
+  S005: { kicker: 'SCENE 005', title: 'Body scroll', materialCount: '1' },
+  S006: { kicker: 'SCENE 006', title: 'Internal scroll', materialCount: '1' },
   S007: { kicker: 'SCENE 007', title: 'Fallback recovery', materialCount: '1' },
 };
 
@@ -69,6 +74,7 @@ const hostCallbacks = {
       renderDiagnostics();
     });
     context.setFallbackMode(currentState.fallbackEnabled);
+    context.setViewportMode(currentState.viewportEnabled);
   },
   onBackdropRefreshReady: (refresh: (() => void) | null) => {
     activeBackdropRefresh = refresh;
@@ -140,6 +146,8 @@ function updateState(
 ): void {
   const fallbackChanged = changes.fallbackEnabled !== undefined
     && changes.fallbackEnabled !== currentState.fallbackEnabled;
+  const viewportChanged = changes.viewportEnabled !== undefined
+    && changes.viewportEnabled !== currentState.viewportEnabled;
   const hostStateChanged = Object.keys(changes).some(
     (key) => key !== 'fallbackEnabled',
   );
@@ -150,6 +158,9 @@ function updateState(
     if (hostStateChanged) hostController?.update(currentState);
     if (fallbackChanged) {
       activeContext?.setFallbackMode(currentState.fallbackEnabled);
+    }
+    if (viewportChanged) {
+      activeContext?.setViewportMode(currentState.viewportEnabled);
     }
   }
   replacePlaygroundUrl(currentState);
@@ -169,6 +180,12 @@ function renderState(): void {
     button.dataset.active = String(active);
     button.setAttribute('aria-pressed', String(active));
   }
+  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-viewport-mode]')) {
+    const active = (button.dataset.viewportMode === 'bounded')
+      === currentState.viewportEnabled;
+    button.dataset.active = String(active);
+    button.setAttribute('aria-pressed', String(active));
+  }
 
   glassToggle.checked = currentState.glassEnabled;
   setInputValue('thickness', currentState.thickness);
@@ -185,7 +202,11 @@ function renderState(): void {
   setText('#scene-kicker', sceneMeta.kicker);
   setText('#scene-title', sceneMeta.title);
   setText('#material-count', sceneMeta.materialCount);
-  setText('#backdrop-type', currentState.scene === 'S003' ? 'Captured DOM' : 'Canvas 2D');
+  setText(
+    '#backdrop-type',
+    isDomCaptureScene(currentState.scene) ? 'Captured DOM' : 'Canvas 2D',
+  );
+  setText('#stage-source', resolveStageSource(currentState.scene));
   setText(
     '[data-action="mutate-dom"]',
     currentState.domVariant === 'source' ? 'Mutate DOM' : 'Restore source',
@@ -197,6 +218,7 @@ function renderState(): void {
   app.dataset.renderMode = currentState.renderMode;
   app.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
   app.dataset.fallbackRequest = currentState.fallbackEnabled ? 'on' : 'off';
+  app.dataset.viewportRequest = currentState.viewportEnabled ? 'on' : 'off';
   app.dataset.domVariant = currentState.domVariant;
   app.dataset.testMode = String(currentState.testMode);
   app.dataset.oracleMode = String(currentState.oracleMode);
@@ -204,6 +226,7 @@ function renderState(): void {
   frameworkHost.dataset.scene = currentState.scene;
   frameworkHost.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
   frameworkHost.dataset.fallbackRequest = currentState.fallbackEnabled ? 'on' : 'off';
+  frameworkHost.dataset.viewportRequest = currentState.viewportEnabled ? 'on' : 'off';
   document.body.dataset.playgroundScene = currentState.scene;
   renderDiagnostics();
 }
@@ -221,7 +244,9 @@ function renderDiagnostics(): void {
   setText('#effective-renderer', runtimeReport.fallbackMode ? 'CSS fallback' : 'WebGL2');
   setText(
     '#stage-pipeline',
-    `1440 · ${runtimeReport.fallbackMode ? 'CSS FILTER' : 'WEBGL2'} · UNIFORM`,
+    `${String(runtimeReport.canvasWidth || window.innerWidth)} · ${
+      runtimeReport.fallbackMode ? 'CSS FILTER' : 'WEBGL2'
+    } · UNIFORM`,
   );
   setText('#diagnostic-frames', String(runtimeReport.frameCount));
   setText('#diagnostic-captures', String(runtimeReport.captureCount));
@@ -245,6 +270,8 @@ function renderDiagnostics(): void {
   app.dataset.captureY = String(viewport?.y ?? 0);
   app.dataset.captureWidth = String(viewport?.width ?? 0);
   app.dataset.captureHeight = String(viewport?.height ?? 0);
+  app.dataset.captureBitmapWidth = String(runtimeReport.lastCapture?.width ?? 0);
+  app.dataset.captureBitmapHeight = String(runtimeReport.lastCapture?.height ?? 0);
   frameworkHost.dataset.ready = String(ready);
   frameworkHost.dataset.fallback = runtimeReport.fallbackMode ? 'on' : 'off';
   document.documentElement.dataset.playgroundReady = String(ready);
@@ -260,6 +287,13 @@ function setText(selector: string, value: string): void {
 
 function capitalize(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function resolveStageSource(scene: SceneId): string {
+  if (scene === 'S003') return '01 / DOM SOURCE';
+  if (scene === 'S005') return '05 / BODY SCROLL';
+  if (scene === 'S006') return '06 / VIEWPORT CAPTURE';
+  return '01 / CUSTOM CANVAS';
 }
 
 for (const button of app.querySelectorAll<HTMLButtonElement>('[data-framework]')) {
@@ -283,7 +317,8 @@ sceneSelect.addEventListener('change', () => {
       domVariant: 'source',
       fallbackEnabled: scene === 'S007',
       scene,
-      scrollable: false,
+      scrollable: scene === 'S006',
+      viewportEnabled: scene === 'S006',
     });
   }
 });
@@ -303,6 +338,12 @@ refreshBackdropButton.addEventListener('click', () => {
 for (const button of app.querySelectorAll<HTMLButtonElement>('[data-fallback-mode]')) {
   button.addEventListener('click', () => {
     updateState({ fallbackEnabled: button.dataset.fallbackMode === 'css' });
+  });
+}
+
+for (const button of app.querySelectorAll<HTMLButtonElement>('[data-viewport-mode]')) {
+  button.addEventListener('click', () => {
+    updateState({ viewportEnabled: button.dataset.viewportMode === 'bounded' });
   });
 }
 

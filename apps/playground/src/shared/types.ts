@@ -6,7 +6,14 @@ import type {
 import type { FrameworkId } from '../app-meta';
 
 /** Canonical visible scenes exposed by the optical workbench. */
-export const SCENE_IDS = ['S001', 'S002', 'S003', 'S007'] as const;
+export const SCENE_IDS = [
+  'S001',
+  'S002',
+  'S003',
+  'S005',
+  'S006',
+  'S007',
+] as const;
 
 /** Canonical visible scene identifier. */
 export type SceneId = (typeof SCENE_IDS)[number];
@@ -30,6 +37,8 @@ export interface PlaygroundState {
   fallbackEnabled: boolean;
   /** Whether the framework host exposes a scrolling glass surface. */
   scrollable: boolean;
+  /** Whether the context forces viewport-limited DOM capture. */
+  viewportEnabled: boolean;
   /** Current deterministic DOM content variant in capture scenes. */
   domVariant: 'source' | 'mutated';
   /** Material thickness in CSS pixels. */

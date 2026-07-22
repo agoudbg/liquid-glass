@@ -12,6 +12,7 @@ const DEFAULT_STATE: PlaygroundState = {
   glassEnabled: true,
   fallbackEnabled: false,
   scrollable: false,
+  viewportEnabled: false,
   domVariant: 'source',
   thickness: 36,
   refractIndex: 1.21,
@@ -27,6 +28,8 @@ export function createInitialState(url: URL): PlaygroundState {
   const framework = url.searchParams.get('framework');
   const scene = parseScene(url.searchParams.get('scene'));
   const fallback = url.searchParams.get('fallback');
+  const scroll = url.searchParams.get('scroll');
+  const viewport = url.searchParams.get('viewport');
   const oracleMode = url.searchParams.get('oracle') === '1'
     && (scene === 'S001' || scene === 'S002');
   const parsedState: PlaygroundState = {
@@ -35,7 +38,8 @@ export function createInitialState(url: URL): PlaygroundState {
     scene,
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on' || (fallback !== 'off' && scene === 'S007'),
-    scrollable: url.searchParams.get('scroll') === 'on',
+    scrollable: scene === 'S006' && scroll !== 'off',
+    viewportEnabled: scene === 'S006' && viewport !== 'off',
     domVariant: url.searchParams.get('content') === 'mutated' ? 'mutated' : 'source',
     thickness: parseNumber(url.searchParams.get('thickness'), 4, 80, DEFAULT_STATE.thickness),
     refractIndex: parseNumber(url.searchParams.get('ior'), 1, 1.6, DEFAULT_STATE.refractIndex),
@@ -76,6 +80,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('glass', state.glassEnabled ? 'on' : 'off');
   url.searchParams.set('fallback', state.fallbackEnabled ? 'on' : 'off');
   url.searchParams.set('scroll', state.scrollable ? 'on' : 'off');
+  url.searchParams.set('viewport', state.viewportEnabled ? 'on' : 'off');
   url.searchParams.set('content', state.domVariant);
   url.searchParams.set('thickness', String(state.thickness));
   url.searchParams.set('ior', state.refractIndex.toFixed(2));

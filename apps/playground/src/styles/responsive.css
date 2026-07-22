@@ -65,6 +65,50 @@
     grid-column: 1 / -1;
   }
 
+  #app[data-scene="S005"] .playground-shell {
+    grid-template-rows: auto auto auto;
+  }
+
+  #app[data-scene="S005"] .topbar {
+    top: 0;
+  }
+
+  #app[data-scene="S005"] .workspace {
+    height: auto;
+  }
+
+  #app[data-scene="S005"] .stage {
+    height: var(--scroll-source-height);
+  }
+
+  #app[data-scene="S005"] .inspector {
+    position: relative;
+    z-index: 20030;
+    top: auto;
+    align-self: stretch;
+    height: auto;
+  }
+
+  #app[data-scene="S005"] .diagnostics {
+    position: relative;
+    z-index: 20030;
+  }
+
+  .material-body-scroll {
+    top: 178px;
+    right: 20px;
+    width: calc(100vw - 40px);
+    height: 188px;
+  }
+
+  .material-internal-scroll {
+    --internal-glass-top: 72px;
+    top: var(--internal-glass-top);
+    width: calc(100% - 40px);
+    height: 188px;
+    margin: calc(var(--internal-glass-top) - var(--scroll-source-height)) 20px 0 auto;
+  }
+
   .range-control:nth-child(odd) {
     border-right: 1px solid #e2e6e3;
   }
@@ -134,6 +178,35 @@
     left: 20px;
     width: calc(100% - 40px);
     height: 190px;
+  }
+
+  .scroll-band {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 12px;
+    padding: 0 20px;
+  }
+
+  .scroll-band strong {
+    font-size: 22px;
+  }
+
+  .scroll-band small {
+    display: none;
+  }
+
+  .material-body-scroll {
+    top: 178px;
+    right: 20px;
+    width: calc(100vw - 40px);
+    height: 188px;
+  }
+
+  .material-internal-scroll {
+    --internal-glass-top: 72px;
+    top: var(--internal-glass-top);
+    width: calc(100% - 40px);
+    height: 188px;
+    margin: calc(var(--internal-glass-top) - var(--scroll-source-height)) 20px 0 auto;
   }
 
   .material-primary {

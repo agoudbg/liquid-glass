@@ -11,8 +11,11 @@ import { For, Show } from 'solid-js';
 
 import {
   getBackdropDraw,
+  isDomCaptureScene,
   resolveDomCaptureContent,
   resolveSceneMaterials,
+  resolveViewportCapture,
+  SCROLL_BANDS,
 } from '../../shared/scenes';
 import type { FrameworkHostProps } from '../../shared/types';
 
@@ -46,7 +49,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
       onReady={props.callbacks.onContextReady}
     >
       <Show
-        when={props.state.scene === 'S003'}
+        when={isDomCaptureScene(props.state.scene)}
         fallback={(
           <BackdropCanvas
             class="scene-backdrop"
@@ -57,30 +60,57 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
         <BackdropConverter
           apiRef={publishBackdropHandle}
           backgroundColor="#dce4df"
-          class="scene-backdrop dom-capture-backdrop"
+          class={props.state.scene === 'S003'
+            ? 'scene-backdrop dom-capture-backdrop'
+            : `scene-backdrop scroll-backdrop ${
+                props.state.scene === 'S005'
+                  ? 'body-scroll-backdrop'
+                  : 'internal-scroll-backdrop'
+              }`}
+          viewportCapture={resolveViewportCapture(props.state)}
         >
-          <div class="dom-capture-photo">
-            <img
-              alt="Boats crossing a turquoise alpine lake below the Dolomites"
-              data-testid="dom-capture-image"
-              draggable={false}
-              src="/dolomites.jpg"
-            />
-            <span>IMG / LOCAL ASSET</span>
-          </div>
-          <article
-            class={`dom-capture-copy ${domContent().phaseClass}`}
-            data-dom-phase={props.state.domVariant}
-            data-testid="dom-capture-copy"
+          <Show
+            when={props.state.scene === 'S003'}
+            fallback={(
+              <div class="scroll-band-grid" data-testid="scroll-band-grid">
+                <For each={SCROLL_BANDS}>
+                  {(band) => (
+                    <section class={`scroll-band tone-${band.tone}`}>
+                      <span>
+                        {props.state.scene === 'S005' ? 'BODY' : 'INTERNAL'}{' '}
+                        {band.id}
+                      </span>
+                      <strong>{band.title}</strong>
+                      <small>{band.detail}</small>
+                    </section>
+                  )}
+                </For>
+              </div>
+            )}
           >
-            <p>{domContent().eyebrow}</p>
-            <h3>{domContent().title}</h3>
-            <span>{domContent().description}</span>
-            <div class="dom-capture-swatches" aria-hidden="true">
-              <i /><i /><i />
+            <div class="dom-capture-photo">
+              <img
+                alt="Boats crossing a turquoise alpine lake below the Dolomites"
+                data-testid="dom-capture-image"
+                draggable={false}
+                src="/dolomites.jpg"
+              />
+              <span>IMG / LOCAL ASSET</span>
             </div>
-            <small>Pietro De Grandi / Unsplash</small>
-          </article>
+            <article
+              class={`dom-capture-copy ${domContent().phaseClass}`}
+              data-dom-phase={props.state.domVariant}
+              data-testid="dom-capture-copy"
+            >
+              <p>{domContent().eyebrow}</p>
+              <h3>{domContent().title}</h3>
+              <span>{domContent().description}</span>
+              <div class="dom-capture-swatches" aria-hidden="true">
+                <i /><i /><i />
+              </div>
+              <small>Pietro De Grandi / Unsplash</small>
+            </article>
+          </Show>
         </BackdropConverter>
       </Show>
       <For each={resolveSceneMaterials(props.state)}>

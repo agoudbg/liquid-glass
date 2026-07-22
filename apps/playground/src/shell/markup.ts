@@ -16,6 +16,8 @@ export const PLAYGROUND_MARKUP = `
           <option value="S001">S001 &middot; Single material</option>
           <option value="S002">S002 &middot; Material overlap</option>
           <option value="S003">S003 &middot; DOM capture</option>
+          <option value="S005">S005 &middot; Body scroll</option>
+          <option value="S006">S006 &middot; Internal scroll</option>
           <option value="S007">S007 &middot; Fallback recovery</option>
         </select>
       </label>
@@ -38,7 +40,7 @@ export const PLAYGROUND_MARKUP = `
     <main class="workspace">
       <section class="stage" aria-label="Liquid glass stage">
         <div id="framework-host" class="framework-host"></div>
-        <div class="stage-coordinate stage-coordinate-top" aria-hidden="true">01 / CUSTOM CANVAS</div>
+        <div id="stage-source" class="stage-coordinate stage-coordinate-top" aria-hidden="true">01 / CUSTOM CANVAS</div>
         <div id="stage-pipeline" class="stage-coordinate stage-coordinate-bottom" aria-hidden="true">1440 &middot; WEBGL2 &middot; UNIFORM</div>
       </section>
 
@@ -90,6 +92,14 @@ export const PLAYGROUND_MARKUP = `
           <div class="scene-action-panel" data-scene-actions="S003">
             <button type="button" data-action="mutate-dom">Mutate DOM</button>
             <button type="button" data-action="refresh-backdrop">Refresh capture</button>
+          </div>
+
+          <div class="mode-control viewport-control" data-scene-controls="S006">
+            <span>Capture</span>
+            <div class="segment-control viewport-switcher" aria-label="Capture bounds">
+              <button type="button" data-viewport-mode="full">Full source</button>
+              <button type="button" data-viewport-mode="bounded">Viewport</button>
+            </div>
           </div>
         </div>
 

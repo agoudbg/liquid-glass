@@ -11,6 +11,11 @@ export {
   createSliderEngine,
 } from './factories';
 export { InteractionEngine } from './InteractionEngine';
+export type { MaterialPointerPolicy } from './MaterialPointerController';
+export {
+  isInteractiveMaterialPointer,
+  MaterialPointerController,
+} from './MaterialPointerController';
 export type { OriginShiftResult } from './origin';
 export { calculateOriginShift } from './origin';
 export {

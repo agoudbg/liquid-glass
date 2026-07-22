@@ -302,6 +302,17 @@ export class FakeCanvas {
 
   private canvasWidth = 1;
   private canvasHeight = 1;
+  private clientRect: DOMRectReadOnly = {
+    x: 0,
+    y: 0,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: 0,
+    height: 0,
+    toJSON: () => ({}),
+  };
   private readonly attributes = new Map<string, string>();
   private readonly listeners = new Map<string, Set<EventListener>>();
 
@@ -331,6 +342,14 @@ export class FakeCanvas {
       return this.context2d;
     }
     return null;
+  }
+
+  getBoundingClientRect(): DOMRectReadOnly {
+    return this.clientRect;
+  }
+
+  setClientRect(rect: DOMRectReadOnly): void {
+    this.clientRect = rect;
   }
 
   setAttribute(name: string, value: string): void {

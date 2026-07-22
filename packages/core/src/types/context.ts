@@ -140,8 +140,8 @@ export interface DomBackdropSourceConfig extends BaseBackdropSourceConfig {
 export interface CanvasBackdropSourceConfig extends BaseBackdropSourceConfig {
   /** Discriminator for custom canvas drawing. */
   kind: 'canvas';
-  /** DOM anchor that defines the source bounds and position. */
-  element: HTMLElement;
+  /** Visible canvas receiving a copy of the core-owned authoritative bitmap. */
+  element: HTMLCanvasElement;
   /** Callback invoked whenever the source needs to be redrawn. */
   draw: CustomDrawCallback;
 }
@@ -288,6 +288,8 @@ export interface GlassContext {
   ): BackdropSourceHandle<CanvasBackdropSourceConfig>;
   /** Register a material and return its lifecycle handle. */
   addMaterial(config: MaterialConfig): MaterialHandle;
+  /** Replace the current context option snapshot without replacing registrations. */
+  updateOptions(options: GlassContextOptions): void;
   /** Create the delegation interface exposed to nested contexts. */
   createProxyInterface(): ProxyTargetInterface;
   /** Force or clear CSS fallback presentation. */

@@ -86,7 +86,8 @@ describe('GlassEngine', () => {
   it('owns the uniform canvas and draws a custom backdrop through one material', () => {
     const runtime = createRuntime(2);
     const container = new FakeElement({ x: 10, y: 20, width: 320, height: 180 });
-    const backdrop = new FakeElement({ x: 10, y: 20, width: 320, height: 180 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 10, y: 20, width: 320, height: 180 }));
     const material = new FakeElement({ x: 50, y: 60, width: 120, height: 48 });
     const engine = new GlassEngine(runtime);
     const context = engine.createContext(
@@ -112,7 +113,7 @@ describe('GlassEngine', () => {
     context.on('materialsRendered', rendered);
     const source = context.addBackdropSource({
       kind: 'canvas',
-      element: backdrop as unknown as HTMLElement,
+      element: backdrop as unknown as HTMLCanvasElement,
       draw,
     });
     const handle = context.addMaterial({
@@ -131,6 +132,7 @@ describe('GlassEngine', () => {
       name: 'setTransform',
       args: [2, 0, 0, 2, 0, 0],
     });
+    expect(backdrop).toMatchObject({ width: 640, height: 360 });
     expect(callsNamed(runtime.canvases[0].gl, 'drawArrays')).toHaveLength(1);
     expect(rendered).toHaveBeenCalledWith(expect.objectContaining({
       canvas: context.canvas,
@@ -151,6 +153,115 @@ describe('GlassEngine', () => {
     context.destroy();
     expect(container.children).toHaveLength(0);
     expect(callsNamed(runtime.canvases[0].gl, 'deleteProgram')).toHaveLength(1);
+  });
+
+  it('draws once into the owned canvas and mirrors that canvas to both consumers', () => {
+    const runtime = createRuntime(2);
+    const container = new FakeElement({ x: 10, y: 20, width: 200, height: 100 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 10, y: 20, width: 200, height: 100 }));
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const draw = vi.fn((
+      drawingContext:
+        | CanvasRenderingContext2D
+        | OffscreenCanvasRenderingContext2D,
+    ) => {
+      drawingContext.fillRect(0, 0, 200, 100);
+    });
+
+    const source = context.addBackdropSource({
+      kind: 'canvas',
+      element: backdrop as unknown as HTMLCanvasElement,
+      draw,
+    });
+    const ownedSource = runtime.canvases[2];
+
+    expect(draw).toHaveBeenCalledOnce();
+    expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 200, 100);
+    expect(backdrop.context2d.calls.filter((call) => call.name === 'fillRect'))
+      .toHaveLength(0);
+    expect(backdrop.context2d.calls.filter((call) => call.name === 'drawImage'))
+      .toEqual([{ name: 'drawImage', args: [ownedSource, 0, 0] }]);
+    expect(runtime.canvases[1].context2d.calls.filter((call) => call.name === 'drawImage'))
+      .toEqual([{
+        name: 'drawImage',
+        args: [ownedSource, 0, 0, 400, 200],
+      }]);
+
+    source.refresh();
+    expect(draw).toHaveBeenCalledTimes(2);
+    expect(backdrop.context2d.calls.filter((call) => call.name === 'drawImage'))
+      .toHaveLength(2);
+  });
+
+  it('replaces options in place while preserving context and registration handles', () => {
+    const runtime = createRuntime(2);
+    const container = new FakeElement({ x: 0, y: 0, width: 200, height: 100 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 0, y: 0, width: 200, height: 100 }));
+    const material = new FakeElement({ x: 20, y: 20, width: 80, height: 40 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+      { renderPrecision: 1, canvasZIndex: 12 },
+    );
+    const contextIdentity = context;
+    const draw = vi.fn();
+    const source = context.addBackdropSource({
+      kind: 'canvas',
+      element: backdrop as unknown as HTMLCanvasElement,
+      draw,
+    });
+    const materialHandle = context.addMaterial({
+      element: material as unknown as HTMLElement,
+    });
+    const sourceId = source.id;
+    const materialId = materialHandle.id;
+    const drawCount = draw.mock.calls.length;
+
+    context.updateOptions({ renderPrecision: 0.5, canvasZIndex: 24 });
+
+    expect(context).toBe(contextIdentity);
+    expect(source).toMatchObject({ id: sourceId, destroyed: false });
+    expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
+    expect(context.canvas.style.zIndex).toBe('24');
+    expect(context.canvas).toMatchObject({ width: 200, height: 100 });
+    expect(runtime.canvases[1]).toMatchObject({ width: 200, height: 100 });
+    expect(runtime.canvases[2]).toMatchObject({ width: 200, height: 100 });
+    expect(backdrop).toMatchObject({ width: 200, height: 100 });
+    expect(draw).toHaveBeenCalledTimes(drawCount + 1);
+    expect(draw).toHaveBeenLastCalledWith(expect.anything(), 200, 100);
+
+    context.updateOptions({});
+    expect(context.canvas.style.zIndex).toBe('9999');
+    expect(context.canvas).toMatchObject({ width: 400, height: 200 });
+    expect(runtime.canvases[2]).toMatchObject({ width: 400, height: 200 });
+    expect(source).toMatchObject({ id: sourceId, destroyed: false });
+    expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
+  });
+
+  it('rejects dedicated mode on creation and in-place option updates', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 100, height: 50 });
+    const engine = new GlassEngine(runtime);
+
+    expect(() => engine.createContext(
+      container as unknown as HTMLElement,
+      { renderMode: 'dedicated' },
+    )).toThrowError(GlassError);
+
+    const context = engine.createContext(
+      container as unknown as HTMLElement,
+      { canvasZIndex: 14 },
+    );
+    expect(() => context.updateOptions({
+      renderMode: 'dedicated',
+      canvasZIndex: 99,
+      renderPrecision: 0.5,
+    })).toThrowError(GlassError);
+    expect(context.canvas.style.zIndex).toBe('14');
+    expect(context.canvas).toMatchObject({ width: 1, height: 1 });
   });
 
   it('cascades engine destruction and rejects work on destroyed contexts', () => {

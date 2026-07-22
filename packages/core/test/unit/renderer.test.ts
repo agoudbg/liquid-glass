@@ -89,6 +89,27 @@ describe('WebGLRenderer', () => {
     expect(renderer.readPixels()).toEqual(new Uint8Array(200 * 100 * 4).fill(7));
   });
 
+  it('updates render scale immediately and rejects invalid scales', () => {
+    const canvas = new FakeCanvas();
+    const renderer = new WebGLRenderer(
+      canvas as unknown as HTMLCanvasElement,
+      { devicePixelRatio: () => 2, renderScale: 1 },
+    );
+
+    renderer.resize(100, 50);
+    expect(canvas).toMatchObject({ width: 200, height: 100 });
+
+    renderer.setRenderScale(0.5);
+    expect(canvas).toMatchObject({ width: 100, height: 50 });
+
+    for (const invalidScale of [0, 0.049, NaN, Number.POSITIVE_INFINITY]) {
+      expect(() => renderer.setRenderScale(invalidScale)).toThrowError(GlassError);
+      expect(canvas).toMatchObject({ width: 100, height: 50 });
+    }
+
+    renderer.destroy();
+  });
+
   it('recreates resources after context restoration and cleans up idempotently', () => {
     const canvas = new FakeCanvas();
     const restored = vi.fn();

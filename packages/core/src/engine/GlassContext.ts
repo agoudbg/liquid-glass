@@ -18,6 +18,7 @@ import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
 import { generateUUID } from '../utils/uuid';
+import { drawCanvasBackdropComposite } from './canvas-backdrop';
 import { resolveRendererMaterial } from './material-resolver';
 import {
   type CanvasBackdropRegistration,
@@ -32,6 +33,24 @@ function resolvedPrecision(options: GlassContextOptions): number {
   return precision === undefined || precision === 0 || !Number.isFinite(precision)
     ? 1
     : Math.max(0.05, precision);
+}
+
+function snapshotOptions(options: GlassContextOptions): GlassContextOptions {
+  if (options.renderMode === 'dedicated') {
+    throw new GlassError(
+      'INVALID_CONFIG',
+      'Dedicated per-material canvases are introduced after the P3 uniform slice.',
+      { phase: 'configuration', details: { renderMode: options.renderMode } },
+    );
+  }
+
+  return {
+    ...options,
+    renderMode: 'uniform',
+    themeColorThresholds: options.themeColorThresholds
+      ? { ...options.themeColorThresholds }
+      : undefined,
+  };
 }
 
 /** Concrete core-owned implementation of the public `GlassContext` contract. */
@@ -49,7 +68,8 @@ export class GlassContextImpl implements GlassContext {
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
   private readonly sources = new Map<string, CanvasBackdropRegistration>();
   private readonly materials = new Map<string, MaterialRegistration>();
-  private readonly precision: number;
+  private optionsSnapshot: GlassContextOptions;
+  private precision: number;
   private isDestroyed = false;
   private fallbackMode = false;
   private viewportMode = false;
@@ -64,11 +84,12 @@ export class GlassContextImpl implements GlassContext {
    */
   public constructor(
     private readonly container: HTMLElement,
-    private readonly options: GlassContextOptions,
+    options: GlassContextOptions,
     private readonly runtime: GlassEngineRuntime,
     private readonly onDestroyed: () => void,
   ) {
-    this.precision = resolvedPrecision(options);
+    this.optionsSnapshot = snapshotOptions(options);
+    this.precision = resolvedPrecision(this.optionsSnapshot);
     this.canvas = runtime.createCanvas();
     this.compositeCanvas = runtime.createCanvas();
     this.configurePresentationCanvas();
@@ -167,6 +188,19 @@ export class GlassContextImpl implements GlassContext {
       this.emitter.emit('materialRemoved', registration.id);
       throw error;
     }
+  }
+
+  /** Replace context options in place and synchronously apply presentation changes. */
+  public updateOptions(options: GlassContextOptions): void {
+    this.assertUsable();
+    const nextSnapshot = snapshotOptions(options);
+    const nextPrecision = resolvedPrecision(nextSnapshot);
+
+    this.renderer.setRenderScale(nextPrecision);
+    this.optionsSnapshot = nextSnapshot;
+    this.precision = nextPrecision;
+    this.applyPresentationOptions();
+    this.refresh('structural');
   }
 
   /** Create the delegation surface; external registration is deferred to P6. */
@@ -288,70 +322,34 @@ export class GlassContextImpl implements GlassContext {
     this.canvas.style.width = '100%';
     this.canvas.style.height = '100%';
     this.canvas.style.pointerEvents = 'none';
-    this.canvas.style.zIndex = String(this.options.canvasZIndex ?? 9_999);
+    this.applyPresentationOptions();
   }
 
   private drawBackdropComposite(containerRect: DOMRectReadOnly): void {
-    this.compositeCanvas.width = this.canvas.width;
-    this.compositeCanvas.height = this.canvas.height;
-    const compositeContext = this.compositeCanvas.getContext('2d');
-    if (!compositeContext) {
-      throw new GlassError(
-        'CAPTURE_FAILED',
-        'Unable to allocate the custom-backdrop composite context.',
-        { phase: 'capture' },
-      );
-    }
-    compositeContext.clearRect(0, 0, this.compositeCanvas.width, this.compositeCanvas.height);
     const ratio = this.runtime.devicePixelRatio();
     const safeRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
     const deviceScale = safeRatio * this.precision;
-    const orderedSources = [...this.sources.values()].sort(
-      (left, right) => (left.config.zIndex ?? 0) - (right.config.zIndex ?? 0),
+    const captures = drawCanvasBackdropComposite(
+      this.compositeCanvas,
+      this.canvas.width,
+      this.canvas.height,
+      this.sources.values(),
+      containerRect,
+      deviceScale,
     );
 
-    for (const source of orderedSources) {
-      const sourceRect = source.config.element.getBoundingClientRect();
-      const configuredScale = source.config.scale ?? 1;
-      const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
-        ? configuredScale
-        : 1;
-      source.canvas.width = Math.max(1, Math.round(sourceRect.width * deviceScale * sourceScale));
-      source.canvas.height = Math.max(1, Math.round(sourceRect.height * deviceScale * sourceScale));
-      const sourceContext = source.canvas.getContext('2d');
-      if (!sourceContext) {
-        throw new GlassError(
-          'CAPTURE_FAILED',
-          'Unable to allocate a custom-backdrop drawing context.',
-          { phase: 'capture', backdropId: source.id },
-        );
-      }
-      sourceContext.setTransform(1, 0, 0, 1, 0, 0);
-      sourceContext.clearRect(0, 0, source.canvas.width, source.canvas.height);
-      sourceContext.setTransform(deviceScale * sourceScale, 0, 0, deviceScale * sourceScale, 0, 0);
-      try {
-        source.config.draw(sourceContext, sourceRect.width, sourceRect.height);
-      } finally {
-        sourceContext.setTransform(1, 0, 0, 1, 0, 0);
-      }
-      const destinationX = (sourceRect.left - containerRect.left) * deviceScale;
-      const destinationY = (sourceRect.top - containerRect.top) * deviceScale;
-      const destinationWidth = sourceRect.width * deviceScale;
-      const destinationHeight = sourceRect.height * deviceScale;
-      compositeContext.drawImage(
-        source.canvas,
-        destinationX,
-        destinationY,
-        destinationWidth,
-        destinationHeight,
-      );
+    for (const capture of captures) {
       this.emitter.emit('backdropCaptured', {
-        id: source.id,
-        canvas: source.canvas,
-        width: source.canvas.width,
-        height: source.canvas.height,
+        id: capture.id,
+        canvas: capture.canvas,
+        width: capture.width,
+        height: capture.height,
       });
     }
+  }
+
+  private applyPresentationOptions(): void {
+    this.canvas.style.zIndex = String(this.optionsSnapshot.canvasZIndex ?? 9_999);
   }
 
   private resolveMaterials(containerRect: DOMRectReadOnly): RendererMaterial[] {

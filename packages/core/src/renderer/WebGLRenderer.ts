@@ -3,6 +3,7 @@ import {
   LIQUID_GLASS_FRAGMENT_SHADER,
   LIQUID_GLASS_VERTEX_SHADER,
 } from '../shaders';
+import { validateFiniteNumber } from '../utils/validation';
 import { createQuadGeometry, type QuadGeometry } from './geometry';
 import { calculateMaterialScissor } from './scissor';
 import { createShaderProgram } from './shader-program';
@@ -38,7 +39,7 @@ export class WebGLRenderer {
   }
 
   private readonly gl: WebGL2RenderingContext;
-  private readonly renderScale: number;
+  private renderScale: number;
   private readonly readDevicePixelRatio: () => number;
   private readonly onContextLost: (() => void) | undefined;
   private readonly onContextRestored: (() => void) | undefined;
@@ -128,6 +129,26 @@ export class WebGLRenderer {
       this.canvas.height = physicalHeight;
     }
     this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
+  }
+
+  /**
+   * Replace the effective quality scale and immediately resize the drawing buffer.
+   *
+   * @param renderScale - Finite scale greater than or equal to the shader-safe minimum.
+   */
+  public setRenderScale(renderScale: number): void {
+    this.assertUsable();
+    const nextScale = validateFiniteNumber(
+      renderScale,
+      'renderer.renderScale',
+      { minimum: 0.05 },
+    );
+    if (nextScale === this.renderScale) {
+      return;
+    }
+
+    this.renderScale = nextScale;
+    this.resize(this.logicalWidth, this.logicalHeight);
   }
 
   /**

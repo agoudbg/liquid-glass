@@ -5,6 +5,7 @@ import type {
   CanvasBackdropSourceConfig,
   DomBackdropSourceConfig,
   GlassContext,
+  GlassContextOptions,
   MaterialChanges,
   MaterialFeedback,
   MaterialHandle,
@@ -21,7 +22,11 @@ describe('public core contract', () => {
         config: CanvasBackdropSourceConfig,
       ): BackdropSourceHandle<CanvasBackdropSourceConfig>;
       addMaterial(config: Parameters<GlassContext['addMaterial']>[0]): MaterialHandle;
+      updateOptions(options: GlassContextOptions): void;
     }>();
+
+    expectTypeOf<CanvasBackdropSourceConfig['element']>()
+      .toEqualTypeOf<HTMLCanvasElement>();
 
     expectTypeOf<ReturnType<ProxyInterface['registerExternalMaterial']>>().toMatchTypeOf<{
       readonly id: string;

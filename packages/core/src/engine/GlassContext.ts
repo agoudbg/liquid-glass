@@ -20,8 +20,8 @@ import {
   snapshotContextOptions,
 } from './context-options';
 import { ContextPresentation } from './context-presentation';
-import { ContextBackdropComposite } from './ContextBackdropComposite';
 import { ContextEventController } from './ContextEventController';
+import { ContextRenderCoordinator } from './ContextRenderCoordinator';
 import { createContextProxyInterface } from './create-context-proxy';
 import {
   assertContextRendererOptions,
@@ -29,7 +29,6 @@ import {
 } from './create-context-renderer';
 import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { FallbackController } from './FallbackController';
-import { resolveRendererMaterials } from './material-resolver';
 import { MaterialPresentationController } from './MaterialPresentationController';
 import {
   type BackdropRegistration,
@@ -50,8 +49,7 @@ export class GlassContextImpl implements GlassContext {
     return this.fallback.effective;
   }
   private readonly renderer: WebGLRenderer | null;
-  private readonly compositeCanvas: HTMLCanvasElement;
-  private readonly backdropComposite: ContextBackdropComposite;
+  private readonly renderCoordinator: ContextRenderCoordinator;
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
   private readonly sources = new Map<string, BackdropRegistration>();
   private readonly materials: MaterialPresentationController;
@@ -64,7 +62,6 @@ export class GlassContextImpl implements GlassContext {
   private precision: number;
   private isDestroyed = false;
   private viewportMode = false;
-  private backdropTextureReady = false;
 
   /**
    * Create one context with a core-owned uniform canvas.
@@ -84,12 +81,33 @@ export class GlassContextImpl implements GlassContext {
     this.precision = resolveContextPrecision(this.optionsSnapshot);
     this.fallback = new FallbackController(this.optionsSnapshot);
     this.canvas = runtime.createCanvas();
-    this.compositeCanvas = runtime.createCanvas();
-    this.backdropComposite = new ContextBackdropComposite(
-      this.compositeCanvas,
+    const compositeCanvas = runtime.createCanvas();
+    this.renderCoordinator = new ContextRenderCoordinator(
+      container,
       this.canvas,
+      compositeCanvas,
       this.sources,
-      (capture) => this.emitter.emit('backdropCaptured', capture),
+      runtime,
+      {
+        getDeviceScale: () => this.getDeviceScale(),
+        getMaterials: () => this.materials.values(),
+        getRenderer: () => this.renderer,
+        isDomCaptureActive: () => this.domCapture.active,
+        isFallbackMode: () => this.fallbackMode,
+        onBackdropCaptured: (capture) => this.emitter.emit(
+          'backdropCaptured',
+          capture,
+        ),
+        onError: (context) => this.emitter.emit('error', context),
+        onFullCanvasRendered: (payload) => this.emitter.emit(
+          'fullCanvasRendered',
+          payload,
+        ),
+        onMaterialsRendered: (payload) => this.emitter.emit(
+          'materialsRendered',
+          payload,
+        ),
+      },
     );
     this.presentation = new ContextPresentation(
       container,
@@ -112,8 +130,8 @@ export class GlassContextImpl implements GlassContext {
         registration.id,
         changes,
       ),
-      renderImmediately: () => this.renderFrame(false),
-      renderMaterials: () => this.renderFrame(false),
+      renderImmediately: () => this.renderCoordinator.renderFrame(false),
+      renderMaterials: () => this.renderCoordinator.renderFrame(false),
     });
     this.domCapture = new DomBackdropCaptureController(
       container,
@@ -128,7 +146,7 @@ export class GlassContextImpl implements GlassContext {
         onCaptured: (payload) => this.emitter.emit('backdropCaptured', payload),
         onError: (context) => this.emitter.emit('error', context),
         removeSource: (registration) => this.removeSource(registration),
-        renderFrame: () => this.renderFrame(),
+        renderFrame: () => this.renderCoordinator.renderFrame(),
         requestComposite: (reason) => this.requestCompositeWithoutDomCapture(reason),
       },
     );
@@ -272,61 +290,11 @@ export class GlassContextImpl implements GlassContext {
     this.assertUsable();
     this.emitter.emit('compositeRequested', reason, 'high');
     if (this.fallbackMode) {
-      this.renderFrame();
+      this.renderCoordinator.renderFrame();
       return;
     }
-    if (!this.domCapture.request(reason)) this.renderFrame();
-  }
-
-  private renderFrame(refreshBackdrop: boolean = true): void {
-    try {
-      const containerRect = this.container.getBoundingClientRect();
-      const renderer = this.renderer;
-      if (this.fallbackMode || !renderer) {
-        const scale = this.getDeviceScale();
-        const width = Math.max(1, Math.round(containerRect.width * scale));
-        const height = Math.max(1, Math.round(containerRect.height * scale));
-        const resized = this.canvas.width !== width || this.canvas.height !== height;
-        if (this.canvas.width !== width) this.canvas.width = width;
-        if (this.canvas.height !== height) this.canvas.height = height;
-        if (this.sources.size > 0 && (refreshBackdrop || resized)) {
-          this.backdropComposite.draw(containerRect, this.getDeviceScale());
-        }
-        this.emitRenderedFrame();
-        return;
-      }
-      renderer.resize(containerRect.width, containerRect.height);
-      if (this.sources.size === 0) {
-        this.backdropTextureReady = false;
-        renderer.clear();
-        this.emitRenderedFrame();
-        return;
-      }
-      if (refreshBackdrop || !this.backdropTextureReady) {
-        this.backdropTextureReady = false;
-        this.backdropComposite.draw(containerRect, this.getDeviceScale());
-        renderer.uploadBackdrop(this.compositeCanvas);
-        this.backdropTextureReady = true;
-      }
-      const materials = resolveRendererMaterials(
-        this.materials.values(),
-        this.container,
-        containerRect,
-        this.runtime,
-      );
-      renderer.render(materials);
-      this.emitRenderedFrame();
-    } catch (error) {
-      const contextual = GlassError.fromUnknown(
-        error,
-        'RENDER_FAILED',
-        'Failed to composite the liquid-glass context.',
-        { phase: 'render' },
-      );
-      if (!this.domCapture.active) {
-        this.emitter.emit('error', contextual.toContext());
-      }
-      throw contextual;
+    if (!this.domCapture.request(reason)) {
+      this.renderCoordinator.renderFrame();
     }
   }
 
@@ -373,7 +341,7 @@ export class GlassContextImpl implements GlassContext {
   private applyFallbackModeChange(): void {
     const enabled = this.fallbackMode;
     if (!enabled && this.renderer) {
-      this.renderFrame();
+      this.renderCoordinator.renderFrame();
     }
     this.presentation.setFallbackMode(enabled);
     this.domCapture.setPaused(enabled);
@@ -412,10 +380,12 @@ export class GlassContextImpl implements GlassContext {
   private requestCompositeWithoutDomCapture(reason: TextureDirtyReason): void {
     this.emitter.emit('compositeRequested', reason, 'high');
     if (this.fallbackMode) {
-      this.renderFrame();
+      this.renderCoordinator.renderFrame();
       return;
     }
-    if (!this.domCapture.requestComposite(reason)) this.renderFrame();
+    if (!this.domCapture.requestComposite(reason)) {
+      this.renderCoordinator.renderFrame();
+    }
   }
 
   private removeSource(registration: BackdropRegistration): void {
@@ -428,16 +398,6 @@ export class GlassContextImpl implements GlassContext {
     if (!this.isDestroyed) {
       this.refresh('structural');
     }
-  }
-
-  private emitRenderedFrame(): void {
-    const payload = { canvas: this.canvas };
-    this.emitter.emit('materialsRendered', payload);
-    this.emitter.emit('fullCanvasRendered', {
-      ...payload,
-      width: this.canvas.width,
-      height: this.canvas.height,
-    });
   }
 
   private assertRegistration(

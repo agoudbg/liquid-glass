@@ -10,6 +10,7 @@ import type {
   SceneId,
 } from './shared/types';
 import { isSceneId } from './shared/types';
+import { PLAYGROUND_MARKUP } from './shell/markup';
 import {
   createInitialState,
   replacePlaygroundUrl,
@@ -23,118 +24,14 @@ if (!mountPoint) {
 
 const app = mountPoint;
 
-app.innerHTML = `
-  <div class="playground-shell" data-testid="playground-shell">
-    <header class="topbar">
-      <div class="brand-lockup">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <div>
-          <h1>Liquid Glass</h1>
-          <p>Optical workbench</p>
-        </div>
-      </div>
-
-      <nav class="segment-control scene-switcher" aria-label="Scene">
-        <button type="button" data-scene="S001">S001 · Single</button>
-        <button type="button" data-scene="S002">S002 · Multiple</button>
-        <button type="button" data-scene="S007">S007 · Fallback</button>
-      </nav>
-
-      <div class="topbar-actions">
-        <div class="segment-control framework-switcher" aria-label="Framework">
-          <button type="button" data-framework="vue">Vue</button>
-          <button type="button" data-framework="react">React</button>
-          <button type="button" data-framework="solid">Solid</button>
-        </div>
-
-        <label class="glass-toggle">
-          <span>Glass</span>
-          <input type="checkbox" data-testid="glass-toggle" />
-          <span class="toggle-track" aria-hidden="true"><span></span></span>
-        </label>
-      </div>
-    </header>
-
-    <main class="workspace">
-      <section class="stage" aria-label="Liquid glass stage">
-        <div id="framework-host" class="framework-host"></div>
-        <div class="stage-coordinate stage-coordinate-top" aria-hidden="true">01 / CUSTOM CANVAS</div>
-        <div id="stage-pipeline" class="stage-coordinate stage-coordinate-bottom" aria-hidden="true">1440 · WEBGL2 · UNIFORM</div>
-      </section>
-
-      <aside class="inspector" aria-label="Optical controls">
-        <header class="inspector-heading">
-          <p id="scene-kicker">SCENE 001</p>
-          <h2 id="scene-title">Single material</h2>
-        </header>
-
-        <div class="control-list">
-          <label class="range-control" for="thickness-control">
-            <span>Thickness</span>
-            <output id="thickness-value" for="thickness-control">36 px</output>
-            <input id="thickness-control" data-control="thickness" type="range" min="4" max="80" step="1" />
-          </label>
-
-          <label class="range-control" for="ior-control">
-            <span>Index of refraction</span>
-            <output id="ior-value" for="ior-control">1.21</output>
-            <input id="ior-control" data-control="refractIndex" type="range" min="1" max="1.6" step="0.01" />
-          </label>
-
-          <label class="range-control" for="intensity-control">
-            <span>Refraction</span>
-            <output id="intensity-value" for="intensity-control">0.72</output>
-            <input id="intensity-control" data-control="refractIntensity" type="range" min="0" max="1.4" step="0.01" />
-          </label>
-
-          <label class="range-control" for="radius-control">
-            <span>Corner radius</span>
-            <output id="radius-value" for="radius-control">34 px</output>
-            <input id="radius-control" data-control="radius" type="range" min="0" max="64" step="1" />
-          </label>
-
-          <label class="range-control" for="precision-control">
-            <span>Render precision</span>
-            <output id="precision-value" for="precision-control">1.0×</output>
-            <input id="precision-control" data-control="renderPrecision" type="range" min="0.5" max="1.5" step="0.1" />
-          </label>
-
-          <div class="mode-control">
-            <span>Renderer</span>
-            <div class="segment-control fallback-switcher" aria-label="Renderer mode">
-              <button type="button" data-fallback-mode="webgl">WebGL</button>
-              <button type="button" data-fallback-mode="css">CSS fallback</button>
-            </div>
-          </div>
-        </div>
-
-        <dl class="scene-facts">
-          <div><dt>Materials</dt><dd id="material-count">1</dd></div>
-          <div><dt>Render mode</dt><dd>Uniform</dd></div>
-          <div><dt>Presentation</dt><dd id="effective-renderer">WebGL2</dd></div>
-          <div><dt>Backdrop</dt><dd>Canvas 2D</dd></div>
-        </dl>
-      </aside>
-    </main>
-
-    <footer class="diagnostics" aria-label="Renderer diagnostics">
-      <div class="diagnostic-primary">
-        <span class="status-dot" aria-hidden="true"></span>
-        <strong id="gl-status" data-testid="gl-status">Initializing</strong>
-      </div>
-      <dl>
-        <div><dt>Host</dt><dd id="diagnostic-framework">Vue</dd></div>
-        <div><dt>Scene</dt><dd id="diagnostic-scene">S001</dd></div>
-        <div><dt>Frames</dt><dd id="diagnostic-frames">0</dd></div>
-        <div><dt>Canvas</dt><dd id="diagnostic-canvas">0 × 0</dd></div>
-        <div><dt>GL error</dt><dd id="diagnostic-error" data-testid="gl-error">—</dd></div>
-      </dl>
-    </footer>
-  </div>
-`;
+app.innerHTML = PLAYGROUND_MARKUP;
 
 const frameworkHost = requireElement<HTMLElement>('#framework-host');
 const glassToggle = requireElement<HTMLInputElement>('[data-testid="glass-toggle"]');
+const sceneSelect = requireElement<HTMLSelectElement>('[data-testid="scene-select"]');
+const refreshBackdropButton = requireElement<HTMLButtonElement>(
+  '[data-action="refresh-backdrop"]',
+);
 const state = createInitialState(new URL(window.location.href));
 const hostModules = import.meta.glob<{ default: FrameworkHostMount }>(
   './hosts/*/mount.{ts,tsx}',
@@ -152,12 +49,14 @@ const SCENE_META: Record<SceneId, {
 }> = {
   S001: { kicker: 'SCENE 001', title: 'Single material', materialCount: '1' },
   S002: { kicker: 'SCENE 002', title: 'Material overlap', materialCount: '3' },
+  S003: { kicker: 'SCENE 003', title: 'DOM capture', materialCount: '1' },
   S007: { kicker: 'SCENE 007', title: 'Fallback recovery', materialCount: '1' },
 };
 
 let currentState = state;
 let hostController: FrameworkHostController | null = null;
 let activeContext: Parameters<typeof observeGlassContext>[0] | null = null;
+let activeBackdropRefresh: (() => void) | null = null;
 let stopObservingContext: (() => void) | null = null;
 let runtimeReport: HostRuntimeReport = createInitializingReport();
 
@@ -170,6 +69,10 @@ const hostCallbacks = {
       renderDiagnostics();
     });
     context.setFallbackMode(currentState.fallbackEnabled);
+  },
+  onBackdropRefreshReady: (refresh: (() => void) | null) => {
+    activeBackdropRefresh = refresh;
+    refreshBackdropButton.disabled = refresh === null;
   },
   onError: (error: unknown) => {
     runtimeReport = {
@@ -200,6 +103,8 @@ function createInitializingReport(): HostRuntimeReport {
     status: 'initializing',
     fallbackMode: false,
     frameCount: 0,
+    captureCount: 0,
+    lastCapture: null,
     canvasWidth: 0,
     canvasHeight: 0,
     glError: null,
@@ -217,6 +122,8 @@ function mountFramework(): void {
   stopObservingContext?.();
   stopObservingContext = null;
   activeContext = null;
+  activeBackdropRefresh = null;
+  refreshBackdropButton.disabled = true;
   hostController?.destroy();
   runtimeReport = createInitializingReport();
   frameworkHost.replaceChildren();
@@ -255,11 +162,7 @@ function renderState(): void {
     button.dataset.active = String(active);
     button.setAttribute('aria-pressed', String(active));
   }
-  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-scene]')) {
-    const active = button.dataset.scene === currentState.scene;
-    button.dataset.active = String(active);
-    button.setAttribute('aria-pressed', String(active));
-  }
+  sceneSelect.value = currentState.scene;
   for (const button of app.querySelectorAll<HTMLButtonElement>('[data-fallback-mode]')) {
     const active = (button.dataset.fallbackMode === 'css')
       === currentState.fallbackEnabled;
@@ -282,18 +185,26 @@ function renderState(): void {
   setText('#scene-kicker', sceneMeta.kicker);
   setText('#scene-title', sceneMeta.title);
   setText('#material-count', sceneMeta.materialCount);
+  setText('#backdrop-type', currentState.scene === 'S003' ? 'Captured DOM' : 'Canvas 2D');
+  setText(
+    '[data-action="mutate-dom"]',
+    currentState.domVariant === 'source' ? 'Mutate DOM' : 'Restore source',
+  );
+  refreshBackdropButton.disabled = activeBackdropRefresh === null;
 
   app.dataset.framework = currentState.framework;
   app.dataset.scene = currentState.scene;
   app.dataset.renderMode = currentState.renderMode;
   app.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
   app.dataset.fallbackRequest = currentState.fallbackEnabled ? 'on' : 'off';
+  app.dataset.domVariant = currentState.domVariant;
   app.dataset.testMode = String(currentState.testMode);
   app.dataset.oracleMode = String(currentState.oracleMode);
   frameworkHost.dataset.framework = currentState.framework;
   frameworkHost.dataset.scene = currentState.scene;
   frameworkHost.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
   frameworkHost.dataset.fallbackRequest = currentState.fallbackEnabled ? 'on' : 'off';
+  document.body.dataset.playgroundScene = currentState.scene;
   renderDiagnostics();
 }
 
@@ -313,6 +224,7 @@ function renderDiagnostics(): void {
     `1440 · ${runtimeReport.fallbackMode ? 'CSS FILTER' : 'WEBGL2'} · UNIFORM`,
   );
   setText('#diagnostic-frames', String(runtimeReport.frameCount));
+  setText('#diagnostic-captures', String(runtimeReport.captureCount));
   setText(
     '#diagnostic-canvas',
     `${String(runtimeReport.canvasWidth)} × ${String(runtimeReport.canvasHeight)}`,
@@ -327,6 +239,12 @@ function renderDiagnostics(): void {
   app.dataset.fallback = runtimeReport.fallbackMode ? 'on' : 'off';
   app.dataset.glError = runtimeReport.error ?? runtimeReport.glError ?? 'NO_ERROR';
   app.dataset.frameCount = String(runtimeReport.frameCount);
+  app.dataset.captureCount = String(runtimeReport.captureCount);
+  const viewport = runtimeReport.lastCapture?.viewportRect;
+  app.dataset.captureX = String(viewport?.x ?? 0);
+  app.dataset.captureY = String(viewport?.y ?? 0);
+  app.dataset.captureWidth = String(viewport?.width ?? 0);
+  app.dataset.captureHeight = String(viewport?.height ?? 0);
   frameworkHost.dataset.ready = String(ready);
   frameworkHost.dataset.fallback = runtimeReport.fallbackMode ? 'on' : 'off';
   document.documentElement.dataset.playgroundReady = String(ready);
@@ -357,15 +275,30 @@ for (const button of app.querySelectorAll<HTMLButtonElement>('[data-framework]')
   });
 }
 
-for (const button of app.querySelectorAll<HTMLButtonElement>('[data-scene]')) {
-  button.addEventListener('click', () => {
-    const scene = button.dataset.scene;
-    if (isSceneId(scene)) {
-      runtimeReport = createInitializingReport();
-      updateState({ fallbackEnabled: scene === 'S007', scene });
-    }
+sceneSelect.addEventListener('change', () => {
+  const scene = sceneSelect.value;
+  if (isSceneId(scene)) {
+    runtimeReport = createInitializingReport();
+    updateState({
+      domVariant: 'source',
+      fallbackEnabled: scene === 'S007',
+      scene,
+      scrollable: false,
+    });
+  }
+});
+
+requireElement<HTMLButtonElement>('[data-action="mutate-dom"]')
+  .addEventListener('click', () => {
+    if (currentState.scene !== 'S003') return;
+    updateState({
+      domVariant: currentState.domVariant === 'source' ? 'mutated' : 'source',
+    });
   });
-}
+
+refreshBackdropButton.addEventListener('click', () => {
+  activeBackdropRefresh?.();
+});
 
 for (const button of app.querySelectorAll<HTMLButtonElement>('[data-fallback-mode]')) {
   button.addEventListener('click', () => {

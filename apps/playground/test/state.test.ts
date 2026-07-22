@@ -13,4 +13,14 @@ describe('playground URL state', () => {
       'https://example.test/?scene=S001&fallback=on',
     ))).toMatchObject({ scene: 'S001', fallbackEnabled: true });
   });
+
+  it('parses reproducible DOM capture state without enabling legacy oracle mode', () => {
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S003&content=mutated&oracle=1',
+    ))).toMatchObject({
+      domVariant: 'mutated',
+      oracleMode: false,
+      scene: 'S003',
+    });
+  });
 });

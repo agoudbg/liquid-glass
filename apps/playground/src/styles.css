@@ -31,7 +31,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -40,7 +41,8 @@ button {
 }
 
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: 2px solid #167466;
   outline-offset: 2px;
 }
@@ -173,9 +175,31 @@ input:focus-visible {
   transform: translateY(1px);
 }
 
-.scene-switcher {
+.scene-picker {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
   justify-self: center;
-  width: min(100%, 500px);
+  width: min(100%, 390px);
+  color: #68736f;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.scene-picker select {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 34px 0 12px;
+  border: 1px solid #ccd3cf;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #164f47;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 650;
+  text-transform: none;
 }
 
 .topbar-actions {
@@ -308,6 +332,41 @@ input:focus-visible {
   color: #53605c;
   font-size: 11px;
   font-weight: 620;
+}
+
+.scene-action-panel {
+  display: none;
+  grid-column: 1 / -1;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 15px 22px;
+  border-top: 1px solid #e2e6e3;
+}
+
+#app[data-scene="S003"] .scene-action-panel[data-scene-actions="S003"] {
+  display: grid;
+}
+
+.scene-action-panel button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #bdc8c3;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #245d54;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 670;
+}
+
+.scene-action-panel button:hover:not(:disabled) {
+  border-color: #78a79d;
+  background: #eef5f1;
+}
+
+.scene-action-panel button:disabled {
+  cursor: default;
+  opacity: 0.45;
 }
 
 .fallback-switcher {

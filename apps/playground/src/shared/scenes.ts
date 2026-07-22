@@ -27,6 +27,37 @@ export interface SceneMaterial {
   options: SceneMaterialOptions;
 }
 
+/** Stable content rendered inside the S003 DOM capture source. */
+export interface DomCaptureContent {
+  /** Compact capture-state label. */
+  eyebrow: string;
+  /** Prominent editorial heading. */
+  title: string;
+  /** Supporting copy that changes through a real DOM mutation. */
+  description: string;
+  /** CSS phase class used to change captured colors. */
+  phaseClass: string;
+}
+
+/** Resolve one of the two deterministic DOM capture states. */
+export function resolveDomCaptureContent(
+  variant: PlaygroundState['domVariant'],
+): DomCaptureContent {
+  return variant === 'mutated'
+    ? {
+        eyebrow: 'MUTATION 02 / CORAL',
+        title: 'Alpine afterglow',
+        description: 'A replaced DOM subtree shifts type, color, and the refracted image.',
+        phaseClass: 'is-mutated',
+      }
+    : {
+        eyebrow: 'SOURCE 01 / LAKE',
+        title: 'Dolomite daylight',
+        description: 'Live text, local imagery, and color captured from ordinary HTML.',
+        phaseClass: 'is-source',
+      };
+}
+
 const drawSingleBackdrop: CustomDrawCallback = (context, width, height) => {
   drawBackdropBase(context, width, height, 'single');
 };
@@ -71,13 +102,17 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
 
   const primary: SceneMaterial = {
     id: 'primary',
-    className: multiple
-      ? 'scene-material material-primary'
-      : 'scene-material material-single',
+    className: state.scene === 'S003'
+      ? 'scene-material material-dom'
+      : multiple
+        ? 'scene-material material-primary'
+        : 'scene-material material-single',
     label: 'MATERIAL 01',
-    name: state.scene === 'S007'
-      ? 'Fallback surface'
-      : multiple ? 'Primary lens' : 'Optical surface',
+    name: state.scene === 'S003'
+      ? 'Captured detail'
+      : state.scene === 'S007'
+        ? 'Fallback surface'
+        : multiple ? 'Primary lens' : 'Optical surface',
     options: {
       radius: state.radius,
       radiusTR: Math.max(8, state.radius - 12),

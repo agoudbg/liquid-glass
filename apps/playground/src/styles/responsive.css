@@ -35,7 +35,7 @@
     padding-block: 12px;
   }
 
-  .scene-switcher {
+  .scene-picker {
     grid-column: 1 / -1;
     grid-row: 2;
     justify-self: stretch;
@@ -99,6 +99,41 @@
     left: 20px;
     width: calc(100% - 40px);
     height: 220px;
+  }
+
+  .dom-capture-backdrop {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 56% 44%;
+  }
+
+  .dom-capture-copy {
+    padding: 22px;
+  }
+
+  .dom-capture-copy h3 {
+    max-width: none;
+    margin-top: 8px;
+    font-size: 30px;
+  }
+
+  .dom-capture-copy > span {
+    margin-top: 10px;
+    font-size: 11px;
+  }
+
+  .dom-capture-swatches {
+    margin-top: 14px;
+  }
+
+  .dom-capture-copy small {
+    display: none;
+  }
+
+  .material-dom {
+    top: 27%;
+    left: 20px;
+    width: calc(100% - 40px);
+    height: 190px;
   }
 
   .material-primary {

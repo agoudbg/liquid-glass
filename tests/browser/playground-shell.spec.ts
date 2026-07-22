@@ -97,6 +97,84 @@ test('renders S001 and S002 through every public framework adapter', async ({ pa
   expect(runtimeErrors).toEqual([]);
 });
 
+test('captures, mutates, and manually refreshes DOM through every adapter', async ({
+  page,
+}) => {
+  const runtimeErrors: string[] = [];
+  page.on('console', (message) => {
+    if (
+      message.type() === 'error'
+      && !message.text().startsWith('Failed to load resource:')
+    ) {
+      runtimeErrors.push(message.text());
+    }
+  });
+  page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+  for (const framework of FRAMEWORKS) {
+    await page.goto(
+      `/?test=1&framework=${framework}&scene=S003&content=source`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    const shell = page.locator('#app');
+    const converter = page.locator('.liquid-glass-backdrop-converter');
+    const copy = page.getByTestId('dom-capture-copy');
+    const refreshButton = page.locator('[data-action="refresh-backdrop"]');
+    await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+    await expect(shell).toHaveAttribute('data-gl-error', 'NO_ERROR');
+    await expect(converter).toHaveCount(1);
+    const image = page.getByTestId('dom-capture-image');
+    await expect(image).toBeVisible();
+    await expect.poll(() => image.evaluate((element) => (
+      element instanceof HTMLImageElement
+      && element.complete
+      && element.naturalWidth > 0
+    ))).toBe(true);
+    await expect(copy).toHaveAttribute('data-dom-phase', 'source');
+    await expect(refreshButton).toBeEnabled();
+    await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
+      timeout: 15_000,
+    }).toBeGreaterThan(0);
+    await converter.evaluate((element) => {
+      Reflect.set(window, '__liquidGlassBackdropProbe', element);
+    });
+
+    const sourceCapture = await capturePrimaryMaterial(page);
+    const sourceCaptureCount = await readNumericAttribute(
+      shell,
+      'data-capture-count',
+    );
+    await page.locator('[data-action="mutate-dom"]').click();
+    await expect(copy).toHaveAttribute('data-dom-phase', 'mutated');
+    await expect(copy).toContainText('Alpine afterglow');
+    await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
+      timeout: 15_000,
+    }).toBeGreaterThan(sourceCaptureCount);
+    expect(await converter.evaluate((element) => (
+      Reflect.get(window, '__liquidGlassBackdropProbe') === element
+    ))).toBe(true);
+
+    const mutatedCapture = await capturePrimaryMaterial(page);
+    const difference = await comparePngPixels(page, sourceCapture, mutatedCapture);
+    expect(difference.changedPixelRatio).toBeGreaterThan(0.02);
+    expect(difference.meanChannelDelta).toBeGreaterThan(0.5);
+    const mutatedCaptureCount = await readNumericAttribute(
+      shell,
+      'data-capture-count',
+    );
+    await refreshButton.click();
+    await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
+      timeout: 15_000,
+    }).toBeGreaterThan(mutatedCaptureCount);
+
+    const canvasMetrics = await readCanvasMetrics(page.locator('.liquid-glass-canvas'));
+    expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
+    expect(canvasMetrics.glError).toBe(0);
+  }
+
+  expect(runtimeErrors).toEqual([]);
+});
+
 test('keeps the uniform canvas pinned inside every scrollable adapter', async ({
   page,
 }) => {
@@ -228,6 +306,14 @@ async function readCanvasMetrics(canvas: ReturnType<Page['locator']>): Promise<{
     }
     return { nonTransparentPixels, glError: gl.getError() };
   });
+}
+
+async function readNumericAttribute(
+  locator: ReturnType<Page['locator']>,
+  name: string,
+): Promise<number> {
+  const value = await locator.getAttribute(name);
+  return Number(value ?? '0');
 }
 
 async function capturePrimaryMaterial(page: Page): Promise<Buffer> {

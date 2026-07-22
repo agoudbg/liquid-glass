@@ -2,12 +2,18 @@
 import type { GlassContextOptions } from '@agou/liquid-glass-core';
 import {
   BackdropCanvas,
+  BackdropConverter,
+  type BackdropConverterHandle,
   LiquidGlass,
   LiquidGlassMaterial,
 } from '@agou/liquid-glass-solid';
 import { For, Show } from 'solid-js';
 
-import { getBackdropDraw, resolveSceneMaterials } from '../../shared/scenes';
+import {
+  getBackdropDraw,
+  resolveDomCaptureContent,
+  resolveSceneMaterials,
+} from '../../shared/scenes';
 import type { FrameworkHostProps } from '../../shared/types';
 
 /** Render the canonical scene through the Solid public adapter. */
@@ -18,6 +24,12 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
     renderPrecision: props.state.renderPrecision,
     scrollable: props.state.scrollable,
   });
+  const publishBackdropHandle = (handle: BackdropConverterHandle | null): void => {
+    props.callbacks.onBackdropRefreshReady(
+      handle ? () => handle.refresh() : null,
+    );
+  };
+  const domContent = () => resolveDomCaptureContent(props.state.domVariant);
 
   return (
     <LiquidGlass
@@ -33,10 +45,44 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
       onError={props.callbacks.onError}
       onReady={props.callbacks.onContextReady}
     >
-      <BackdropCanvas
-        class="scene-backdrop"
-        draw={getBackdropDraw(props.state.scene, props.state.oracleMode)}
-      />
+      <Show
+        when={props.state.scene === 'S003'}
+        fallback={(
+          <BackdropCanvas
+            class="scene-backdrop"
+            draw={getBackdropDraw(props.state.scene, props.state.oracleMode)}
+          />
+        )}
+      >
+        <BackdropConverter
+          apiRef={publishBackdropHandle}
+          backgroundColor="#dce4df"
+          class="scene-backdrop dom-capture-backdrop"
+        >
+          <div class="dom-capture-photo">
+            <img
+              alt="Boats crossing a turquoise alpine lake below the Dolomites"
+              data-testid="dom-capture-image"
+              draggable={false}
+              src="/dolomites.jpg"
+            />
+            <span>IMG / LOCAL ASSET</span>
+          </div>
+          <article
+            class={`dom-capture-copy ${domContent().phaseClass}`}
+            data-dom-phase={props.state.domVariant}
+            data-testid="dom-capture-copy"
+          >
+            <p>{domContent().eyebrow}</p>
+            <h3>{domContent().title}</h3>
+            <span>{domContent().description}</span>
+            <div class="dom-capture-swatches" aria-hidden="true">
+              <i /><i /><i />
+            </div>
+            <small>Pietro De Grandi / Unsplash</small>
+          </article>
+        </BackdropConverter>
+      </Show>
       <For each={resolveSceneMaterials(props.state)}>
         {(material, index) => (
           <LiquidGlassMaterial

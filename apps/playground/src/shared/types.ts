@@ -1,9 +1,12 @@
-import type { GlassContext } from '@agou/liquid-glass-core';
+import type {
+  GlassContext,
+  ViewportCaptureRect,
+} from '@agou/liquid-glass-core';
 
 import type { FrameworkId } from '../app-meta';
 
 /** Canonical visible scenes exposed by the optical workbench. */
-export const SCENE_IDS = ['S001', 'S002', 'S007'] as const;
+export const SCENE_IDS = ['S001', 'S002', 'S003', 'S007'] as const;
 
 /** Canonical visible scene identifier. */
 export type SceneId = (typeof SCENE_IDS)[number];
@@ -27,6 +30,8 @@ export interface PlaygroundState {
   fallbackEnabled: boolean;
   /** Whether the framework host exposes a scrolling glass surface. */
   scrollable: boolean;
+  /** Current deterministic DOM content variant in capture scenes. */
+  domVariant: 'source' | 'mutated';
   /** Material thickness in CSS pixels. */
   thickness: number;
   /** Material index of refraction. */
@@ -51,6 +56,10 @@ export interface HostRuntimeReport {
   fallbackMode: boolean;
   /** Number of completed material frames observed by the shell. */
   frameCount: number;
+  /** Number of completed backdrop captures observed by the shell. */
+  captureCount: number;
+  /** Metadata for the most recently completed backdrop capture. */
+  lastCapture: BackdropCaptureReport | null;
   /** Current presentation-canvas width in physical pixels. */
   canvasWidth: number;
   /** Current presentation-canvas height in physical pixels. */
@@ -61,10 +70,24 @@ export interface HostRuntimeReport {
   error: string | null;
 }
 
+/** Serializable diagnostics for one completed backdrop capture. */
+export interface BackdropCaptureReport {
+  /** Stable core backdrop registration identifier. */
+  id: string;
+  /** Captured bitmap width in physical pixels. */
+  width: number;
+  /** Captured bitmap height in physical pixels. */
+  height: number;
+  /** Optional source-local bounds used for viewport capture. */
+  viewportRect?: ViewportCaptureRect;
+}
+
 /** Lifecycle callbacks implemented once by the framework-neutral shell. */
 export interface FrameworkHostCallbacks {
   /** Attach diagnostics after an adapter creates its core context. */
   onContextReady(context: GlassContext): void;
+  /** Publish or clear the active framework converter refresh command. */
+  onBackdropRefreshReady(refresh: (() => void) | null): void;
   /** Surface adapter context-creation failures. */
   onError(error: unknown): void;
 }

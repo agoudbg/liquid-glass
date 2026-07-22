@@ -1,6 +1,13 @@
-import type { GlassContext, GlassErrorContext } from '@agou/liquid-glass-core';
+import type {
+  BackdropCapturedPayload,
+  GlassContext,
+  GlassErrorContext,
+} from '@agou/liquid-glass-core';
 
-import type { HostRuntimeReport } from './types';
+import type {
+  BackdropCaptureReport,
+  HostRuntimeReport,
+} from './types';
 
 /** Observe renderer frames and request one deterministic post-mount composite. */
 export function observeGlassContext(
@@ -9,6 +16,8 @@ export function observeGlassContext(
 ): () => void {
   const gl = context.canvas.getContext('webgl2');
   let frameCount = 0;
+  let captureCount = 0;
+  let lastCapture: BackdropCaptureReport | null = null;
   let firstFrameRequest = 0;
 
   if (!gl) {
@@ -16,6 +25,8 @@ export function observeGlassContext(
       status: context.fallbackMode ? 'ready' : 'error',
       fallbackMode: context.fallbackMode,
       frameCount,
+      captureCount,
+      lastCapture,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
       glError: 'WEBGL2_UNAVAILABLE',
@@ -33,6 +44,8 @@ export function observeGlassContext(
       status: errorCode === gl.NO_ERROR ? 'ready' : 'error',
       fallbackMode: context.fallbackMode,
       frameCount,
+      captureCount,
+      lastCapture,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
       glError: formatGlError(gl, errorCode),
@@ -48,6 +61,8 @@ export function observeGlassContext(
       status: 'error',
       fallbackMode: context.fallbackMode,
       frameCount,
+      captureCount,
+      lastCapture,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
       glError: null,
@@ -56,6 +71,21 @@ export function observeGlassContext(
   };
 
   const stopFrameEvents = context.on('materialsRendered', publishFrame);
+  const stopCaptureEvents = context.on(
+    'backdropCaptured',
+    (capture: BackdropCapturedPayload) => {
+      captureCount += 1;
+      lastCapture = {
+        id: capture.id,
+        width: capture.width,
+        height: capture.height,
+        viewportRect: capture.viewportRect
+          ? { ...capture.viewportRect }
+          : undefined,
+      };
+      publishReport(false);
+    },
+  );
   const stopErrorEvents = context.on('error', publishError);
   const stopFallbackEvents = context.on(
     'fallbackModeChanged',
@@ -74,6 +104,7 @@ export function observeGlassContext(
   return () => {
     window.cancelAnimationFrame(firstFrameRequest);
     stopFrameEvents();
+    stopCaptureEvents();
     stopErrorEvents();
     stopFallbackEvents();
   };

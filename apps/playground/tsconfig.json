@@ -3,9 +3,14 @@
   "compilerOptions": {
     "jsx": "preserve",
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "rootDir": ".",
+    "paths": {
+      "@agou/liquid-glass-core": ["../../packages/core/src/index.ts"],
+      "@agou/liquid-glass-react": ["../../packages/react/src/index.ts"],
+      "@agou/liquid-glass-solid": ["../../packages/solid/src/index.ts"],
+      "@agou/liquid-glass-vue": ["../../packages/vue/src/index.ts"]
+    },
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "test/**/*.ts", "vite.config.ts", "vitest.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "include": ["src/**/*.ts", "test/**/*.ts", "vite.config.ts", "vitest.config.ts"],
+  "exclude": ["src/hosts", "dist", "node_modules"]
 }

@@ -1,31 +1,342 @@
-/**
- * Liquid Glass — Playground Entrance
- *
- * This file is the entry point for the playground app.
- * Framework-specific demos will be mounted here as they are built.
- */
+import './styles.css';
+import './styles/responsive.css';
 
-const app = document.getElementById('app');
+import { observeGlassContext } from './shared/diagnostics';
+import type {
+  FrameworkHostController,
+  FrameworkHostMount,
+  HostRuntimeReport,
+  PlaygroundState,
+} from './shared/types';
+import {
+  createInitialState,
+  replacePlaygroundUrl,
+} from './shell/state';
 
-if (!app) {
-  throw new Error('Could not find #app mount point');
+const mountPoint = document.getElementById('app');
+
+if (!mountPoint) {
+  throw new Error('Could not find #app mount point.');
 }
 
+const app = mountPoint;
+
 app.innerHTML = `
-  <div style="
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    flex-direction: column;
-    gap: 1rem;
-    font-size: 1.5rem;
-    color: #666;
-  ">
-    <h1>Liquid Glass — Playground</h1>
-    <p>Framework demos coming soon.</p>
-    <p style="font-size: 0.8rem;">
-      Phase 0 infrastructure verified — all packages build successfully.
-    </p>
+  <div class="playground-shell" data-testid="playground-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <span class="brand-mark" aria-hidden="true"><span></span></span>
+        <div>
+          <h1>Liquid Glass</h1>
+          <p>Optical workbench</p>
+        </div>
+      </div>
+
+      <nav class="segment-control scene-switcher" aria-label="Scene">
+        <button type="button" data-scene="S001">S001 · Single</button>
+        <button type="button" data-scene="S002">S002 · Multiple</button>
+      </nav>
+
+      <div class="topbar-actions">
+        <div class="segment-control framework-switcher" aria-label="Framework">
+          <button type="button" data-framework="vue">Vue</button>
+          <button type="button" data-framework="react">React</button>
+          <button type="button" data-framework="solid">Solid</button>
+        </div>
+
+        <label class="glass-toggle">
+          <span>Glass</span>
+          <input type="checkbox" data-testid="glass-toggle" />
+          <span class="toggle-track" aria-hidden="true"><span></span></span>
+        </label>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="stage" aria-label="Liquid glass stage">
+        <div id="framework-host" class="framework-host"></div>
+        <div class="stage-coordinate stage-coordinate-top" aria-hidden="true">01 / CUSTOM CANVAS</div>
+        <div class="stage-coordinate stage-coordinate-bottom" aria-hidden="true">1440 · WEBGL2 · UNIFORM</div>
+      </section>
+
+      <aside class="inspector" aria-label="Optical controls">
+        <header class="inspector-heading">
+          <p id="scene-kicker">SCENE 001</p>
+          <h2 id="scene-title">Single material</h2>
+        </header>
+
+        <div class="control-list">
+          <label class="range-control" for="thickness-control">
+            <span>Thickness</span>
+            <output id="thickness-value" for="thickness-control">36 px</output>
+            <input id="thickness-control" data-control="thickness" type="range" min="4" max="80" step="1" />
+          </label>
+
+          <label class="range-control" for="ior-control">
+            <span>Index of refraction</span>
+            <output id="ior-value" for="ior-control">1.21</output>
+            <input id="ior-control" data-control="refractIndex" type="range" min="1" max="1.6" step="0.01" />
+          </label>
+
+          <label class="range-control" for="intensity-control">
+            <span>Refraction</span>
+            <output id="intensity-value" for="intensity-control">0.72</output>
+            <input id="intensity-control" data-control="refractIntensity" type="range" min="0" max="1.4" step="0.01" />
+          </label>
+
+          <label class="range-control" for="radius-control">
+            <span>Corner radius</span>
+            <output id="radius-value" for="radius-control">34 px</output>
+            <input id="radius-control" data-control="radius" type="range" min="0" max="64" step="1" />
+          </label>
+
+          <label class="range-control" for="precision-control">
+            <span>Render precision</span>
+            <output id="precision-value" for="precision-control">1.0×</output>
+            <input id="precision-control" data-control="renderPrecision" type="range" min="0.5" max="1.5" step="0.1" />
+          </label>
+        </div>
+
+        <dl class="scene-facts">
+          <div><dt>Materials</dt><dd id="material-count">1</dd></div>
+          <div><dt>Render mode</dt><dd>Uniform</dd></div>
+          <div><dt>Backdrop</dt><dd>Canvas 2D</dd></div>
+        </dl>
+      </aside>
+    </main>
+
+    <footer class="diagnostics" aria-label="Renderer diagnostics">
+      <div class="diagnostic-primary">
+        <span class="status-dot" aria-hidden="true"></span>
+        <strong id="gl-status" data-testid="gl-status">Initializing</strong>
+      </div>
+      <dl>
+        <div><dt>Host</dt><dd id="diagnostic-framework">Vue</dd></div>
+        <div><dt>Scene</dt><dd id="diagnostic-scene">S001</dd></div>
+        <div><dt>Frames</dt><dd id="diagnostic-frames">0</dd></div>
+        <div><dt>Canvas</dt><dd id="diagnostic-canvas">0 × 0</dd></div>
+        <div><dt>GL error</dt><dd id="diagnostic-error" data-testid="gl-error">—</dd></div>
+      </dl>
+    </footer>
   </div>
 `;
+
+const frameworkHost = requireElement<HTMLElement>('#framework-host');
+const glassToggle = requireElement<HTMLInputElement>('[data-testid="glass-toggle"]');
+const state = createInitialState(new URL(window.location.href));
+const hostModules = import.meta.glob<{ default: FrameworkHostMount }>(
+  './hosts/*/mount.{ts,tsx}',
+  { eager: true },
+);
+const mounts: Record<PlaygroundState['framework'], FrameworkHostMount> = {
+  vue: requireHostMount('./hosts/vue/mount.ts'),
+  react: requireHostMount('./hosts/react/mount.tsx'),
+  solid: requireHostMount('./hosts/solid/mount.tsx'),
+};
+
+let currentState = state;
+let hostController: FrameworkHostController | null = null;
+let stopObservingContext: (() => void) | null = null;
+let runtimeReport: HostRuntimeReport = createInitializingReport();
+
+const hostCallbacks = {
+  onContextReady: (context: Parameters<typeof observeGlassContext>[0]) => {
+    stopObservingContext?.();
+    stopObservingContext = observeGlassContext(context, (report) => {
+      runtimeReport = report;
+      renderDiagnostics();
+    });
+  },
+  onError: (error: unknown) => {
+    runtimeReport = {
+      ...createInitializingReport(),
+      status: 'error',
+      error: formatError(error),
+    };
+    renderDiagnostics();
+  },
+};
+
+function requireHostMount(path: string): FrameworkHostMount {
+  const hostModule = hostModules[path];
+  if (!hostModule) throw new Error(`Missing framework host module: ${path}`);
+  return hostModule.default;
+}
+
+function requireElement<ElementType extends Element>(selector: string): ElementType {
+  const element = app.querySelector<ElementType>(selector);
+  if (!element) {
+    throw new Error(`Missing playground element: ${selector}`);
+  }
+  return element;
+}
+
+function createInitializingReport(): HostRuntimeReport {
+  return {
+    status: 'initializing',
+    frameCount: 0,
+    canvasWidth: 0,
+    canvasHeight: 0,
+    glError: null,
+    error: null,
+  };
+}
+
+function formatError(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return 'Unknown renderer error';
+}
+
+function mountFramework(): void {
+  stopObservingContext?.();
+  stopObservingContext = null;
+  hostController?.destroy();
+  runtimeReport = createInitializingReport();
+  frameworkHost.replaceChildren();
+  hostController = mounts[currentState.framework](
+    frameworkHost,
+    currentState,
+    hostCallbacks,
+  );
+}
+
+function updateState(
+  changes: Partial<PlaygroundState>,
+  options: { remount?: boolean } = {},
+): void {
+  currentState = { ...currentState, ...changes };
+  if (options.remount) {
+    mountFramework();
+  } else {
+    hostController?.update(currentState);
+  }
+  replacePlaygroundUrl(currentState);
+  renderState();
+}
+
+function renderState(): void {
+  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-framework]')) {
+    const active = button.dataset.framework === currentState.framework;
+    button.dataset.active = String(active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-scene]')) {
+    const active = button.dataset.scene === currentState.scene;
+    button.dataset.active = String(active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+
+  glassToggle.checked = currentState.glassEnabled;
+  setInputValue('thickness', currentState.thickness);
+  setInputValue('refractIndex', currentState.refractIndex);
+  setInputValue('refractIntensity', currentState.refractIntensity);
+  setInputValue('radius', currentState.radius);
+  setInputValue('renderPrecision', currentState.renderPrecision);
+  setText('#thickness-value', `${String(currentState.thickness)} px`);
+  setText('#ior-value', currentState.refractIndex.toFixed(2));
+  setText('#intensity-value', currentState.refractIntensity.toFixed(2));
+  setText('#radius-value', `${String(currentState.radius)} px`);
+  setText('#precision-value', `${currentState.renderPrecision.toFixed(1)}×`);
+  setText('#scene-kicker', currentState.scene === 'S001' ? 'SCENE 001' : 'SCENE 002');
+  setText('#scene-title', currentState.scene === 'S001' ? 'Single material' : 'Material overlap');
+  setText('#material-count', currentState.scene === 'S001' ? '1' : '3');
+
+  app.dataset.framework = currentState.framework;
+  app.dataset.scene = currentState.scene;
+  app.dataset.renderMode = currentState.renderMode;
+  app.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
+  app.dataset.testMode = String(currentState.testMode);
+  app.dataset.oracleMode = String(currentState.oracleMode);
+  frameworkHost.dataset.framework = currentState.framework;
+  frameworkHost.dataset.scene = currentState.scene;
+  frameworkHost.dataset.glass = currentState.glassEnabled ? 'on' : 'off';
+  renderDiagnostics();
+}
+
+function renderDiagnostics(): void {
+  const ready = runtimeReport.status === 'ready';
+  const statusLabel = runtimeReport.status === 'error'
+    ? 'Renderer error'
+    : ready ? 'WebGL2 ready' : 'Initializing';
+  setText('#gl-status', statusLabel);
+  setText('#diagnostic-framework', capitalize(currentState.framework));
+  setText('#diagnostic-scene', currentState.scene);
+  setText('#diagnostic-frames', String(runtimeReport.frameCount));
+  setText(
+    '#diagnostic-canvas',
+    `${String(runtimeReport.canvasWidth)} × ${String(runtimeReport.canvasHeight)}`,
+  );
+  setText(
+    '#diagnostic-error',
+    runtimeReport.error ?? runtimeReport.glError ?? 'NO_ERROR',
+  );
+
+  app.dataset.ready = String(ready);
+  app.dataset.glStatus = runtimeReport.status;
+  app.dataset.glError = runtimeReport.error ?? runtimeReport.glError ?? 'NO_ERROR';
+  app.dataset.frameCount = String(runtimeReport.frameCount);
+  frameworkHost.dataset.ready = String(ready);
+  document.documentElement.dataset.playgroundReady = String(ready);
+}
+
+function setInputValue(control: string, value: number): void {
+  requireElement<HTMLInputElement>(`[data-control="${control}"]`).value = String(value);
+}
+
+function setText(selector: string, value: string): void {
+  requireElement<HTMLElement>(selector).textContent = value;
+}
+
+function capitalize(value: string): string {
+  return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+for (const button of app.querySelectorAll<HTMLButtonElement>('[data-framework]')) {
+  button.addEventListener('click', () => {
+    const framework = button.dataset.framework;
+    if (
+      framework === 'vue'
+      || framework === 'react'
+      || framework === 'solid'
+    ) {
+      updateState({ framework }, { remount: framework !== currentState.framework });
+    }
+  });
+}
+
+for (const button of app.querySelectorAll<HTMLButtonElement>('[data-scene]')) {
+  button.addEventListener('click', () => {
+    const scene = button.dataset.scene;
+    if (scene === 'S001' || scene === 'S002') {
+      runtimeReport = createInitializingReport();
+      updateState({ scene });
+    }
+  });
+}
+
+for (const input of app.querySelectorAll<HTMLInputElement>('[data-control]')) {
+  input.addEventListener('input', () => {
+    const value = Number(input.value);
+    const control = input.dataset.control;
+    if (!Number.isFinite(value) || !control) return;
+    updateNumericControl(control, value);
+  });
+}
+
+function updateNumericControl(control: string, value: number): void {
+  if (control === 'thickness') updateState({ thickness: value });
+  if (control === 'refractIndex') updateState({ refractIndex: value });
+  if (control === 'refractIntensity') updateState({ refractIntensity: value });
+  if (control === 'radius') updateState({ radius: value });
+  if (control === 'renderPrecision') updateState({ renderPrecision: value });
+}
+
+glassToggle.addEventListener('change', () => {
+  updateState({ glassEnabled: glassToggle.checked });
+});
+
+replacePlaygroundUrl(currentState);
+renderState();
+mountFramework();
+renderState();

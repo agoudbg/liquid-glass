@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "preserve"
+  },
+  "include": [
+    "src/hosts/vue/**/*.ts",
+    "src/hosts/vue/**/*.vue",
+    "src/shared/**/*.ts",
+    "../../packages/core/src/shaders/raw-shader.d.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

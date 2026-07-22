@@ -5,7 +5,10 @@ import {
   type DomBackdropCaptureCallbacks,
   DomBackdropCaptureController,
 } from '../../src/engine/DomBackdropCaptureController';
-import type { BackdropRegistration } from '../../src/engine/registrations';
+import type {
+  BackdropRegistration,
+  CanvasBackdropRegistration,
+} from '../../src/engine/registrations';
 import type { GlassEngineRuntime } from '../../src/engine/runtime';
 import type { RectLike } from '../../src/types';
 import { FakeCanvas } from '../fixtures/fake-webgl2';
@@ -23,9 +26,34 @@ function domRect(rect: RectLike): DOMRectReadOnly {
 
 function createElement(rect: RectLike): HTMLElement {
   return {
+    firstElementChild: null,
     getBoundingClientRect: () => domRect(rect),
+    querySelectorAll: () => [],
     scrollHeight: rect.height,
     scrollWidth: rect.width,
+  } as unknown as HTMLElement;
+}
+
+interface MutableElementState {
+  rect: RectLike;
+  scrollHeight: number;
+  scrollWidth: number;
+}
+
+function createMutableElement(state: MutableElementState): HTMLElement {
+  return {
+    firstElementChild: null,
+    get parentElement() {
+      return null;
+    },
+    get scrollHeight() {
+      return state.scrollHeight;
+    },
+    get scrollWidth() {
+      return state.scrollWidth;
+    },
+    getBoundingClientRect: () => domRect(state.rect),
+    querySelectorAll: () => [],
   } as unknown as HTMLElement;
 }
 
@@ -103,7 +131,7 @@ function createController(
     removeSource: (registration) => {
       registration.destroyed = true;
       sources.delete(registration.id);
-      getController().sourceRemoved();
+      getController().sourceRemoved(registration);
     },
     renderFrame: vi.fn(),
     requestComposite: (reason) => {
@@ -162,6 +190,156 @@ describe('DomBackdropCaptureController', () => {
       canvas: replacementCanvas,
     }));
     expect(capture).toHaveBeenCalledTimes(2);
+    controller.destroy();
+  });
+
+  it('aborts a removed source without blocking the remaining capture queue', async () => {
+    const { flush, runtime } = createFrameRuntime();
+    const sources = new Map<string, BackdropRegistration>();
+    const stalledCapture = deferred<DomCaptureResult>();
+    const requests: Parameters<NonNullable<GlassEngineRuntime['captureDomElement']>>[0][] = [];
+    const capture = vi.fn<NonNullable<GlassEngineRuntime['captureDomElement']>>()
+      .mockImplementationOnce((request) => {
+        requests.push(request);
+        return stalledCapture.promise;
+      })
+      .mockImplementationOnce(async (request) => {
+        requests.push(request);
+        return {
+          canvas: new FakeCanvas() as unknown as HTMLCanvasElement,
+          viewportRect: { x: 0, y: 0, width: 320, height: 180 },
+        };
+      });
+    runtime.captureDomElement = capture;
+    const onCaptured = vi.fn();
+    const controller = createController(runtime, sources, { onCaptured });
+    const first = controller.add({
+      kind: 'dom',
+      element: createElement({ x: 0, y: 0, width: 320, height: 180 }),
+    });
+    const second = controller.add({
+      kind: 'dom',
+      element: createElement({ x: 0, y: 0, width: 320, height: 180 }),
+    });
+    flush();
+    await vi.waitFor(() => expect(capture).toHaveBeenCalledOnce());
+
+    first.destroy();
+    controller.request('structural');
+    flush();
+    await vi.waitFor(() => expect(capture).toHaveBeenCalledTimes(2));
+    expect(requests[0]?.signal?.aborted).toBe(true);
+    await vi.waitFor(() => {
+      expect(onCaptured).toHaveBeenCalledWith(expect.objectContaining({
+        id: second.id,
+      }));
+    });
+    controller.destroy();
+  });
+
+  it('recaptures a viewport source moved beyond its cached bitmap', async () => {
+    const { flush, runtime } = createFrameRuntime();
+    const mutationCallbacks: MutationCallback[] = [];
+    runtime.createMutationObserver = (callback) => {
+      mutationCallbacks.push(callback);
+      return {
+        disconnect: vi.fn(),
+        observe: vi.fn(),
+        takeRecords: () => [],
+      } as MutationObserver;
+    };
+    const capture = vi.fn<NonNullable<GlassEngineRuntime['captureDomElement']>>()
+      .mockImplementation(async (request) => {
+        if (!request.captureRect) {
+          throw new Error('Viewport capture must provide a bounded rectangle.');
+        }
+        return {
+          canvas: new FakeCanvas() as unknown as HTMLCanvasElement,
+          viewportRect: request.captureRect,
+        };
+      });
+    runtime.captureDomElement = capture;
+    const sources = new Map<string, BackdropRegistration>();
+    const onCaptured = vi.fn();
+    const controller = createController(runtime, sources, { onCaptured });
+    const state: MutableElementState = {
+      rect: { x: 0, y: 0, width: 320, height: 1_000 },
+      scrollHeight: 1_000,
+      scrollWidth: 320,
+    };
+    controller.add({
+      kind: 'dom',
+      element: createMutableElement(state),
+      viewportCapture: true,
+      watchNodeChanges: false,
+      watchPositionChanges: true,
+      watchResize: false,
+    });
+    flush();
+    await vi.waitFor(() => expect(onCaptured).toHaveBeenCalledOnce());
+
+    state.rect = { ...state.rect, y: -400 };
+    mutationCallbacks[0]?.([], {} as MutationObserver);
+    flush();
+    await vi.waitFor(() => expect(capture).toHaveBeenCalledTimes(2));
+    controller.destroy();
+  });
+
+  it('marks observed canvas resizes dirty but reuses pixels for movement', () => {
+    const { runtime } = createFrameRuntime();
+    const mutationCallbacks: MutationCallback[] = [];
+    const resizeCallbacks: ResizeObserverCallback[] = [];
+    runtime.createMutationObserver = (callback) => {
+      mutationCallbacks.push(callback);
+      return {
+        disconnect: vi.fn(),
+        observe: vi.fn(),
+        takeRecords: () => [],
+      } as MutationObserver;
+    };
+    runtime.createResizeObserver = (callback) => {
+      resizeCallbacks.push(callback);
+      return {
+        disconnect: vi.fn(),
+        observe: vi.fn(),
+        takeRecords: () => [],
+        unobserve: vi.fn(),
+      } as ResizeObserver;
+    };
+    const state: MutableElementState = {
+      rect: { x: 0, y: 0, width: 320, height: 180 },
+      scrollHeight: 180,
+      scrollWidth: 320,
+    };
+    const element = createMutableElement(state) as HTMLCanvasElement;
+    const registration: CanvasBackdropRegistration = {
+      id: 'canvas-observed',
+      canvas: new FakeCanvas() as unknown as HTMLCanvasElement,
+      config: {
+        kind: 'canvas',
+        draw: () => undefined,
+        element,
+        watchPositionChanges: true,
+        watchResize: true,
+      },
+      destroyed: false,
+      dirty: false,
+    };
+    const sources = new Map<string, BackdropRegistration>([[
+      registration.id,
+      registration,
+    ]]);
+    const requestComposite = vi.fn();
+    const controller = createController(runtime, sources, { requestComposite });
+    controller.sourceAdded(registration);
+
+    resizeCallbacks[0]?.([], {} as ResizeObserver);
+    expect(registration.dirty).toBe(true);
+    registration.dirty = false;
+    state.rect = { ...state.rect, x: 25 };
+    mutationCallbacks[0]?.([], {} as MutationObserver);
+    expect(registration.dirty).toBe(false);
+    expect(requestComposite).toHaveBeenCalledTimes(2);
     controller.destroy();
   });
 

@@ -113,13 +113,28 @@ export function drawBackdropComposite(
       const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
         ? configuredScale
         : 1;
-      drawAuthoritativeSource(
-        source,
-        sourceRect.width,
-        sourceRect.height,
-        deviceScale * sourceScale,
-      );
-      mirrorToVisibleCanvas(source);
+      const effectiveScale = deviceScale * sourceScale;
+      const expectedWidth = Math.max(1, Math.round(sourceRect.width * effectiveScale));
+      const expectedHeight = Math.max(1, Math.round(sourceRect.height * effectiveScale));
+      const needsDraw = source.dirty
+        || source.canvas.width !== expectedWidth
+        || source.canvas.height !== expectedHeight;
+      if (needsDraw) {
+        drawAuthoritativeSource(
+          source,
+          sourceRect.width,
+          sourceRect.height,
+          effectiveScale,
+        );
+        mirrorToVisibleCanvas(source);
+        source.dirty = false;
+        captures.push({
+          id: source.id,
+          canvas: source.canvas,
+          width: source.canvas.width,
+          height: source.canvas.height,
+        });
+      }
 
       compositeContext.drawImage(
         source.canvas,
@@ -128,12 +143,6 @@ export function drawBackdropComposite(
         sourceRect.width * deviceScale,
         sourceRect.height * deviceScale,
       );
-      captures.push({
-        id: source.id,
-        canvas: source.canvas,
-        width: source.canvas.width,
-        height: source.canvas.height,
-      });
       continue;
     }
 

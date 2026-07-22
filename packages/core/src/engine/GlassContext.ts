@@ -1,8 +1,7 @@
 import { GlassError } from '../errors/GlassError';
 import { TypedEventEmitter } from '../events/TypedEventEmitter';
-import { type RendererMaterial, WebGLRenderer } from '../renderer';
+import { WebGLRenderer } from '../renderer';
 import type {
-  BackdropSourceChanges,
   BackdropSourceConfig,
   BackdropSourceHandle,
   CanvasBackdropSourceConfig,
@@ -19,16 +18,17 @@ import type { ProxyInterface } from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
 import { generateUUID } from '../utils/uuid';
 import { drawBackdropComposite } from './canvas-backdrop';
+import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import {
   resolveContextPrecision,
   snapshotContextOptions,
 } from './context-options';
+import { ContextPresentation } from './context-presentation';
+import { ContextEventController } from './ContextEventController';
 import { DomBackdropCaptureController } from './DomBackdropCaptureController';
-import { resolveRendererMaterial } from './material-resolver';
+import { resolveRendererMaterials } from './material-resolver';
 import {
   type BackdropRegistration,
-  type CanvasBackdropRegistration,
-  CanvasBackdropRegistrationHandle,
   type MaterialRegistration,
   MaterialRegistrationHandle,
 } from './registrations';
@@ -49,7 +49,10 @@ export class GlassContextImpl implements GlassContext {
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
   private readonly sources = new Map<string, BackdropRegistration>();
   private readonly materials = new Map<string, MaterialRegistration>();
+  private readonly canvasSources: CanvasBackdropSourceController;
   private readonly domCapture: DomBackdropCaptureController;
+  private readonly contextEvents: ContextEventController;
+  private readonly presentation: ContextPresentation;
   private optionsSnapshot: GlassContextOptions;
   private precision: number;
   private isDestroyed = false;
@@ -74,6 +77,11 @@ export class GlassContextImpl implements GlassContext {
     this.precision = resolveContextPrecision(this.optionsSnapshot);
     this.canvas = runtime.createCanvas();
     this.compositeCanvas = runtime.createCanvas();
+    this.presentation = new ContextPresentation(
+      container,
+      this.canvas,
+      this.optionsSnapshot,
+    );
     this.domCapture = new DomBackdropCaptureController(
       container,
       this.sources,
@@ -91,21 +99,51 @@ export class GlassContextImpl implements GlassContext {
         requestComposite: (reason) => this.requestCompositeWithoutDomCapture(reason),
       },
     );
-    this.configurePresentationCanvas();
-    const renderer = new WebGLRenderer(this.canvas, {
-      renderScale: this.precision,
-      devicePixelRatio: runtime.devicePixelRatio,
-      onContextRestored: () => {
-        if (!this.isDestroyed) {
-          this.refresh('external');
-        }
+    this.canvasSources = new CanvasBackdropSourceController(
+      this.sources,
+      runtime,
+      {
+        assertRegistration: (registration) => this.assertRegistration(registration),
+        requestComposite: (reason) => this.requestCompositeWithoutDomCapture(reason),
+        sourceAdded: (registration) => this.domCapture.sourceAdded(registration),
+        sourceRemoved: (registration) => this.domCapture.sourceRemoved(registration),
+        sourceUpdated: (registration) => this.domCapture.sourceUpdated(registration),
       },
-    });
+    );
+    let renderer: WebGLRenderer | null = null;
     try {
+      renderer = new WebGLRenderer(this.canvas, {
+        renderScale: this.precision,
+        devicePixelRatio: runtime.devicePixelRatio,
+        onContextRestored: () => {
+          if (!this.isDestroyed) {
+            this.refresh('external');
+          }
+        },
+      });
       container.appendChild(this.canvas);
       this.renderer = renderer;
+      this.contextEvents = new ContextEventController(
+        container,
+        runtime,
+        {
+          onLayout: () => {
+            this.domCapture.markAllDirty();
+            this.refresh('layout');
+          },
+          onScroll: () => this.refresh('scroll'),
+          onScrollPosition: () => this.presentation.syncScrollPosition(
+            this.optionsSnapshot.scrollable ?? false,
+          ),
+        },
+      );
     } catch (error) {
-      renderer.destroy();
+      renderer?.destroy();
+      this.domCapture.destroy();
+      this.presentation.destroy();
+      if (this.canvas.parentNode === container) {
+        container.removeChild(this.canvas);
+      }
       throw GlassError.fromUnknown(
         error,
         'LIFECYCLE_FAILED',
@@ -133,27 +171,7 @@ export class GlassContextImpl implements GlassContext {
     if (config.kind === 'dom') {
       return this.addDomBackdropSource(config);
     }
-
-    const registration: CanvasBackdropRegistration = {
-      id: generateUUID(),
-      config: { ...config },
-      canvas: this.runtime.createCanvas(),
-      destroyed: false,
-    };
-    this.sources.set(registration.id, registration);
-    const handle = new CanvasBackdropRegistrationHandle(registration, {
-      update: (changes) => this.updateSource(registration, changes),
-      refresh: () => this.refreshSource(registration),
-      destroy: () => this.removeSource(registration),
-    });
-    try {
-      this.refresh('structural');
-      return handle;
-    } catch (error) {
-      registration.destroyed = true;
-      this.sources.delete(registration.id);
-      throw error;
-    }
+    return this.canvasSources.add(config);
   }
 
   private addDomBackdropSource(
@@ -200,8 +218,9 @@ export class GlassContextImpl implements GlassContext {
     this.renderer.setRenderScale(nextPrecision);
     this.optionsSnapshot = nextSnapshot;
     this.precision = nextPrecision;
+    this.contextEvents.refreshTargets();
     this.domCapture.markAllDirty();
-    this.applyPresentationOptions();
+    this.presentation.update(nextSnapshot);
     this.refresh('structural');
   }
 
@@ -267,7 +286,12 @@ export class GlassContextImpl implements GlassContext {
       }
       this.drawBackdropComposite(containerRect);
       this.renderer.uploadBackdrop(this.compositeCanvas);
-      const materials = this.resolveMaterials(containerRect);
+      const materials = resolveRendererMaterials(
+        this.materials.values(),
+        this.container,
+        containerRect,
+        this.runtime,
+      );
       this.renderer.render(materials);
       this.emitRenderedFrame();
     } catch (error) {
@@ -308,7 +332,9 @@ export class GlassContextImpl implements GlassContext {
       return;
     }
     this.isDestroyed = true;
+    this.contextEvents.destroy();
     this.domCapture.destroy();
+    this.presentation.destroy();
     for (const source of this.sources.values()) {
       source.destroyed = true;
     }
@@ -324,18 +350,6 @@ export class GlassContextImpl implements GlassContext {
     this.onDestroyed();
     this.emitter.emit('destroyed');
     this.emitter.removeAllListeners();
-  }
-
-  private configurePresentationCanvas(): void {
-    this.canvas.className = 'liquid-glass-canvas';
-    this.canvas.dataset.liquidGlassCanvas = 'uniform';
-    this.canvas.setAttribute('aria-hidden', 'true');
-    this.canvas.style.position = 'absolute';
-    this.canvas.style.inset = '0';
-    this.canvas.style.width = '100%';
-    this.canvas.style.height = '100%';
-    this.canvas.style.pointerEvents = 'none';
-    this.applyPresentationOptions();
   }
 
   private drawBackdropComposite(containerRect: DOMRectReadOnly): void {
@@ -365,39 +379,6 @@ export class GlassContextImpl implements GlassContext {
     return safeRatio * this.precision;
   }
 
-  private applyPresentationOptions(): void {
-    this.canvas.style.zIndex = String(this.optionsSnapshot.canvasZIndex ?? 9_999);
-  }
-
-  private resolveMaterials(containerRect: DOMRectReadOnly): RendererMaterial[] {
-    return [...this.materials.values()]
-      .sort((left, right) => (
-        (left.config.renderOrder ?? 0) - (right.config.renderOrder ?? 0)
-      ))
-      .map((registration) => resolveRendererMaterial(
-        registration.id,
-        registration.config,
-        this.container,
-        containerRect,
-        this.runtime,
-      ))
-      .filter((material): material is RendererMaterial => material !== null);
-  }
-
-  private updateSource(
-    registration: CanvasBackdropRegistration,
-    changes: BackdropSourceChanges<CanvasBackdropSourceConfig>,
-  ): void {
-    this.assertRegistration(registration);
-    registration.config = { ...registration.config, ...changes };
-    this.requestCompositeWithoutDomCapture('external');
-  }
-
-  private refreshSource(registration: CanvasBackdropRegistration): void {
-    this.assertRegistration(registration);
-    this.requestCompositeWithoutDomCapture('external');
-  }
-
   private requestCompositeWithoutDomCapture(reason: TextureDirtyReason): void {
     this.emitter.emit('compositeRequested', reason, 'high');
     if (this.domCapture.requestComposite(reason)) {
@@ -412,9 +393,7 @@ export class GlassContextImpl implements GlassContext {
     }
     registration.destroyed = true;
     this.sources.delete(registration.id);
-    if (registration.config.kind === 'dom') {
-      this.domCapture.sourceRemoved();
-    }
+    this.domCapture.sourceRemoved(registration);
     if (!this.isDestroyed) {
       this.refresh('structural');
     }

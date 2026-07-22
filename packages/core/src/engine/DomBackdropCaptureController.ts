@@ -1,3 +1,4 @@
+import { raceWithAbort } from '../backdrop/abort';
 import { DirtyFrameScheduler } from '../backdrop/DirtyFrameScheduler';
 import {
   captureDomElement,
@@ -5,17 +6,20 @@ import {
 } from '../backdrop/dom-capture';
 import { calculateViewportCaptureRect } from '../backdrop/viewport';
 import { GlassError, type GlassErrorContext } from '../errors/GlassError';
-import type { RectLike } from '../types/common';
 import type {
   BackdropSourceChanges,
   BackdropSourceHandle,
   DomBackdropSourceConfig,
   GlassContextOptions,
   TextureDirtyReason,
-  ViewportCaptureConfig,
 } from '../types/context';
 import type { BackdropCapturedPayload } from '../types/events';
 import { generateUUID } from '../utils/uuid';
+import {
+  needsViewportRecapture,
+  resolveCaptureViewport,
+  resolveViewportPolicy,
+} from './capture-viewport-policy';
 import type {
   BackdropRegistration,
   DomBackdropRegistration,
@@ -25,6 +29,7 @@ import {
   isDomBackdropRegistration,
 } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
+import { SourceObserverRegistry } from './SourceObserverRegistry';
 
 /** Context callbacks required by the DOM capture controller. */
 export interface DomBackdropCaptureCallbacks {
@@ -57,6 +62,8 @@ export interface DomBackdropCaptureCallbacks {
  * decides when cached DOM bitmaps must be replaced and rejects stale results.
  */
 export class DomBackdropCaptureController {
+  private readonly observers: SourceObserverRegistry;
+  private captureAbortController: AbortController | null = null;
   private scheduler: DirtyFrameScheduler | null = null;
   private schedulerGeneration = 0;
 
@@ -71,7 +78,14 @@ export class DomBackdropCaptureController {
     private readonly sources: Map<string, BackdropRegistration>,
     private readonly runtime: GlassEngineRuntime,
     private readonly callbacks: DomBackdropCaptureCallbacks,
-  ) {}
+  ) {
+    this.observers = new SourceObserverRegistry(
+      runtime,
+      (registration, reason, recapture) => (
+        this.handleObservedInvalidation(registration, reason, recapture)
+      ),
+    );
+  }
 
   /** Register a DOM source and return its stable public handle. */
   public add(
@@ -94,12 +108,14 @@ export class DomBackdropCaptureController {
     });
     try {
       this.ensureScheduler();
+      this.sourceAdded(registration);
       this.callbacks.requestComposite('structural');
       return handle;
     } catch (error) {
+      this.observers.untrack(registration);
       registration.destroyed = true;
       this.sources.delete(registration.id);
-      this.sourceRemoved();
+      this.sourceRemoved(registration);
       throw error;
     }
   }
@@ -132,16 +148,32 @@ export class DomBackdropCaptureController {
     return true;
   }
 
-  /** Tear down scheduling after a DOM registration leaves the source map. */
-  public sourceRemoved(): void {
-    if (this.hasDomSources() || !this.scheduler) {
+  /** Attach automatic resize and position observation for any backdrop source. */
+  public sourceAdded(registration: BackdropRegistration): void {
+    this.observers.track(registration);
+  }
+
+  /** Rebind automatic observation after a backdrop configuration update. */
+  public sourceUpdated(registration: BackdropRegistration): void {
+    this.observers.update(registration);
+  }
+
+  /** Tear down observation and DOM capture work after a source leaves the map. */
+  public sourceRemoved(registration: BackdropRegistration): void {
+    this.observers.untrack(registration);
+    if (!isDomBackdropRegistration(registration) || !this.scheduler) {
       return;
     }
-    this.retireScheduler();
+    if (!this.hasDomSources()) {
+      this.retireScheduler();
+      return;
+    }
+    this.restartSchedulerIfCapturing();
   }
 
   /** Cancel all pending controller work. */
   public destroy(): void {
+    this.observers.destroy();
     this.retireScheduler();
   }
 
@@ -151,6 +183,7 @@ export class DomBackdropCaptureController {
   ): void {
     this.callbacks.assertRegistration(registration);
     registration.config = { ...registration.config, ...changes };
+    this.sourceUpdated(registration);
     this.invalidate(registration);
     this.callbacks.requestComposite('external');
   }
@@ -193,9 +226,17 @@ export class DomBackdropCaptureController {
         requestAnimationFrame: (callback) => requestFrame(callback),
       },
       async () => {
-        await this.captureDirtySources(generation);
-        if (this.isGenerationActive(generation)) {
-          this.callbacks.renderFrame();
+        const abortController = new AbortController();
+        this.captureAbortController = abortController;
+        try {
+          await this.captureDirtySources(generation, abortController.signal);
+          if (this.isGenerationActive(generation)) {
+            this.callbacks.renderFrame();
+          }
+        } finally {
+          if (this.captureAbortController === abortController) {
+            this.captureAbortController = null;
+          }
         }
       },
       (error) => {
@@ -206,10 +247,12 @@ export class DomBackdropCaptureController {
     );
   }
 
-  private async captureDirtySources(generation: number): Promise<void> {
+  private async captureDirtySources(
+    generation: number,
+    signal: AbortSignal,
+  ): Promise<void> {
     const capture = this.runtime.captureDomElement ?? captureDomElement;
     const containerRect = this.container.getBoundingClientRect();
-    const viewportRect = this.getCaptureViewport(containerRect);
     const deviceScale = this.callbacks.getDeviceScale();
     const sources = [...this.sources.values()].filter(isDomBackdropRegistration);
 
@@ -221,11 +264,20 @@ export class DomBackdropCaptureController {
         continue;
       }
       const sourceRect = source.config.element.getBoundingClientRect();
+      const viewportRect = resolveCaptureViewport(
+        containerRect,
+        source.config.element,
+        this.callbacks.getOptions().scrollable ?? false,
+        this.runtime,
+      );
       const fullSize = {
         width: Math.max(source.config.element.scrollWidth, sourceRect.width),
         height: Math.max(source.config.element.scrollHeight, sourceRect.height),
       };
-      const capturePolicy = this.resolveViewportPolicy(source.config);
+      const capturePolicy = resolveViewportPolicy(
+        source.config,
+        this.callbacks.getViewportMode(),
+      );
       const boundedRect = capturePolicy === false
         ? null
         : calculateViewportCaptureRect(
@@ -249,15 +301,19 @@ export class DomBackdropCaptureController {
       const captureVersion = source.captureVersion;
       let result: DomCaptureResult;
       try {
-        result = await capture({
-          backdropId: source.id,
-          backgroundColor: source.config.backgroundColor,
-          captureRect: boundedRect,
-          element: source.config.element,
-          library: source.config.captureLibrary ?? 'html-to-image',
-          pixelRatio: deviceScale * sourceScale,
-          timeoutMs: 5_000,
-        });
+        result = await raceWithAbort(
+          capture({
+            backdropId: source.id,
+            backgroundColor: source.config.backgroundColor,
+            captureRect: boundedRect,
+            element: source.config.element,
+            library: source.config.captureLibrary ?? 'html-to-image',
+            pixelRatio: deviceScale * sourceScale,
+            signal,
+            timeoutMs: 5_000,
+          }),
+          signal,
+        );
       } catch (error) {
         if (this.isGenerationActive(generation) && !source.destroyed) {
           this.reportSourceError(error, source.id);
@@ -282,37 +338,6 @@ export class DomBackdropCaptureController {
     }
   }
 
-  private getCaptureViewport(containerRect: DOMRectReadOnly): RectLike {
-    if (this.callbacks.getOptions().scrollable) {
-      return containerRect;
-    }
-    if (this.runtime.getViewportRect) {
-      return this.runtime.getViewportRect();
-    }
-    const width = typeof globalThis.innerWidth === 'number'
-      ? globalThis.innerWidth
-      : containerRect.width;
-    const height = typeof globalThis.innerHeight === 'number'
-      ? globalThis.innerHeight
-      : containerRect.height;
-    return { x: 0, y: 0, width, height };
-  }
-
-  private resolveViewportPolicy(
-    config: DomBackdropSourceConfig,
-  ): boolean | ViewportCaptureConfig {
-    if (!this.callbacks.getViewportMode()) {
-      return config.viewportCapture ?? false;
-    }
-    if (
-      typeof config.viewportCapture === 'object'
-      && config.viewportCapture !== null
-    ) {
-      return { ...config.viewportCapture, enabled: true };
-    }
-    return true;
-  }
-
   private markDirtyForReason(reason: TextureDirtyReason): void {
     if (
       reason !== 'external'
@@ -327,10 +352,20 @@ export class DomBackdropCaptureController {
       if (!isDomBackdropRegistration(source)) {
         continue;
       }
-      if (reason !== 'scroll' || this.resolveViewportPolicy(source.config) !== false) {
+      if (reason !== 'scroll' || this.shouldInvalidateOnScroll(source)) {
         this.invalidate(source);
       }
     }
+  }
+
+  private shouldInvalidateOnScroll(source: DomBackdropRegistration): boolean {
+    return needsViewportRecapture(
+      source,
+      this.container.getBoundingClientRect(),
+      this.callbacks.getViewportMode(),
+      this.callbacks.getOptions().scrollable ?? false,
+      this.runtime,
+    );
   }
 
   private hasDomSources(): boolean {
@@ -340,6 +375,35 @@ export class DomBackdropCaptureController {
   private invalidate(registration: DomBackdropRegistration): void {
     registration.dirty = true;
     registration.captureVersion += 1;
+    this.restartSchedulerIfCapturing();
+  }
+
+  private handleObservedInvalidation(
+    registration: BackdropRegistration,
+    reason: TextureDirtyReason,
+    recapture: boolean,
+  ): void {
+    if (registration.destroyed || !this.sources.has(registration.id)) {
+      return;
+    }
+    if (isDomBackdropRegistration(registration)) {
+      if (recapture || this.shouldInvalidateOnScroll(registration)) {
+        this.invalidate(registration);
+      }
+    } else if (recapture) {
+      registration.dirty = true;
+    }
+    this.callbacks.requestComposite(reason);
+  }
+
+  private restartSchedulerIfCapturing(): void {
+    if (!this.captureAbortController) {
+      return;
+    }
+    this.retireScheduler();
+    if (this.hasDomSources()) {
+      this.ensureScheduler();
+    }
   }
 
   private isGenerationActive(generation: number): boolean {
@@ -350,6 +414,8 @@ export class DomBackdropCaptureController {
 
   private retireScheduler(): void {
     this.schedulerGeneration += 1;
+    this.captureAbortController?.abort();
+    this.captureAbortController = null;
     this.scheduler?.destroy();
     this.scheduler = null;
   }

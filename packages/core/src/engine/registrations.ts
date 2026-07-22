@@ -18,6 +18,8 @@ export interface CanvasBackdropRegistration {
   config: CanvasBackdropSourceConfig;
   /** Core-owned local source canvas. */
   canvas: HTMLCanvasElement;
+  /** Whether the drawing callback must replace the cached bitmap. */
+  dirty: boolean;
   /** Whether the registration has been released. */
   destroyed: boolean;
 }

@@ -5,6 +5,7 @@ import type {
   DomCaptureLibrary,
   ViewportCaptureRect,
 } from '../types/context';
+import { raceWithAbort } from './abort';
 
 type HtmlToImageOptions = NonNullable<Parameters<typeof toCanvas>[1]>;
 
@@ -63,6 +64,8 @@ export interface DomCaptureRequest {
   library: DomCaptureLibrary;
   /** Rasterization scale multiplier. */
   pixelRatio: number;
+  /** Optional context-owned cancellation signal. */
+  signal?: AbortSignal;
   /** Maximum capture duration before rejection. */
   timeoutMs: number;
 }
@@ -218,10 +221,10 @@ export async function captureDomElement(
   });
 
   try {
-    const canvas = await Promise.race([
-      runCapture(request, runtime, captureRect),
-      timeout,
-    ]);
+    const canvas = await raceWithAbort(
+      Promise.race([runCapture(request, runtime, captureRect), timeout]),
+      request.signal,
+    );
     return { canvas, viewportRect: captureRect };
   } catch (error) {
     if (error instanceof GlassError) {
@@ -234,7 +237,11 @@ export async function captureDomElement(
         phase: 'capture',
         cause: error,
         backdropId: request.backdropId,
-        details: { library: request.library, timedOut: false },
+        details: {
+          aborted: error instanceof Error && error.name === 'AbortError',
+          library: request.library,
+          timedOut: false,
+        },
       },
     );
   } finally {

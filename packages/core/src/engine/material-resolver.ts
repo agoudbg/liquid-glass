@@ -9,6 +9,7 @@ import {
 } from '../utils/radius';
 import { parseCSSTransformMatrix } from '../utils/transforms';
 import { validateOptionalFiniteNumber } from '../utils/validation';
+import type { MaterialRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
 function optionalNumber(
@@ -131,4 +132,25 @@ export function resolveRendererMaterial(
     blur: optionalNumber(config.blur, 'material.blur', 0),
     dispersion: optionalNumber(config.dispersion, 'material.dispersion', 0.01),
   };
+}
+
+/** Measure every material registration in deterministic render order. */
+export function resolveRendererMaterials(
+  registrations: Iterable<MaterialRegistration>,
+  container: HTMLElement,
+  containerRect: DOMRectReadOnly,
+  runtime: GlassEngineRuntime,
+): RendererMaterial[] {
+  return [...registrations]
+    .sort((left, right) => (
+      (left.config.renderOrder ?? 0) - (right.config.renderOrder ?? 0)
+    ))
+    .map((registration) => resolveRendererMaterial(
+      registration.id,
+      registration.config,
+      container,
+      containerRect,
+      runtime,
+    ))
+    .filter((material): material is RendererMaterial => material !== null);
 }

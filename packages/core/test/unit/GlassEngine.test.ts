@@ -37,6 +37,9 @@ function deferred<Value>(): {
 class FakeElement {
   readonly children: FakeCanvas[] = [];
   readonly computedStyle: Partial<CSSStyleDeclaration>;
+  readonly firstElementChild: Element | null = null;
+  private readonly attributes = new Map<string, string>();
+  private readonly listeners = new Map<string, Set<EventListener>>();
   readonly offsetHeight: number;
   readonly offsetWidth: number;
   readonly scrollHeight: number;
@@ -56,6 +59,32 @@ class FakeElement {
 
   getBoundingClientRect(): DOMRectReadOnly {
     return domRect(this.rect);
+  }
+
+  addEventListener(type: string, listener: EventListener): void {
+    const listeners = this.listeners.get(type) ?? new Set<EventListener>();
+    listeners.add(listener);
+    this.listeners.set(type, listeners);
+  }
+
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
+  }
+
+  removeEventListener(type: string, listener: EventListener): void {
+    this.listeners.get(type)?.delete(listener);
+  }
+
+  setAttribute(name: string, value: string): void {
+    this.attributes.set(name, value);
+  }
+
+  querySelectorAll(): Element[] {
+    return [];
   }
 
   appendChild(canvas: HTMLCanvasElement): HTMLCanvasElement {
@@ -213,6 +242,8 @@ describe('GlassEngine', () => {
     expect(draw).toHaveBeenCalledTimes(2);
     expect(backdrop.context2d.calls.filter((call) => call.name === 'drawImage'))
       .toHaveLength(2);
+    context.refresh('scroll');
+    expect(draw).toHaveBeenCalledTimes(2);
   });
 
   it('captures a bounded DOM source without recapturing it for material updates', async () => {
@@ -278,10 +309,12 @@ describe('GlassEngine', () => {
       library: 'html2canvas',
       pixelRatio: 2,
     }));
-    expect(captured).toHaveBeenCalledWith(expect.objectContaining({
-      id: source.id,
-      canvas: capturedCanvas,
-    }));
+    await vi.waitFor(() => {
+      expect(captured).toHaveBeenCalledWith(expect.objectContaining({
+        id: source.id,
+        canvas: capturedCanvas,
+      }));
+    });
     await vi.waitFor(() => {
       expect(runtime.canvases[1].context2d.calls.some(
         (call) => call.name === 'drawImage',
@@ -354,15 +387,15 @@ describe('GlassEngine', () => {
     flushFrame();
     await vi.waitFor(() => expect(capture).toHaveBeenCalledOnce());
     source.update({ backgroundColor: '#405060' });
-    expect(frames.size).toBe(0);
+    expect(capture.mock.calls[0]?.[0].signal?.aborted).toBe(true);
+    expect(frames.size).toBe(1);
+    flushFrame();
+    await vi.waitFor(() => expect(capture).toHaveBeenCalledTimes(2));
 
     firstCapture.resolve({
       canvas: oldCanvas as unknown as HTMLCanvasElement,
       viewportRect: { x: 0, y: 0, width: 200, height: 100 },
     });
-    await vi.waitFor(() => expect(frames.size).toBe(1));
-    flushFrame();
-    await vi.waitFor(() => expect(capture).toHaveBeenCalledTimes(2));
 
     expect(capture.mock.calls[1]?.[0]).toMatchObject({
       backdropId: source.id,

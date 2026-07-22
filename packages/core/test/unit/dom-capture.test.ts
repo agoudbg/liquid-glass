@@ -154,4 +154,34 @@ describe('captureDomElement', () => {
       backdropId: 'dom-optional',
     }));
   });
+
+  it('releases the owned wait when an in-flight rasterizer is aborted', async () => {
+    const abortController = new AbortController();
+    const captureHtmlToImage = vi.fn(
+      () => new Promise<HTMLCanvasElement>(() => undefined),
+    );
+    const capture = captureDomElement({
+      backdropId: 'dom-aborted',
+      captureRect: null,
+      element: createElement(),
+      library: 'html-to-image',
+      pixelRatio: 1,
+      signal: abortController.signal,
+      timeoutMs: 10_000,
+    }, {
+      captureHtmlToImage,
+      clearTimeout,
+      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
+      loadHtml2Canvas: vi.fn(),
+      setTimeout,
+    });
+
+    abortController.abort();
+    await expect(capture).rejects.toMatchObject({
+      backdropId: 'dom-aborted',
+      code: 'CAPTURE_FAILED',
+      details: expect.objectContaining({ aborted: true }),
+    });
+    expect(captureHtmlToImage).toHaveBeenCalledOnce();
+  });
 });

@@ -21,6 +21,7 @@ import {
   interactionConfigsEqual,
   interactionOutputsEqual,
 } from './material-presentation-state';
+import { MaterialObserverRegistry } from './MaterialObserverRegistry';
 import {
   createMaterialRegistration,
   type MaterialRegistration,
@@ -63,6 +64,7 @@ export class MaterialPresentationController {
   private readonly registrations = new Map<string, MaterialRuntimeState>();
   private readonly activeMaterials = new Set<string>();
   private readonly frameScheduler: ContextFrameScheduler;
+  private readonly observers: MaterialObserverRegistry;
   private renderRequested = false;
   private destroyed = false;
   private fallbackMode = false;
@@ -70,10 +72,16 @@ export class MaterialPresentationController {
 
   /** Create a material lifecycle controller for one glass context. */
   public constructor(
+    container: HTMLElement,
     runtime: GlassEngineRuntime,
     private readonly callbacks: MaterialPresentationControllerCallbacks,
   ) {
     this.frameScheduler = new ContextFrameScheduler(runtime);
+    this.observers = new MaterialObserverRegistry(
+      container,
+      runtime,
+      () => this.requestRender(),
+    );
   }
 
   /** Return live registrations in stable insertion order. */
@@ -108,18 +116,22 @@ export class MaterialPresentationController {
       destroy: () => this.remove(materialRuntime),
     });
 
+    let announced = false;
     try {
       setMaterialFallbackMode(registration, this.fallbackMode);
       this.registrations.set(registration.id, materialRuntime);
+      this.observers.track(registration);
+      announced = true;
       this.callbacks.onAdded(registration);
       this.callbacks.renderImmediately();
       return handle;
     } catch (error) {
+      this.observers.untrack(registration);
       engine.destroy();
       restoreMaterialFallbackMode(registration);
       registration.destroyed = true;
       this.registrations.delete(registration.id);
-      this.callbacks.onRemoved(registration);
+      if (announced) this.callbacks.onRemoved(registration);
       throw error;
     }
   }
@@ -164,6 +176,7 @@ export class MaterialPresentationController {
   public destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
+    this.observers.destroy();
     this.cancelFrame();
     for (const materialRuntime of this.registrations.values()) {
       materialRuntime.engine.destroy();
@@ -302,6 +315,7 @@ export class MaterialPresentationController {
 
   private remove(materialRuntime: MaterialRuntimeState): void {
     if (materialRuntime.registration.destroyed) return;
+    this.observers.untrack(materialRuntime.registration);
     materialRuntime.engine.destroy();
     materialRuntime.listeners.clear();
     restoreMaterialFallbackMode(materialRuntime.registration);

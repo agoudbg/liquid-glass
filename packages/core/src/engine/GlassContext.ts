@@ -114,7 +114,7 @@ export class GlassContextImpl implements GlassContext {
       this.canvas,
       this.optionsSnapshot,
     );
-    this.materials = new MaterialPresentationController(runtime, {
+    this.materials = new MaterialPresentationController(container, runtime, {
       assertContextUsable: () => this.assertUsable(),
       onAdded: (registration) => this.emitter.emit(
         'materialAdded',

@@ -33,6 +33,22 @@ export default tseslint.config(
   },
   js.configs.recommended,
   {
+    files: ['scripts/**/*.{js,mjs}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      globals: globals.node,
+      sourceType: 'module',
+    },
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
+    rules: {
+      ...sharedRules,
+      'simple-import-sort/exports': 'error',
+      'simple-import-sort/imports': 'error',
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [...tseslint.configs.recommended],
     languageOptions: {
@@ -60,7 +76,11 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/vue/**/*.vue', 'apps/playground/**/*.vue'],
+    files: [
+      'packages/vue/**/*.vue',
+      'apps/playground/**/*.vue',
+      'tests/consumers/vue/**/*.vue',
+    ],
     languageOptions: {
       globals: globals.browser,
       parser: vueParser,
@@ -84,6 +104,7 @@ export default tseslint.config(
     files: [
       'packages/react/src/**/*.{ts,tsx}',
       'apps/playground/src/hosts/react/**/*.{ts,tsx}',
+      'tests/consumers/react/src/**/*.{ts,tsx}',
     ],
     plugins: {
       'react-hooks': reactHooks,
@@ -97,6 +118,7 @@ export default tseslint.config(
     files: [
       'packages/solid/src/**/*.{ts,tsx}',
       'apps/playground/src/hosts/solid/**/*.{ts,tsx}',
+      'tests/consumers/solid/src/**/*.{ts,tsx}',
     ],
     plugins: {
       solid,

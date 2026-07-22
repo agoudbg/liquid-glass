@@ -26,6 +26,9 @@ Thumbs.db
 
 # Test coverage
 coverage/
+.playwright-cli/
+playwright-report/
+test-results/
 
 # Development notes and planning (never committed)
 .development/

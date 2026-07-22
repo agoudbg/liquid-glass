@@ -12,6 +12,7 @@
 import './styles/glass.css';
 
 export { default as LgBackdropCanvas } from './components/LgBackdropCanvas.vue';
+export { default as LgBackdropConverter } from './components/LgBackdropConverter.vue';
 export { default as LiquidGlass } from './components/LiquidGlass.vue';
 export { default as LiquidGlassMaterial } from './components/LiquidGlassMaterial.vue';
 export {
@@ -20,6 +21,9 @@ export {
 } from './composables/liquidGlassContext';
 export type {
   LgBackdropCanvasProps,
+  LgBackdropConverterExposed,
+  LgBackdropConverterProps,
+  LgBackdropConverterSlotProps,
   LiquidGlassExposed,
   LiquidGlassInjection,
   LiquidGlassMaterialExposed,

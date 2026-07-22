@@ -1,5 +1,8 @@
 import type {
+  BackdropSourceHandle,
   CustomDrawCallback,
+  DomBackdropSourceConfig,
+  DomCaptureLibrary,
   GlassContext,
   GlassContextOptions,
   GlassEngine,
@@ -86,6 +89,39 @@ export interface BackdropCanvasProps
   draw: CustomDrawCallback;
   /** Explicit order among registered backdrop sources. */
   zIndex?: number;
+}
+
+/** Props accepted by the Solid DOM backdrop converter. */
+export interface BackdropConverterProps
+  extends Omit<JSX.HTMLAttributes<HTMLDivElement>, 'children' | 'ref'> {
+  /** DOM content captured as a backdrop texture. */
+  children?: JSX.Element;
+  /** Optional callback receiving the imperative converter handle. */
+  apiRef?: (handle: BackdropConverterHandle | null) => void;
+  /** DOM rasterizer used by core. */
+  captureLibrary?: DomCaptureLibrary;
+  /** Explicit order among registered backdrop sources. */
+  zIndex?: number;
+  /** Capture scale override. */
+  scale?: number;
+  /** Fill painted behind captured content. */
+  backgroundColor?: string;
+  /** Whether source size changes request a capture. */
+  watchResize?: boolean;
+  /** Whether descendant mutations request a capture. */
+  watchNodeChanges?: boolean;
+  /** Whether movement without resizing requests remeasurement. */
+  watchPositionChanges?: boolean;
+  /** Optional bounded capture policy for scrolling content. */
+  viewportCapture?: DomBackdropSourceConfig['viewportCapture'];
+}
+
+/** Imperative controls exposed by the Solid DOM backdrop converter. */
+export interface BackdropConverterHandle {
+  /** Read the mounted core registration. */
+  getHandle(): BackdropSourceHandle<DomBackdropSourceConfig> | null;
+  /** Request a fresh DOM rasterization. */
+  refresh(): void;
 }
 
 /** CSS properties including the adapter's custom properties. */

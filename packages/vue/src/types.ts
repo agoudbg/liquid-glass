@@ -1,5 +1,8 @@
 import type {
+  BackdropSourceHandle,
   CustomDrawCallback,
+  DomBackdropSourceConfig,
+  DomCaptureLibrary,
   GlassContext,
   GlassContextOptions,
   GlassEngine,
@@ -65,6 +68,36 @@ export interface LgBackdropCanvasProps {
   draw: CustomDrawCallback;
   /** Explicit order among registered backdrop sources. */
   zIndex?: number;
+}
+
+/** Props accepted by the Vue DOM backdrop converter. */
+export interface LgBackdropConverterProps
+  extends Omit<
+    DomBackdropSourceConfig,
+    'captureLibrary' | 'element' | 'kind'
+  > {
+  /** DOM rasterizer used by core; takes precedence over `captureLib`. */
+  captureLibrary?: DomCaptureLibrary;
+  /** Legacy Vue alias for `captureLibrary`. */
+  captureLib?: DomCaptureLibrary;
+}
+
+/** Imperative controls exposed by the Vue DOM backdrop converter. */
+export interface LgBackdropConverterExposed {
+  /** Read the mounted core registration. */
+  getHandle(): BackdropSourceHandle<DomBackdropSourceConfig> | null;
+  /** Request a fresh DOM rasterization. */
+  refresh(): void;
+  /** Legacy name for requesting a fresh DOM rasterization. */
+  requestBackdropRedraw(): void;
+}
+
+/** Controls supplied to the Vue DOM backdrop converter's default slot. */
+export interface LgBackdropConverterSlotProps {
+  /** Request a fresh DOM rasterization. */
+  refresh(): void;
+  /** Legacy name for requesting a fresh DOM rasterization. */
+  requestBackdropRedraw(): void;
 }
 
 /** Reactive context value shared by Vue liquid-glass descendants. */

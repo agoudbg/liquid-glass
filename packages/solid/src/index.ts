@@ -12,6 +12,7 @@
 import './styles/glass.css';
 
 export { BackdropCanvas } from './BackdropCanvas';
+export { BackdropConverter } from './BackdropConverter';
 export { LiquidGlass } from './LiquidGlass';
 export {
   LiquidGlassContext,
@@ -20,6 +21,8 @@ export {
 export { LiquidGlassMaterial } from './LiquidGlassMaterial';
 export type {
   BackdropCanvasProps,
+  BackdropConverterHandle,
+  BackdropConverterProps,
   GlassStyle,
   LiquidGlassContextValue,
   LiquidGlassHandle,

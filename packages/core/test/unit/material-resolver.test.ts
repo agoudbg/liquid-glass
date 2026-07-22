@@ -118,4 +118,42 @@ describe('resolveRendererMaterial', () => {
       createRuntime(),
     )).toBeNull();
   });
+
+  it('preserves renderer output for a partially intersecting material', () => {
+    const container = new StyledElement(
+      { x: 10, y: 20, width: 300, height: 200 },
+      computedStyle(),
+    );
+    const element = new StyledElement(
+      { x: -10, y: 10, width: 60, height: 40 },
+      computedStyle({ opacity: '0.75' }),
+    );
+    element.parentElement = container as unknown as HTMLElement;
+
+    expect(resolveRendererMaterial(
+      'material-partial',
+      {
+        blur: 2,
+        dispersion: 0.02,
+        element: element as unknown as HTMLElement,
+        refractIndex: 1.2,
+        refractIntensity: 0,
+        thickness: 12,
+      },
+      container as unknown as HTMLElement,
+      container.getBoundingClientRect(),
+      createRuntime(),
+    )).toEqual({
+      id: 'material-partial',
+      rect: { x: -20, y: -10, width: 60, height: 40 },
+      matrix: [1, 0, 0, 1, 0, 0],
+      radii: [0, 0, 0, 0],
+      opacity: 0.75,
+      thickness: 12,
+      refractIndex: 1.2,
+      refractIntensity: 0,
+      blur: 2,
+      dispersion: 0.02,
+    });
+  });
 });

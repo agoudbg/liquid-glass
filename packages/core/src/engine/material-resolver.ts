@@ -1,7 +1,6 @@
 import type { RendererMaterial } from '../renderer';
 import type { CornerRadii } from '../types/common';
 import type { MaterialConfig } from '../types/context';
-import { computeElementVisibility } from '../utils/opacity';
 import {
   normalizeCornerRadii,
   parseComputedCornerRadii,
@@ -10,6 +9,7 @@ import {
 import { parseCSSTransformMatrix } from '../utils/transforms';
 import { validateOptionalFiniteNumber } from '../utils/validation';
 import { orderMaterialRegistrations } from './material-order';
+import { resolveMaterialVisibility } from './material-visibility';
 import type { MaterialRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -65,7 +65,7 @@ function resolveRadii(
  * @param container - Exclusive boundary for ancestor visibility traversal.
  * @param containerRect - Owning context bounds in viewport coordinates.
  * @param runtime - Injected style-reading runtime.
- * @returns Renderer data, or `null` for an empty material rectangle.
+ * @returns Renderer data, or `null` when the material is synchronously culled.
  */
 export function resolveRendererMaterial(
   id: string,
@@ -74,22 +74,16 @@ export function resolveRendererMaterial(
   containerRect: DOMRectReadOnly,
   runtime: GlassEngineRuntime,
 ): RendererMaterial | null {
-  const rect = config.element.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0) {
-    return null;
-  }
-
-  const style = runtime.getComputedStyle(config.element);
-  const visibility = computeElementVisibility(
+  const visibility = resolveMaterialVisibility(
     config.element,
     container,
-    (element) => (
-      element === config.element ? style : runtime.getComputedStyle(element)
-    ),
+    containerRect,
+    runtime,
   );
-  if (visibility.state === 'hidden') {
+  if (!visibility.visible) {
     return null;
   }
+  const { opacity, rect, style } = visibility;
   const logicalWidth = config.element.offsetWidth > 0
     ? config.element.offsetWidth
     : rect.width;
@@ -117,7 +111,7 @@ export function resolveRendererMaterial(
       0,
     ],
     radii: toShaderCornerRadii(radii),
-    opacity: visibility.opacity,
+    opacity,
     thickness: optionalNumber(config.thickness, 'material.thickness', 10),
     refractIndex: optionalNumber(
       config.refractIndex,

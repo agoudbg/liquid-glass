@@ -64,6 +64,7 @@ export interface DomBackdropCaptureCallbacks {
 export class DomBackdropCaptureController {
   private readonly observers: SourceObserverRegistry;
   private captureAbortController: AbortController | null = null;
+  private paused = false;
   private scheduler: DirtyFrameScheduler | null = null;
   private schedulerGeneration = 0;
 
@@ -107,7 +108,9 @@ export class DomBackdropCaptureController {
       destroy: () => this.callbacks.removeSource(registration),
     });
     try {
-      this.ensureScheduler();
+      if (!this.paused) {
+        this.ensureScheduler();
+      }
       this.sourceAdded(registration);
       this.callbacks.requestComposite('structural');
       return handle;
@@ -131,6 +134,9 @@ export class DomBackdropCaptureController {
 
   /** Schedule capture-aware work, returning false when no DOM scheduler exists. */
   public request(reason: TextureDirtyReason): boolean {
+    if (this.paused) {
+      return true;
+    }
     if (!this.scheduler) {
       return false;
     }
@@ -141,6 +147,9 @@ export class DomBackdropCaptureController {
 
   /** Schedule a composite that reuses all currently valid DOM bitmaps. */
   public requestComposite(reason: TextureDirtyReason): boolean {
+    if (this.paused) {
+      return true;
+    }
     if (!this.scheduler) {
       return false;
     }
@@ -171,6 +180,21 @@ export class DomBackdropCaptureController {
     this.restartSchedulerIfCapturing();
   }
 
+  /** Suspend rasterization while retaining observers and dirty source state. */
+  public setPaused(paused: boolean): void {
+    if (this.paused === paused) {
+      return;
+    }
+    this.paused = paused;
+    if (paused) {
+      this.retireScheduler();
+      return;
+    }
+    if (this.hasDomSources()) {
+      this.ensureScheduler();
+    }
+  }
+
   /** Cancel all pending controller work. */
   public destroy(): void {
     this.observers.destroy();
@@ -195,7 +219,7 @@ export class DomBackdropCaptureController {
   }
 
   private ensureScheduler(): void {
-    if (this.scheduler) {
+    if (this.paused || this.scheduler) {
       return;
     }
     const requestFrame = this.runtime.requestAnimationFrame
@@ -401,7 +425,7 @@ export class DomBackdropCaptureController {
       return;
     }
     this.retireScheduler();
-    if (this.hasDomSources()) {
+    if (!this.paused && this.hasDomSources()) {
       this.ensureScheduler();
     }
   }

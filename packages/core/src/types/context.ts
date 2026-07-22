@@ -278,6 +278,8 @@ export interface GlassContext {
   readonly canvas: HTMLCanvasElement;
   /** Whether this context has released all owned resources. */
   readonly destroyed: boolean;
+  /** Whether CSS fallback presentation is currently active. */
+  readonly fallbackMode: boolean;
   /** Register a DOM capture source and return its lifecycle handle. */
   addBackdropSource(
     config: DomBackdropSourceConfig,

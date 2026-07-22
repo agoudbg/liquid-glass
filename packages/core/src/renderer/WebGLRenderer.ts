@@ -43,6 +43,7 @@ export class WebGLRenderer {
   private readonly readDevicePixelRatio: () => number;
   private readonly onContextLost: (() => void) | undefined;
   private readonly onContextRestored: (() => void) | undefined;
+  private readonly onContextRestoreError: ((error: GlassError) => void) | undefined;
   private program: WebGLProgram | null = null;
   private uniforms: LiquidGlassUniforms | null = null;
   private geometry: QuadGeometry | null = null;
@@ -64,10 +65,21 @@ export class WebGLRenderer {
     if (this.isDestroyed) {
       return;
     }
-    this.isContextLost = false;
-    this.initializeResources();
-    this.resize(this.logicalWidth, this.logicalHeight);
-    this.onContextRestored?.();
+    try {
+      this.isContextLost = false;
+      this.initializeResources();
+      this.resize(this.logicalWidth, this.logicalHeight);
+      this.onContextRestored?.();
+    } catch (error) {
+      this.isContextLost = true;
+      this.releaseResources();
+      this.onContextRestoreError?.(GlassError.fromUnknown(
+        error,
+        'RENDER_FAILED',
+        'Failed to restore the WebGL rendering context.',
+        { phase: 'render' },
+      ));
+    }
   };
 
   /**
@@ -96,6 +108,7 @@ export class WebGLRenderer {
     this.readDevicePixelRatio = options.devicePixelRatio ?? defaultDevicePixelRatio;
     this.onContextLost = options.onContextLost;
     this.onContextRestored = options.onContextRestored;
+    this.onContextRestoreError = options.onContextRestoreError;
     canvas.addEventListener('webglcontextlost', this.handleContextLost);
     canvas.addEventListener('webglcontextrestored', this.handleContextRestored);
 
@@ -148,7 +161,9 @@ export class WebGLRenderer {
     }
 
     this.renderScale = nextScale;
-    this.resize(this.logicalWidth, this.logicalHeight);
+    if (!this.isContextLost) {
+      this.resize(this.logicalWidth, this.logicalHeight);
+    }
   }
 
   /**

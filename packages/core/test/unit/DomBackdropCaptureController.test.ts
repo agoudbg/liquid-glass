@@ -388,6 +388,35 @@ describe('DomBackdropCaptureController', () => {
     controller.destroy();
   });
 
+  it('pauses DOM rasterization while preserving dirty registrations for recovery', async () => {
+    const { flush, frames, runtime } = createFrameRuntime();
+    const sources = new Map<string, BackdropRegistration>();
+    const capture = vi.fn<NonNullable<GlassEngineRuntime['captureDomElement']>>()
+      .mockResolvedValue({
+        canvas: new FakeCanvas() as unknown as HTMLCanvasElement,
+        viewportRect: { x: 0, y: 0, width: 320, height: 180 },
+      });
+    runtime.captureDomElement = capture;
+    const controller = createController(runtime, sources);
+
+    controller.setPaused(true);
+    controller.add({
+      kind: 'dom',
+      element: createElement({ x: 0, y: 0, width: 320, height: 180 }),
+    });
+    expect(controller.active).toBe(false);
+    expect(frames.size).toBe(0);
+    flush();
+    expect(capture).not.toHaveBeenCalled();
+
+    controller.setPaused(false);
+    expect(controller.active).toBe(true);
+    controller.request('fallback');
+    flush();
+    await vi.waitFor(() => expect(capture).toHaveBeenCalledOnce());
+    controller.destroy();
+  });
+
   it('rolls back registration when initial frame scheduling fails', () => {
     const { runtime } = createFrameRuntime();
     runtime.requestAnimationFrame = () => {

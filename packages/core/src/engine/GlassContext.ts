@@ -16,19 +16,30 @@ import type {
 import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
-import { generateUUID } from '../utils/uuid';
-import { drawBackdropComposite } from './canvas-backdrop';
 import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import {
   resolveContextPrecision,
   snapshotContextOptions,
 } from './context-options';
 import { ContextPresentation } from './context-presentation';
+import { ContextBackdropComposite } from './ContextBackdropComposite';
 import { ContextEventController } from './ContextEventController';
+import { createContextProxyInterface } from './create-context-proxy';
+import {
+  assertContextRendererOptions,
+  createContextRenderer,
+} from './create-context-renderer';
 import { DomBackdropCaptureController } from './DomBackdropCaptureController';
+import { FallbackController } from './FallbackController';
+import {
+  restoreMaterialFallbackMode,
+  setMaterialFallbackMode,
+  setMaterialsFallbackMode,
+} from './material-fallback';
 import { resolveRendererMaterials } from './material-resolver';
 import {
   type BackdropRegistration,
+  createMaterialRegistration,
   type MaterialRegistration,
   MaterialRegistrationHandle,
 } from './registrations';
@@ -38,14 +49,17 @@ import type { GlassEngineRuntime } from './runtime';
 export class GlassContextImpl implements GlassContext {
   /** Uniform presentation canvas owned and appended by core. */
   public readonly canvas: HTMLCanvasElement;
-
   /** Whether the context has released every registration and graphics resource. */
   public get destroyed(): boolean {
     return this.isDestroyed;
   }
-
-  private readonly renderer: WebGLRenderer;
+  /** Whether CSS fallback presentation is currently active. */
+  public get fallbackMode(): boolean {
+    return this.fallback.effective;
+  }
+  private readonly renderer: WebGLRenderer | null;
   private readonly compositeCanvas: HTMLCanvasElement;
+  private readonly backdropComposite: ContextBackdropComposite;
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
   private readonly sources = new Map<string, BackdropRegistration>();
   private readonly materials = new Map<string, MaterialRegistration>();
@@ -53,10 +67,10 @@ export class GlassContextImpl implements GlassContext {
   private readonly domCapture: DomBackdropCaptureController;
   private readonly contextEvents: ContextEventController;
   private readonly presentation: ContextPresentation;
+  private readonly fallback: FallbackController;
   private optionsSnapshot: GlassContextOptions;
   private precision: number;
   private isDestroyed = false;
-  private fallbackMode = false;
   private viewportMode = false;
 
   /**
@@ -75,8 +89,15 @@ export class GlassContextImpl implements GlassContext {
   ) {
     this.optionsSnapshot = snapshotContextOptions(options);
     this.precision = resolveContextPrecision(this.optionsSnapshot);
+    this.fallback = new FallbackController(this.optionsSnapshot);
     this.canvas = runtime.createCanvas();
     this.compositeCanvas = runtime.createCanvas();
+    this.backdropComposite = new ContextBackdropComposite(
+      this.compositeCanvas,
+      this.canvas,
+      this.sources,
+      (capture) => this.emitter.emit('backdropCaptured', capture),
+    );
     this.presentation = new ContextPresentation(
       container,
       this.canvas,
@@ -112,17 +133,22 @@ export class GlassContextImpl implements GlassContext {
     );
     let renderer: WebGLRenderer | null = null;
     try {
-      renderer = new WebGLRenderer(this.canvas, {
-        renderScale: this.precision,
-        devicePixelRatio: runtime.devicePixelRatio,
-        onContextRestored: () => {
-          if (!this.isDestroyed) {
-            this.refresh('external');
-          }
+      renderer = createContextRenderer(
+        this.canvas,
+        this.precision,
+        runtime,
+        this.optionsSnapshot,
+        {
+          onContextLost: () => this.handleRendererContextLost(),
+          onContextRestored: () => this.handleRendererContextRestored(),
+          onContextRestoreError: (error) => this.handleRendererRestoreError(error),
         },
-      });
-      container.appendChild(this.canvas);
+      );
+      this.fallback.setRendererUnavailable(renderer === null);
       this.renderer = renderer;
+      this.presentation.setFallbackMode(this.fallbackMode);
+      this.domCapture.setPaused(this.fallbackMode);
+      container.appendChild(this.canvas);
       this.contextEvents = new ContextEventController(
         container,
         runtime,
@@ -157,41 +183,25 @@ export class GlassContextImpl implements GlassContext {
   public addBackdropSource(
     config: DomBackdropSourceConfig,
   ): BackdropSourceHandle<DomBackdropSourceConfig>;
-
   /** Register a core-owned custom canvas source. */
   public addBackdropSource(
     config: CanvasBackdropSourceConfig,
   ): BackdropSourceHandle<CanvasBackdropSourceConfig>;
-
   /** Register a backdrop source and return its stable lifecycle handle. */
   public addBackdropSource(
     config: BackdropSourceConfig,
   ): BackdropSourceHandle {
     this.assertUsable();
     if (config.kind === 'dom') {
-      return this.addDomBackdropSource(config);
+      return this.domCapture.add(config);
     }
     return this.canvasSources.add(config);
-  }
-
-  private addDomBackdropSource(
-    config: DomBackdropSourceConfig,
-  ): BackdropSourceHandle<DomBackdropSourceConfig> {
-    return this.domCapture.add(config);
   }
 
   /** Register a measurable material and return its lifecycle handle. */
   public addMaterial(config: MaterialConfig): MaterialHandle {
     this.assertUsable();
-    const registration: MaterialRegistration = {
-      id: generateUUID(),
-      config: { ...config },
-      interactionState: null,
-      destroyed: false,
-    };
-    this.materials.set(registration.id, registration);
-    this.emitter.emit('materialAdded', registration.id, registration.config);
-
+    const registration = createMaterialRegistration(config);
     const handle = new MaterialRegistrationHandle(registration, {
       update: (changes) => this.updateMaterial(registration, changes),
       setInteractionState: (state) => this.setMaterialInteraction(registration, state),
@@ -199,9 +209,13 @@ export class GlassContextImpl implements GlassContext {
       destroy: () => this.removeMaterial(registration),
     });
     try {
+      setMaterialFallbackMode(registration, this.fallbackMode);
+      this.materials.set(registration.id, registration);
+      this.emitter.emit('materialAdded', registration.id, registration.config);
       this.refresh('structural');
       return handle;
     } catch (error) {
+      restoreMaterialFallbackMode(registration);
       registration.destroyed = true;
       this.materials.delete(registration.id);
       this.emitter.emit('materialRemoved', registration.id);
@@ -213,44 +227,33 @@ export class GlassContextImpl implements GlassContext {
   public updateOptions(options: GlassContextOptions): void {
     this.assertUsable();
     const nextSnapshot = snapshotContextOptions(options);
+    assertContextRendererOptions(this.renderer, nextSnapshot);
     const nextPrecision = resolveContextPrecision(nextSnapshot);
-
-    this.renderer.setRenderScale(nextPrecision);
+    this.renderer?.setRenderScale(nextPrecision);
     this.optionsSnapshot = nextSnapshot;
     this.precision = nextPrecision;
+    const fallbackChanged = this.fallback.updateOptions(nextSnapshot);
     this.contextEvents.refreshTargets();
     this.domCapture.markAllDirty();
     this.presentation.update(nextSnapshot);
+    if (fallbackChanged) {
+      this.applyFallbackModeChange();
+    }
     this.refresh('structural');
   }
 
   /** Create the delegation surface; external registration is deferred to P6. */
   public createProxyInterface(): ProxyInterface {
     this.assertUsable();
-    return {
-      registerExternalMaterial: () => {
-        throw new GlassError(
-          'INVALID_CONFIG',
-          'External material delegation is introduced in rewrite phase P6.',
-          { phase: 'configuration' },
-        );
-      },
-      getContainerRect: () => (
-        this.isDestroyed ? null : this.container.getBoundingClientRect()
-      ),
-      getScrollPosition: () => ({
-        x: this.container.scrollLeft,
-        y: this.container.scrollTop,
-      }),
-    };
+    return createContextProxyInterface(this.container, () => this.isDestroyed);
   }
 
-  /** Toggle the fallback flag; CSS fallback rendering is completed in P4. */
+  /** Force or release CSS fallback presentation. */
   public setFallbackMode(enabled: boolean): void {
     this.assertUsable();
-    if (this.fallbackMode !== enabled) {
-      this.fallbackMode = enabled;
-      this.emitter.emit('fallbackModeChanged', enabled);
+    if (this.fallback.setForced(enabled)) {
+      this.applyFallbackModeChange();
+      this.refresh('fallback');
     }
   }
 
@@ -269,30 +272,42 @@ export class GlassContextImpl implements GlassContext {
   public refresh(reason: TextureDirtyReason = 'external'): void {
     this.assertUsable();
     this.emitter.emit('compositeRequested', reason, 'high');
-    if (this.domCapture.request(reason)) {
+    if (this.fallbackMode) {
+      this.renderFrame();
       return;
     }
-    this.renderFrame();
+    if (!this.domCapture.request(reason)) this.renderFrame();
   }
 
   private renderFrame(): void {
     try {
       const containerRect = this.container.getBoundingClientRect();
-      this.renderer.resize(containerRect.width, containerRect.height);
-      if (this.sources.size === 0) {
-        this.renderer.clear();
+      const renderer = this.renderer;
+      if (this.fallbackMode || !renderer) {
+        const scale = this.getDeviceScale();
+        this.canvas.width = Math.max(1, Math.round(containerRect.width * scale));
+        this.canvas.height = Math.max(1, Math.round(containerRect.height * scale));
+        if (this.sources.size > 0) {
+          this.backdropComposite.draw(containerRect, this.getDeviceScale());
+        }
         this.emitRenderedFrame();
         return;
       }
-      this.drawBackdropComposite(containerRect);
-      this.renderer.uploadBackdrop(this.compositeCanvas);
+      renderer.resize(containerRect.width, containerRect.height);
+      if (this.sources.size === 0) {
+        renderer.clear();
+        this.emitRenderedFrame();
+        return;
+      }
+      this.backdropComposite.draw(containerRect, this.getDeviceScale());
+      renderer.uploadBackdrop(this.compositeCanvas);
       const materials = resolveRendererMaterials(
         this.materials.values(),
         this.container,
         containerRect,
         this.runtime,
       );
-      this.renderer.render(materials);
+      renderer.render(materials);
       this.emitRenderedFrame();
     } catch (error) {
       const contextual = GlassError.fromUnknown(
@@ -339,11 +354,12 @@ export class GlassContextImpl implements GlassContext {
       source.destroyed = true;
     }
     for (const material of this.materials.values()) {
+      restoreMaterialFallbackMode(material);
       material.destroyed = true;
     }
     this.sources.clear();
     this.materials.clear();
-    this.renderer.destroy();
+    this.renderer?.destroy();
     if (this.canvas.parentNode === this.container) {
       this.container.removeChild(this.canvas);
     }
@@ -351,26 +367,37 @@ export class GlassContextImpl implements GlassContext {
     this.emitter.emit('destroyed');
     this.emitter.removeAllListeners();
   }
-
-  private drawBackdropComposite(containerRect: DOMRectReadOnly): void {
-    const deviceScale = this.getDeviceScale();
-    const captures = drawBackdropComposite(
-      this.compositeCanvas,
-      this.canvas.width,
-      this.canvas.height,
-      this.sources.values(),
-      containerRect,
-      deviceScale,
-    );
-
-    for (const capture of captures) {
-      this.emitter.emit('backdropCaptured', {
-        id: capture.id,
-        canvas: capture.canvas,
-        width: capture.width,
-        height: capture.height,
-      });
+  private applyFallbackModeChange(): void {
+    const enabled = this.fallbackMode;
+    if (!enabled && this.renderer) {
+      this.renderFrame();
     }
+    this.presentation.setFallbackMode(enabled);
+    this.domCapture.setPaused(enabled);
+    setMaterialsFallbackMode(this.materials.values(), enabled);
+    this.emitter.emit('fallbackModeChanged', enabled);
+  }
+
+  private handleRendererContextLost(): void {
+    if (!this.isDestroyed && this.fallback.setContextLost(true)) {
+      this.applyFallbackModeChange();
+      this.refresh('fallback');
+    }
+  }
+
+  private handleRendererContextRestored(): void {
+    if (this.isDestroyed) {
+      return;
+    }
+    if (this.fallback.setContextLost(false)) {
+      this.applyFallbackModeChange();
+    }
+    this.refresh('fallback');
+  }
+
+  private handleRendererRestoreError(error: GlassError): void {
+    if (this.isDestroyed) return;
+    this.emitter.emit('error', error.toContext());
   }
 
   private getDeviceScale(): number {
@@ -381,10 +408,11 @@ export class GlassContextImpl implements GlassContext {
 
   private requestCompositeWithoutDomCapture(reason: TextureDirtyReason): void {
     this.emitter.emit('compositeRequested', reason, 'high');
-    if (this.domCapture.requestComposite(reason)) {
+    if (this.fallbackMode) {
+      this.renderFrame();
       return;
     }
-    this.renderFrame();
+    if (!this.domCapture.requestComposite(reason)) this.renderFrame();
   }
 
   private removeSource(registration: BackdropRegistration): void {
@@ -427,6 +455,7 @@ export class GlassContextImpl implements GlassContext {
     if (registration.destroyed) {
       return;
     }
+    restoreMaterialFallbackMode(registration);
     registration.destroyed = true;
     this.materials.delete(registration.id);
     this.emitter.emit('materialRemoved', registration.id);

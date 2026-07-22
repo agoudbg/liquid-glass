@@ -41,4 +41,27 @@ describe('ContextPresentation', () => {
     presentation.destroy();
     expect(container.getAttribute('data-lg-scrollable')).toBeNull();
   });
+
+  it('hides the WebGL canvas in fallback mode and restores consumer markers', () => {
+    const container = new ScrollContainer();
+    container.setAttribute('data-lg-fallback', 'consumer');
+    const canvas = new FakeCanvas();
+    const presentation = new ContextPresentation(
+      container as unknown as HTMLElement,
+      canvas as unknown as HTMLCanvasElement,
+      {},
+    );
+
+    expect(container.getAttribute('data-lg-fallback')).toBe('false');
+    presentation.setFallbackMode(true);
+    expect(container.getAttribute('data-lg-fallback')).toBe('true');
+    expect(canvas.style.visibility).toBe('hidden');
+    expect(canvas.style.opacity).toBe('0');
+
+    presentation.setFallbackMode(false);
+    expect(canvas.style.visibility).toBe('visible');
+    expect(canvas.style.opacity).toBe('1');
+    presentation.destroy();
+    expect(container.getAttribute('data-lg-fallback')).toBe('consumer');
+  });
 });

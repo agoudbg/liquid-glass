@@ -126,9 +126,12 @@ describe('WebGLRenderer', () => {
     } as unknown as Event);
     expect(preventDefault).toHaveBeenCalledOnce();
     expect(renderer.render([material]).drawCalls).toBe(0);
+    renderer.setRenderScale(0.5);
+    expect(canvas).toMatchObject({ width: 20, height: 10 });
 
     canvas.dispatch('webglcontextrestored', {} as Event);
     expect(restored).toHaveBeenCalledOnce();
+    expect(canvas).toMatchObject({ width: 10, height: 5 });
     expect(callsNamed(canvas.gl, 'texImage2D')).toHaveLength(2);
 
     renderer.destroy();

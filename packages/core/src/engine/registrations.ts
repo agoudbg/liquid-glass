@@ -9,6 +9,7 @@ import type {
   ViewportCaptureRect,
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
+import { generateUUID } from '../utils/uuid';
 
 /** Mutable canvas-backdrop registration owned by one context. */
 export interface CanvasBackdropRegistration {
@@ -65,10 +66,25 @@ export interface MaterialRegistration {
   id: string;
   /** Current material configuration. */
   config: MaterialConfig;
+  /** Consumer-authored fallback marker restored when core releases the material. */
+  initialFallbackAttribute: string | null;
   /** Latest framework interaction input reserved for P5 integration. */
   interactionState: InteractionState | null;
   /** Whether the registration has been released. */
   destroyed: boolean;
+}
+
+/** Create a detached material registration while preserving consumer markers. */
+export function createMaterialRegistration(
+  config: MaterialConfig,
+): MaterialRegistration {
+  return {
+    id: generateUUID(),
+    config: { ...config },
+    initialFallbackAttribute: config.element.getAttribute('is-fallback-mode'),
+    interactionState: null,
+    destroyed: false,
+  };
 }
 
 /** Lifecycle callbacks required by a canvas-backdrop handle. */

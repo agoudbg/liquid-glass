@@ -1,3 +1,4 @@
+import type { GlassError } from '../errors/GlassError';
 import type {
   Matrix2D,
   RectLike,
@@ -38,6 +39,8 @@ export interface WebGLRendererOptions {
   onContextLost?: () => void;
   /** Callback invoked after resources are rebuilt on context restoration. */
   onContextRestored?: () => void;
+  /** Callback invoked when WebGL resources cannot be rebuilt after restoration. */
+  onContextRestoreError?: (error: GlassError) => void;
 }
 
 /** Result of one synchronous renderer pass. */

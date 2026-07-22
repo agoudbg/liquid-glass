@@ -2,9 +2,11 @@ import type {
   BackdropSourceChanges,
   BackdropSourceHandle,
   CanvasBackdropSourceConfig,
+  DomBackdropSourceConfig,
   MaterialChanges,
   MaterialConfig,
   MaterialHandle,
+  ViewportCaptureRect,
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
 
@@ -18,6 +20,41 @@ export interface CanvasBackdropRegistration {
   canvas: HTMLCanvasElement;
   /** Whether the registration has been released. */
   destroyed: boolean;
+}
+
+/** Mutable DOM-backdrop registration owned by one context. */
+export interface DomBackdropRegistration {
+  /** Stable registration identifier. */
+  id: string;
+  /** Current source configuration. */
+  config: DomBackdropSourceConfig;
+  /** Latest captured bitmap, or null before the first successful capture. */
+  canvas: HTMLCanvasElement | null;
+  /** Source-local region represented by the latest bitmap. */
+  viewportRect: ViewportCaptureRect | null;
+  /** Whether a new DOM rasterization is required. */
+  dirty: boolean;
+  /** Monotonic invalidation version used to reject stale async captures. */
+  captureVersion: number;
+  /** Whether the registration has been released. */
+  destroyed: boolean;
+}
+
+/** Any backdrop registration owned by a context. */
+export type BackdropRegistration = CanvasBackdropRegistration | DomBackdropRegistration;
+
+/** Narrow a backdrop registration to a custom canvas source. */
+export function isCanvasBackdropRegistration(
+  registration: BackdropRegistration,
+): registration is CanvasBackdropRegistration {
+  return registration.config.kind === 'canvas';
+}
+
+/** Narrow a backdrop registration to a DOM capture source. */
+export function isDomBackdropRegistration(
+  registration: BackdropRegistration,
+): registration is DomBackdropRegistration {
+  return registration.config.kind === 'dom';
 }
 
 /** Mutable material registration owned by one context. */
@@ -68,6 +105,50 @@ export class CanvasBackdropRegistrationHandle implements BackdropSourceHandle<Ca
   }
 
   /** Redraw and re-upload the custom source. */
+  public refresh(): void {
+    this.callbacks.refresh();
+  }
+
+  /** Idempotently release the source registration. */
+  public destroy(): void {
+    this.callbacks.destroy();
+  }
+}
+
+/** Lifecycle callbacks required by a DOM-backdrop handle. */
+export interface DomBackdropHandleCallbacks {
+  /** Apply source changes. */
+  update(changes: BackdropSourceChanges<DomBackdropSourceConfig>): void;
+  /** Request a fresh rasterization. */
+  refresh(): void;
+  /** Release the source. */
+  destroy(): void;
+}
+
+/** Public handle backed by a context-owned DOM source registration. */
+export class DomBackdropRegistrationHandle implements BackdropSourceHandle<DomBackdropSourceConfig> {
+  /** Stable registration identifier. */
+  public get id(): string {
+    return this.registration.id;
+  }
+
+  /** Whether this registration has been released. */
+  public get destroyed(): boolean {
+    return this.registration.destroyed;
+  }
+
+  /** Create a source handle around context-owned callbacks. */
+  public constructor(
+    private readonly registration: DomBackdropRegistration,
+    private readonly callbacks: DomBackdropHandleCallbacks,
+  ) {}
+
+  /** Apply validated mutable source fields. */
+  public update(changes: BackdropSourceChanges<DomBackdropSourceConfig>): void {
+    this.callbacks.update(changes);
+  }
+
+  /** Rasterize the DOM source again. */
   public refresh(): void {
     this.callbacks.refresh();
   }

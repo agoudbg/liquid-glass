@@ -18,40 +18,21 @@ import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
 import { generateUUID } from '../utils/uuid';
-import { drawCanvasBackdropComposite } from './canvas-backdrop';
+import { drawBackdropComposite } from './canvas-backdrop';
+import {
+  resolveContextPrecision,
+  snapshotContextOptions,
+} from './context-options';
+import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { resolveRendererMaterial } from './material-resolver';
 import {
+  type BackdropRegistration,
   type CanvasBackdropRegistration,
   CanvasBackdropRegistrationHandle,
   type MaterialRegistration,
   MaterialRegistrationHandle,
 } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
-
-function resolvedPrecision(options: GlassContextOptions): number {
-  const precision = options.renderPrecision;
-  return precision === undefined || precision === 0 || !Number.isFinite(precision)
-    ? 1
-    : Math.max(0.05, precision);
-}
-
-function snapshotOptions(options: GlassContextOptions): GlassContextOptions {
-  if (options.renderMode === 'dedicated') {
-    throw new GlassError(
-      'INVALID_CONFIG',
-      'Dedicated per-material canvases are introduced after the P3 uniform slice.',
-      { phase: 'configuration', details: { renderMode: options.renderMode } },
-    );
-  }
-
-  return {
-    ...options,
-    renderMode: 'uniform',
-    themeColorThresholds: options.themeColorThresholds
-      ? { ...options.themeColorThresholds }
-      : undefined,
-  };
-}
 
 /** Concrete core-owned implementation of the public `GlassContext` contract. */
 export class GlassContextImpl implements GlassContext {
@@ -66,8 +47,9 @@ export class GlassContextImpl implements GlassContext {
   private readonly renderer: WebGLRenderer;
   private readonly compositeCanvas: HTMLCanvasElement;
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
-  private readonly sources = new Map<string, CanvasBackdropRegistration>();
+  private readonly sources = new Map<string, BackdropRegistration>();
   private readonly materials = new Map<string, MaterialRegistration>();
+  private readonly domCapture: DomBackdropCaptureController;
   private optionsSnapshot: GlassContextOptions;
   private precision: number;
   private isDestroyed = false;
@@ -88,10 +70,27 @@ export class GlassContextImpl implements GlassContext {
     private readonly runtime: GlassEngineRuntime,
     private readonly onDestroyed: () => void,
   ) {
-    this.optionsSnapshot = snapshotOptions(options);
-    this.precision = resolvedPrecision(this.optionsSnapshot);
+    this.optionsSnapshot = snapshotContextOptions(options);
+    this.precision = resolveContextPrecision(this.optionsSnapshot);
     this.canvas = runtime.createCanvas();
     this.compositeCanvas = runtime.createCanvas();
+    this.domCapture = new DomBackdropCaptureController(
+      container,
+      this.sources,
+      runtime,
+      {
+        assertRegistration: (registration) => this.assertRegistration(registration),
+        getDeviceScale: () => this.getDeviceScale(),
+        getOptions: () => this.optionsSnapshot,
+        getViewportMode: () => this.viewportMode,
+        isContextDestroyed: () => this.isDestroyed,
+        onCaptured: (payload) => this.emitter.emit('backdropCaptured', payload),
+        onError: (context) => this.emitter.emit('error', context),
+        removeSource: (registration) => this.removeSource(registration),
+        renderFrame: () => this.renderFrame(),
+        requestComposite: (reason) => this.requestCompositeWithoutDomCapture(reason),
+      },
+    );
     this.configurePresentationCanvas();
     const renderer = new WebGLRenderer(this.canvas, {
       renderScale: this.precision,
@@ -116,7 +115,7 @@ export class GlassContextImpl implements GlassContext {
     }
   }
 
-  /** Register a DOM source, currently deferred to P4. */
+  /** Register a DOM source and schedule its first bounded capture. */
   public addBackdropSource(
     config: DomBackdropSourceConfig,
   ): BackdropSourceHandle<DomBackdropSourceConfig>;
@@ -126,17 +125,13 @@ export class GlassContextImpl implements GlassContext {
     config: CanvasBackdropSourceConfig,
   ): BackdropSourceHandle<CanvasBackdropSourceConfig>;
 
-  /** Register a backdrop source supported by the current implementation phase. */
+  /** Register a backdrop source and return its stable lifecycle handle. */
   public addBackdropSource(
     config: BackdropSourceConfig,
   ): BackdropSourceHandle {
     this.assertUsable();
     if (config.kind === 'dom') {
-      throw new GlassError(
-        'CAPTURE_FAILED',
-        'DOM backdrop capture is introduced in rewrite phase P4.',
-        { phase: 'capture' },
-      );
+      return this.addDomBackdropSource(config);
     }
 
     const registration: CanvasBackdropRegistration = {
@@ -159,6 +154,12 @@ export class GlassContextImpl implements GlassContext {
       this.sources.delete(registration.id);
       throw error;
     }
+  }
+
+  private addDomBackdropSource(
+    config: DomBackdropSourceConfig,
+  ): BackdropSourceHandle<DomBackdropSourceConfig> {
+    return this.domCapture.add(config);
   }
 
   /** Register a measurable material and return its lifecycle handle. */
@@ -193,12 +194,13 @@ export class GlassContextImpl implements GlassContext {
   /** Replace context options in place and synchronously apply presentation changes. */
   public updateOptions(options: GlassContextOptions): void {
     this.assertUsable();
-    const nextSnapshot = snapshotOptions(options);
-    const nextPrecision = resolvedPrecision(nextSnapshot);
+    const nextSnapshot = snapshotContextOptions(options);
+    const nextPrecision = resolveContextPrecision(nextSnapshot);
 
     this.renderer.setRenderScale(nextPrecision);
     this.optionsSnapshot = nextSnapshot;
     this.precision = nextPrecision;
+    this.domCapture.markAllDirty();
     this.applyPresentationOptions();
     this.refresh('structural');
   }
@@ -238,15 +240,23 @@ export class GlassContextImpl implements GlassContext {
     this.assertUsable();
     if (this.viewportMode !== enabled) {
       this.viewportMode = enabled;
+      this.domCapture.markAllDirty();
       this.emitter.emit('viewportModeChanged', enabled);
+      this.refresh('viewport');
     }
   }
 
-  /** Synchronously redraw custom sources, upload, and render all materials. */
+  /** Request capture, composition, and material rendering for one dirty reason. */
   public refresh(reason: TextureDirtyReason = 'external'): void {
     this.assertUsable();
     this.emitter.emit('compositeRequested', reason, 'high');
+    if (this.domCapture.request(reason)) {
+      return;
+    }
+    this.renderFrame();
+  }
 
+  private renderFrame(): void {
     try {
       const containerRect = this.container.getBoundingClientRect();
       this.renderer.resize(containerRect.width, containerRect.height);
@@ -267,7 +277,9 @@ export class GlassContextImpl implements GlassContext {
         'Failed to composite the liquid-glass context.',
         { phase: 'render' },
       );
-      this.emitter.emit('error', contextual.toContext());
+      if (!this.domCapture.active) {
+        this.emitter.emit('error', contextual.toContext());
+      }
       throw contextual;
     }
   }
@@ -296,6 +308,7 @@ export class GlassContextImpl implements GlassContext {
       return;
     }
     this.isDestroyed = true;
+    this.domCapture.destroy();
     for (const source of this.sources.values()) {
       source.destroyed = true;
     }
@@ -326,10 +339,8 @@ export class GlassContextImpl implements GlassContext {
   }
 
   private drawBackdropComposite(containerRect: DOMRectReadOnly): void {
-    const ratio = this.runtime.devicePixelRatio();
-    const safeRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
-    const deviceScale = safeRatio * this.precision;
-    const captures = drawCanvasBackdropComposite(
+    const deviceScale = this.getDeviceScale();
+    const captures = drawBackdropComposite(
       this.compositeCanvas,
       this.canvas.width,
       this.canvas.height,
@@ -346,6 +357,12 @@ export class GlassContextImpl implements GlassContext {
         height: capture.height,
       });
     }
+  }
+
+  private getDeviceScale(): number {
+    const ratio = this.runtime.devicePixelRatio();
+    const safeRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
+    return safeRatio * this.precision;
   }
 
   private applyPresentationOptions(): void {
@@ -373,20 +390,31 @@ export class GlassContextImpl implements GlassContext {
   ): void {
     this.assertRegistration(registration);
     registration.config = { ...registration.config, ...changes };
-    this.refresh('external');
+    this.requestCompositeWithoutDomCapture('external');
   }
 
   private refreshSource(registration: CanvasBackdropRegistration): void {
     this.assertRegistration(registration);
-    this.refresh('external');
+    this.requestCompositeWithoutDomCapture('external');
   }
 
-  private removeSource(registration: CanvasBackdropRegistration): void {
+  private requestCompositeWithoutDomCapture(reason: TextureDirtyReason): void {
+    this.emitter.emit('compositeRequested', reason, 'high');
+    if (this.domCapture.requestComposite(reason)) {
+      return;
+    }
+    this.renderFrame();
+  }
+
+  private removeSource(registration: BackdropRegistration): void {
     if (registration.destroyed) {
       return;
     }
     registration.destroyed = true;
     this.sources.delete(registration.id);
+    if (registration.config.kind === 'dom') {
+      this.domCapture.sourceRemoved();
+    }
     if (!this.isDestroyed) {
       this.refresh('structural');
     }
@@ -439,7 +467,7 @@ export class GlassContextImpl implements GlassContext {
   }
 
   private assertRegistration(
-    registration: CanvasBackdropRegistration | MaterialRegistration,
+    registration: BackdropRegistration | MaterialRegistration,
   ): void {
     this.assertUsable();
     if (registration.destroyed) {

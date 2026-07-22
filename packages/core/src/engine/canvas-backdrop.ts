@@ -1,5 +1,12 @@
 import { GlassError } from '../errors/GlassError';
-import type { CanvasBackdropRegistration } from './registrations';
+import type {
+  BackdropRegistration,
+  CanvasBackdropRegistration,
+} from './registrations';
+import {
+  isCanvasBackdropRegistration,
+  isDomBackdropRegistration,
+} from './registrations';
 
 /** Metadata emitted after one authoritative custom-canvas draw is mirrored. */
 export interface CanvasBackdropCapture {
@@ -68,21 +75,21 @@ function mirrorToVisibleCanvas(source: CanvasBackdropRegistration): void {
 }
 
 /**
- * Draw each custom source once, then mirror the same bitmap to both consumers.
+ * Composite captured DOM and freshly drawn custom sources in stacking order.
  *
  * @param compositeCanvas - Core-owned backdrop texture canvas.
  * @param presentationWidth - Composite width in physical pixels.
  * @param presentationHeight - Composite height in physical pixels.
- * @param sources - Current custom backdrop registrations.
+ * @param sources - Current backdrop registrations.
  * @param containerRect - Owning context bounds in CSS pixels.
  * @param deviceScale - Effective DPR multiplied by render precision.
  * @returns Metadata for capture events in source stacking order.
  */
-export function drawCanvasBackdropComposite(
+export function drawBackdropComposite(
   compositeCanvas: HTMLCanvasElement,
   presentationWidth: number,
   presentationHeight: number,
-  sources: Iterable<CanvasBackdropRegistration>,
+  sources: Iterable<BackdropRegistration>,
   containerRect: DOMRectReadOnly,
   deviceScale: number,
 ): CanvasBackdropCapture[] {
@@ -101,31 +108,57 @@ export function drawCanvasBackdropComposite(
 
   for (const source of orderedSources) {
     const sourceRect = source.config.element.getBoundingClientRect();
-    const configuredScale = source.config.scale ?? 1;
-    const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
-      ? configuredScale
-      : 1;
-    drawAuthoritativeSource(
-      source,
-      sourceRect.width,
-      sourceRect.height,
-      deviceScale * sourceScale,
-    );
-    mirrorToVisibleCanvas(source);
+    if (isCanvasBackdropRegistration(source)) {
+      const configuredScale = source.config.scale ?? 1;
+      const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
+        ? configuredScale
+        : 1;
+      drawAuthoritativeSource(
+        source,
+        sourceRect.width,
+        sourceRect.height,
+        deviceScale * sourceScale,
+      );
+      mirrorToVisibleCanvas(source);
 
+      compositeContext.drawImage(
+        source.canvas,
+        (sourceRect.left - containerRect.left) * deviceScale,
+        (sourceRect.top - containerRect.top) * deviceScale,
+        sourceRect.width * deviceScale,
+        sourceRect.height * deviceScale,
+      );
+      captures.push({
+        id: source.id,
+        canvas: source.canvas,
+        width: source.canvas.width,
+        height: source.canvas.height,
+      });
+      continue;
+    }
+
+    if (
+      !isDomBackdropRegistration(source)
+      || !source.canvas
+      || !source.viewportRect
+    ) {
+      continue;
+    }
     compositeContext.drawImage(
       source.canvas,
-      (sourceRect.left - containerRect.left) * deviceScale,
-      (sourceRect.top - containerRect.top) * deviceScale,
-      sourceRect.width * deviceScale,
-      sourceRect.height * deviceScale,
+      (
+        sourceRect.left
+        - containerRect.left
+        + source.viewportRect.x
+      ) * deviceScale,
+      (
+        sourceRect.top
+        - containerRect.top
+        + source.viewportRect.y
+      ) * deviceScale,
+      source.viewportRect.width * deviceScale,
+      source.viewportRect.height * deviceScale,
     );
-    captures.push({
-      id: source.id,
-      canvas: source.canvas,
-      width: source.canvas.width,
-      height: source.canvas.height,
-    });
   }
 
   return captures;

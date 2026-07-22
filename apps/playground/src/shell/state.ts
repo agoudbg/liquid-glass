@@ -1,11 +1,16 @@
 import { isFrameworkId } from '../app-meta';
-import type { PlaygroundState, SceneId } from '../shared/types';
+import {
+  isSceneId,
+  type PlaygroundState,
+  type SceneId,
+} from '../shared/types';
 
 const DEFAULT_STATE: PlaygroundState = {
   framework: 'vue',
   scene: 'S001',
   renderMode: 'uniform',
   glassEnabled: true,
+  fallbackEnabled: false,
   scrollable: false,
   thickness: 36,
   refractIndex: 1.21,
@@ -20,12 +25,14 @@ const DEFAULT_STATE: PlaygroundState = {
 export function createInitialState(url: URL): PlaygroundState {
   const framework = url.searchParams.get('framework');
   const scene = parseScene(url.searchParams.get('scene'));
-  const oracleMode = url.searchParams.get('oracle') === '1';
+  const fallback = url.searchParams.get('fallback');
+  const oracleMode = url.searchParams.get('oracle') === '1' && scene !== 'S007';
   const parsedState: PlaygroundState = {
     ...DEFAULT_STATE,
     framework: isFrameworkId(framework) ? framework : DEFAULT_STATE.framework,
     scene,
     glassEnabled: url.searchParams.get('glass') !== 'off',
+    fallbackEnabled: fallback === 'on' || (fallback !== 'off' && scene === 'S007'),
     scrollable: url.searchParams.get('scroll') === 'on',
     thickness: parseNumber(url.searchParams.get('thickness'), 4, 80, DEFAULT_STATE.thickness),
     refractIndex: parseNumber(url.searchParams.get('ior'), 1, 1.6, DEFAULT_STATE.refractIndex),
@@ -49,10 +56,10 @@ export function createInitialState(url: URL): PlaygroundState {
 
   return {
     ...parsedState,
-    thickness: scene === 'S001' ? 18 : 16,
-    refractIndex: scene === 'S001' ? 1.18 : 1.12,
-    refractIntensity: scene === 'S001' ? 0.72 : 0.64,
-    radius: scene === 'S001' ? 52 : 44,
+    thickness: scene === 'S002' ? 16 : 18,
+    refractIndex: scene === 'S002' ? 1.12 : 1.18,
+    refractIntensity: scene === 'S002' ? 0.64 : 0.72,
+    radius: scene === 'S002' ? 44 : 52,
     renderPrecision: 1,
   };
 }
@@ -64,6 +71,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('scene', state.scene);
   url.searchParams.set('mode', state.renderMode);
   url.searchParams.set('glass', state.glassEnabled ? 'on' : 'off');
+  url.searchParams.set('fallback', state.fallbackEnabled ? 'on' : 'off');
   url.searchParams.set('scroll', state.scrollable ? 'on' : 'off');
   url.searchParams.set('thickness', String(state.thickness));
   url.searchParams.set('ior', state.refractIndex.toFixed(2));
@@ -76,7 +84,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
 }
 
 function parseScene(value: string | null): SceneId {
-  return value === 'S002' ? 'S002' : 'S001';
+  return isSceneId(value) ? value : 'S001';
 }
 
 function parseNumber(

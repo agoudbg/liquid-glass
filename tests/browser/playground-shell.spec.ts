@@ -148,6 +148,88 @@ test('keeps the uniform canvas pinned inside every scrollable adapter', async ({
   }
 });
 
+test('forces and recovers CSS fallback through every public adapter', async ({
+  page,
+}) => {
+  const runtimeErrors: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') runtimeErrors.push(message.text());
+  });
+  page.on('pageerror', (error) => runtimeErrors.push(error.message));
+
+  for (const framework of FRAMEWORKS) {
+    await page.goto(
+      `/?test=1&framework=${framework}&scene=S007&fallback=on`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    const shell = page.locator('#app');
+    const context = page.locator('.glass-context');
+    const material = page.getByTestId('primary-material');
+    const canvas = page.locator('.liquid-glass-canvas');
+    await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+    await expect(shell).toHaveAttribute('data-scene', 'S007');
+    await expect(shell).toHaveAttribute('data-fallback', 'on');
+    await expect(context).toHaveAttribute('data-lg-fallback', 'true');
+    await expect(material).toHaveAttribute('is-fallback-mode', 'true');
+    await expect(canvas).toHaveCSS('visibility', 'hidden');
+    await expect(canvas).toHaveCSS('opacity', '0');
+    await expect(material).toHaveCSS('backdrop-filter', /blur\(6px\)/);
+    const fallbackCapture = await capturePrimaryMaterial(page);
+    const fallbackBounds = await material.boundingBox();
+    if (!fallbackBounds) throw new Error('Fallback material has no measurable bounds.');
+    await material.evaluate((element) => {
+      Reflect.set(window, '__liquidGlassMaterialProbe', element);
+    });
+
+    await page.locator('[data-fallback-mode="webgl"]').click();
+    await expect(shell).toHaveAttribute('data-fallback', 'off');
+    await expect(context).toHaveAttribute('data-lg-fallback', 'false');
+    await expect(material).toHaveAttribute('is-fallback-mode', 'false');
+    expect(await material.evaluate((element) => (
+      Reflect.get(window, '__liquidGlassMaterialProbe') === element
+    ))).toBe(true);
+    await expect(canvas).toHaveCSS('visibility', 'visible');
+    await expect(canvas).toHaveCSS('opacity', '1');
+    await expect(page).toHaveURL(/fallback=off/);
+
+    const canvasMetrics = await readCanvasMetrics(canvas);
+    expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
+    expect(canvasMetrics.glError).toBe(0);
+    const webGlBounds = await material.boundingBox();
+    if (!webGlBounds) throw new Error('WebGL material has no measurable bounds.');
+    for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+      expect(Math.abs(webGlBounds[dimension] - fallbackBounds[dimension]))
+        .toBeLessThan(1);
+    }
+    const webGlCapture = await capturePrimaryMaterial(page);
+    const difference = await comparePngPixels(page, fallbackCapture, webGlCapture);
+    expect(difference.changedPixelRatio).toBeGreaterThan(0.02);
+    expect(difference.meanChannelDelta).toBeGreaterThan(0.5);
+  }
+
+  expect(runtimeErrors).toEqual([]);
+});
+
+async function readCanvasMetrics(canvas: ReturnType<Page['locator']>): Promise<{
+  nonTransparentPixels: number;
+  glError: number;
+}> {
+  return canvas.evaluate((element) => {
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Expected the core-owned presentation canvas.');
+    }
+    const gl = element.getContext('webgl2');
+    if (!gl) throw new Error('Expected a WebGL2 rendering context.');
+    const pixels = new Uint8Array(element.width * element.height * 4);
+    gl.readPixels(0, 0, element.width, element.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let nonTransparentPixels = 0;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] !== 0) nonTransparentPixels += 1;
+    }
+    return { nonTransparentPixels, glError: gl.getError() };
+  });
+}
+
 async function capturePrimaryMaterial(page: Page): Promise<Buffer> {
   const material = page.getByTestId('primary-material');
   await expect(material).toBeVisible();

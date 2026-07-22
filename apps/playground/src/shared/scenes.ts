@@ -61,20 +61,23 @@ export function getBackdropDraw(
   oracleMode = false,
 ): CustomDrawCallback {
   if (oracleMode) return drawOracleBackdrop;
-  return scene === 'S001' ? drawSingleBackdrop : drawMultipleBackdrop;
+  return scene === 'S002' ? drawMultipleBackdrop : drawSingleBackdrop;
 }
 
 /** Resolve the canonical material set from the current optical controls. */
 export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMaterial[] {
   if (state.oracleMode) return resolveOracleMaterials(state.scene);
+  const multiple = state.scene === 'S002';
 
   const primary: SceneMaterial = {
     id: 'primary',
-    className: state.scene === 'S001'
-      ? 'scene-material material-single'
-      : 'scene-material material-primary',
+    className: multiple
+      ? 'scene-material material-primary'
+      : 'scene-material material-single',
     label: 'MATERIAL 01',
-    name: state.scene === 'S001' ? 'Optical surface' : 'Primary lens',
+    name: state.scene === 'S007'
+      ? 'Fallback surface'
+      : multiple ? 'Primary lens' : 'Optical surface',
     options: {
       radius: state.radius,
       radiusTR: Math.max(8, state.radius - 12),
@@ -89,7 +92,7 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
     },
   };
 
-  if (state.scene === 'S001') return [primary];
+  if (!multiple) return [primary];
 
   return [
     primary,
@@ -135,7 +138,7 @@ export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMat
 }
 
 function resolveOracleMaterials(scene: SceneId): readonly SceneMaterial[] {
-  if (scene === 'S001') {
+  if (scene !== 'S002') {
     return [{
       id: 's001-main',
       className: 'scene-material oracle-material oracle-s001',

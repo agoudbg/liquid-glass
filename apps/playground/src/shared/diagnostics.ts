@@ -13,21 +13,25 @@ export function observeGlassContext(
 
   if (!gl) {
     onReport({
-      status: 'error',
+      status: context.fallbackMode ? 'ready' : 'error',
+      fallbackMode: context.fallbackMode,
       frameCount,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
       glError: 'WEBGL2_UNAVAILABLE',
-      error: 'The mounted presentation canvas has no WebGL2 context.',
+      error: context.fallbackMode
+        ? null
+        : 'The mounted presentation canvas has no WebGL2 context.',
     });
     return () => undefined;
   }
 
-  const publishFrame = (): void => {
-    frameCount += 1;
+  const publishReport = (incrementFrame: boolean): void => {
+    if (incrementFrame) frameCount += 1;
     const errorCode = gl.getError();
     onReport({
       status: errorCode === gl.NO_ERROR ? 'ready' : 'error',
+      fallbackMode: context.fallbackMode,
       frameCount,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
@@ -37,10 +41,12 @@ export function observeGlassContext(
         : `WebGL reported ${formatGlError(gl, errorCode)}.`,
     });
   };
+  const publishFrame = (): void => publishReport(true);
 
   const publishError = (error: GlassErrorContext): void => {
     onReport({
       status: 'error',
+      fallbackMode: context.fallbackMode,
       frameCount,
       canvasWidth: context.canvas.width,
       canvasHeight: context.canvas.height,
@@ -51,6 +57,10 @@ export function observeGlassContext(
 
   const stopFrameEvents = context.on('materialsRendered', publishFrame);
   const stopErrorEvents = context.on('error', publishError);
+  const stopFallbackEvents = context.on(
+    'fallbackModeChanged',
+    () => publishReport(false),
+  );
   firstFrameRequest = window.requestAnimationFrame(() => {
     firstFrameRequest = window.requestAnimationFrame(() => {
       try {
@@ -65,6 +75,7 @@ export function observeGlassContext(
     window.cancelAnimationFrame(firstFrameRequest);
     stopFrameEvents();
     stopErrorEvents();
+    stopFallbackEvents();
   };
 }
 

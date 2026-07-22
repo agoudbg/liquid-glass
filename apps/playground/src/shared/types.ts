@@ -2,8 +2,16 @@ import type { GlassContext } from '@agou/liquid-glass-core';
 
 import type { FrameworkId } from '../app-meta';
 
-/** Canonical visible scenes available in the P3 playground slice. */
-export type SceneId = 'S001' | 'S002';
+/** Canonical visible scenes exposed by the optical workbench. */
+export const SCENE_IDS = ['S001', 'S002', 'S007'] as const;
+
+/** Canonical visible scene identifier. */
+export type SceneId = (typeof SCENE_IDS)[number];
+
+/** Narrow an unknown value to a supported scene identifier. */
+export function isSceneId(value: unknown): value is SceneId {
+  return typeof value === 'string' && SCENE_IDS.includes(value as SceneId);
+}
 
 /** Complete URL-addressable state shared by all framework hosts. */
 export interface PlaygroundState {
@@ -15,6 +23,8 @@ export interface PlaygroundState {
   renderMode: 'uniform';
   /** Whether the core-owned presentation canvas is visible. */
   glassEnabled: boolean;
+  /** Whether the shell requests forced CSS fallback from the core context. */
+  fallbackEnabled: boolean;
   /** Whether the framework host exposes a scrolling glass surface. */
   scrollable: boolean;
   /** Material thickness in CSS pixels. */
@@ -37,6 +47,8 @@ export interface PlaygroundState {
 export interface HostRuntimeReport {
   /** Current renderer lifecycle state. */
   status: 'initializing' | 'ready' | 'error';
+  /** Whether core currently resolves the context to CSS fallback. */
+  fallbackMode: boolean;
   /** Number of completed material frames observed by the shell. */
   frameCount: number;
   /** Current presentation-canvas width in physical pixels. */

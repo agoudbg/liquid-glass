@@ -61,6 +61,10 @@
     grid-template-columns: 1fr 1fr;
   }
 
+  .mode-control {
+    grid-column: 1 / -1;
+  }
+
   .range-control:nth-child(odd) {
     border-right: 1px solid #e2e6e3;
   }

@@ -51,7 +51,7 @@ mark the rewrite acceptance rows complete.
 | --- | --- | --- | --- | --- |
 | CMP-001 | Shared `uniform` canvas | Container and manager | Preserve | Multiple materials render in correct order on one presentation canvas. |
 | CMP-002 | Per-material `dedicated` canvases | Material extraction path | Preserve | Dedicated and uniform scenes are visually equivalent within threshold. |
-| CMP-003 | DOM-derived and explicit `renderOrder` | Manager material sort | Preserve | Overlap ordering has deterministic integration tests. |
+| CMP-003 | DOM-derived and explicit `renderOrder` | Manager material sort | Preserve | Automatic materials follow CSS z-index and live DOM order; every finite explicit order renders above the automatic group with deterministic tie handling. |
 | CMP-004 | DOM capture with `html-to-image` | `LgBackdropConverter` default | Preserve | Primary capture path handles text, images, colors, mutation, and manual refresh. |
 | CMP-005 | Selectable `html2canvas` capture | `captureLib` prop | Preserve as optional fallback | The fallback is lazy and tested; absence produces a contextual setup error rather than a silent failure. |
 | CMP-006 | Custom canvas backdrop | `LgBackdropCanvas` | Preserve | Draw callback updates the refracted texture and releases temporary resources. |

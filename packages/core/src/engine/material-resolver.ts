@@ -9,6 +9,7 @@ import {
 } from '../utils/radius';
 import { parseCSSTransformMatrix } from '../utils/transforms';
 import { validateOptionalFiniteNumber } from '../utils/validation';
+import { orderMaterialRegistrations } from './material-order';
 import type { MaterialRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -141,10 +142,7 @@ export function resolveRendererMaterials(
   containerRect: DOMRectReadOnly,
   runtime: GlassEngineRuntime,
 ): RendererMaterial[] {
-  return [...registrations]
-    .sort((left, right) => (
-      (left.config.renderOrder ?? 0) - (right.config.renderOrder ?? 0)
-    ))
+  return orderMaterialRegistrations(registrations, runtime)
     .map((registration) => resolveRendererMaterial(
       registration.id,
       registration.config,

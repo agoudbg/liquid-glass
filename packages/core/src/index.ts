@@ -18,6 +18,7 @@ export const CORE_VERSION = '0.1.0';
 
 export * from './errors/index';
 export * from './events/index';
+export * from './interaction/index';
 export * from './shaders/index';
 export * from './types/index';
 export * from './utils/index';

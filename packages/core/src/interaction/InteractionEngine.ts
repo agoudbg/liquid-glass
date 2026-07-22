@@ -25,6 +25,23 @@ import type {
   TransformUpdateCallback,
 } from './types';
 
+function mergeInteractionConfig(
+  base: InteractionConfig,
+  overrides: Partial<InteractionConfig>,
+): InteractionConfig {
+  return {
+    ...base,
+    ...overrides,
+    hoverSpring: { ...(overrides.hoverSpring ?? base.hoverSpring) },
+    activeSpring: { ...(overrides.activeSpring ?? base.activeSpring) },
+    releaseSpring: { ...(overrides.releaseSpring ?? base.releaseSpring) },
+  };
+}
+
+function cloneInteractionConfig(config: InteractionConfig): InteractionConfig {
+  return mergeInteractionConfig(config, {});
+}
+
 /**
  * Drives pointer-responsive liquid-glass transforms with legacy spring physics.
  */
@@ -50,21 +67,19 @@ export class InteractionEngine {
     const resolvedPreset = presetOrConfig ?? 'button';
     const baseConfig = typeof resolvedPreset === 'string'
       ? PRESET_MAP[resolvedPreset]
-      : { ...PRESET_MAP.button, ...resolvedPreset };
-    this.config = customOverrides
-      ? { ...baseConfig, ...customOverrides }
-      : { ...baseConfig };
+      : mergeInteractionConfig(PRESET_MAP.button, resolvedPreset);
+    this.config = mergeInteractionConfig(baseConfig, customOverrides ?? {});
     this.state = createInitialInteractionState(this.config);
   }
 
   /** Merges interaction options into the current resolved configuration. */
   setConfig(config: Partial<InteractionConfig>): void {
-    this.config = { ...this.config, ...config };
+    this.config = mergeInteractionConfig(this.config, config);
   }
 
-  /** Returns a shallow snapshot of the resolved interaction configuration. */
+  /** Returns an isolated snapshot of the resolved interaction configuration. */
   getConfig(): InteractionConfig {
-    return { ...this.config };
+    return cloneInteractionConfig(this.config);
   }
 
   /**
@@ -89,6 +104,9 @@ export class InteractionEngine {
 
   /** Starts an active pointer gesture. */
   onPointerDown(data: PointerData): void {
+    if (this.state.isPointerDown && !this.isOwnedPointer(data.pointerId)) {
+      return;
+    }
     const { clientX, clientY, pointerId, normalizedX, normalizedY } = data;
     this.state.isPointerDown = true;
     this.state.pointerId = pointerId;
@@ -112,6 +130,9 @@ export class InteractionEngine {
 
   /** Updates pointer velocity, highlight position, and transform targets. */
   onPointerMove(data: PointerData): void {
+    if (this.state.isPointerDown && !this.isOwnedPointer(data.pointerId)) {
+      return;
+    }
     const { clientX, clientY, normalizedX, normalizedY, pointerType } = data;
     const now = performance.now();
 
@@ -172,13 +193,18 @@ export class InteractionEngine {
     }
   }
 
-  /** Ends an active pointer gesture and starts the release spring. */
-  onPointerUp(): void {
-    if (!this.state.isPointerDown) {
+  /**
+   * Ends an active pointer gesture and starts the release spring.
+   *
+   * @param pointerId - Optional owner identifier used to reject unrelated pointers.
+   */
+  onPointerUp(pointerId?: number): void {
+    if (!this.state.isPointerDown || !this.isOwnedPointer(pointerId)) {
       return;
     }
 
     this.state.isPointerDown = false;
+    this.state.pointerId = undefined;
     this.state.phase = 'releasing';
     this.state.highlightVisible = false;
     this.clearIdleTimer();
@@ -187,12 +213,20 @@ export class InteractionEngine {
     this.onStateChange?.('releasing');
   }
 
-  /** Clears hover feedback and releases the material when no press is active. */
-  onPointerLeave(): void {
+  /**
+   * Clears hover feedback and releases the material when no press is active.
+   *
+   * @param pointerId - Optional owner identifier used to reject unrelated pointers.
+   */
+  onPointerLeave(pointerId?: number): void {
+    if (this.state.isPointerDown && !this.isOwnedPointer(pointerId)) {
+      return;
+    }
     this.state.isHovering = false;
     this.state.highlightVisible = false;
 
     if (!this.state.isPointerDown) {
+      this.state.pointerId = undefined;
       this.state.phase = 'releasing';
       this.state.pointerOrigin = null;
       resetInteractionTargets(this.state, this.config);
@@ -203,6 +237,9 @@ export class InteractionEngine {
 
   /** Initializes mouse-hover tracking without immediately changing phase. */
   onPointerEnter(data: PointerData): void {
+    if (this.state.isPointerDown && !this.isOwnedPointer(data.pointerId)) {
+      return;
+    }
     if (this.config.enableHoverFollow && data.pointerType === 'mouse') {
       this.state.isHovering = true;
       this.state.pointerOrigin = { x: data.clientX, y: data.clientY };
@@ -233,7 +270,10 @@ export class InteractionEngine {
     stepInteractionSprings(this.state, spring, deltaTime);
     stepInteractionHighlight(this.state, this.config, deltaTime);
 
-    if (isInteractionAtRest(this.state, this.config)) {
+    if (
+      this.state.phase !== 'idle'
+      && isInteractionAtRest(this.state, this.config)
+    ) {
       this.state.phase = 'idle';
       this.onStateChange?.('idle');
     }
@@ -288,6 +328,12 @@ export class InteractionEngine {
       case 'idle':
         return this.config.releaseSpring;
     }
+  }
+
+  private isOwnedPointer(pointerId: number | undefined): boolean {
+    return this.state.pointerId === undefined
+      || pointerId === undefined
+      || this.state.pointerId === pointerId;
   }
 
   private clearIdleTimer(): void {

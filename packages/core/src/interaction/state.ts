@@ -155,5 +155,11 @@ export function isInteractionAtRest(
     state.velocityOriginY,
     restThreshold * 100,
     velocityThreshold * 100,
+  ) && isSpringAtRest(
+    state.opacity,
+    state.targetOpacity,
+    state.velocityOpacity,
+    restThreshold,
+    velocityThreshold,
   );
 }

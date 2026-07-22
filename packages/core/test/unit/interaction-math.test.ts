@@ -52,13 +52,39 @@ describe('interaction math', () => {
 });
 
 describe('interaction factories', () => {
-  it('shallowly applies preset overrides without mutating the preset', () => {
+  it('applies preset overrides without mutating the preset', () => {
     const engine = createButtonEngine({ activeScale: 1.2 });
     const untouched = createButtonEngine();
 
     expect(engine.getConfig().activeScale).toBe(1.2);
     expect(engine.getConfig().preset).toBe('button');
     expect(untouched.getConfig().activeScale).toBe(1.05);
+  });
+
+  it('isolates nested spring configs from inputs and returned snapshots', () => {
+    const activeSpring = { stiffness: 240, damping: 16, mass: 1 };
+    const releaseSpring = { stiffness: 180, damping: 12, mass: 1 };
+    const engine = createButtonEngine({ activeSpring });
+
+    activeSpring.stiffness = 1;
+    engine.setConfig({ releaseSpring });
+    releaseSpring.damping = 1;
+    const snapshot = engine.getConfig();
+    snapshot.activeSpring.stiffness = 2;
+    snapshot.releaseSpring.damping = 2;
+
+    expect(engine.getConfig().activeSpring).toEqual({
+      stiffness: 240,
+      damping: 16,
+      mass: 1,
+    });
+    expect(engine.getConfig().releaseSpring).toEqual({
+      stiffness: 180,
+      damping: 12,
+      mass: 1,
+    });
+    expect(createButtonEngine().getConfig().activeSpring.stiffness).toBe(180);
+    engine.destroy();
   });
 
   it('preserves the legacy custom factory and custom preset lookup behavior', () => {
@@ -87,6 +113,41 @@ describe('interaction factories', () => {
     expect(engine.getState()).toMatchObject({
       isPointerDown: false,
       isHovering: false,
+      phase: 'releasing',
+    });
+    engine.destroy();
+  });
+
+  it('accepts active updates only from the pointer that owns the gesture', () => {
+    const engine = createButtonEngine();
+    engine.setElementSize(200, 100);
+    engine.onPointerDown({ clientX: 40, clientY: 30, pointerId: 11 });
+    const ownedTargets = engine.getState();
+
+    engine.onPointerDown({ clientX: 180, clientY: 80, pointerId: 12 });
+    engine.onPointerEnter({
+      clientX: 180,
+      clientY: 80,
+      pointerId: 12,
+      pointerType: 'mouse',
+    });
+    engine.onPointerMove({ clientX: 180, clientY: 80, pointerId: 12 });
+    expect(engine.getState()).toMatchObject({
+      pointerId: 11,
+      pointerOrigin: { x: 40, y: 30 },
+      targetScaleX: ownedTargets.targetScaleX,
+      targetScaleY: ownedTargets.targetScaleY,
+      targetTranslateX: ownedTargets.targetTranslateX,
+      targetTranslateY: ownedTargets.targetTranslateY,
+    });
+
+    engine.onPointerUp(12);
+    expect(engine.getState().isPointerDown).toBe(true);
+
+    engine.onPointerUp(11);
+    expect(engine.getState()).toMatchObject({
+      isPointerDown: false,
+      pointerId: undefined,
       phase: 'releasing',
     });
     engine.destroy();
@@ -180,6 +241,31 @@ describe('interaction factories', () => {
       backgroundColor: null,
       isActive: false,
     });
+    engine.destroy();
+  });
+
+  it('keeps animating until an opacity transition has settled', () => {
+    const engine = createButtonEngine({
+      activeOpacity: 0.4,
+      activeScale: 1,
+      enableOpacityTransition: true,
+      enableOriginShift: false,
+      maxTranslate: 0,
+      maxTranslateY: 0,
+      stretchFactor: 0,
+      stretchLimit: 0,
+      translateFactor: 0,
+    });
+    engine.setElementSize(200, 100);
+    engine.onPointerDown({ clientX: 20, clientY: 20, pointerId: 1 });
+    engine.step(0);
+    engine.step(16);
+    engine.onPointerUp(1);
+
+    const releasing = engine.step(32);
+    expect(releasing.opacity).toBeLessThan(1);
+    expect(engine.getPhase()).toBe('releasing');
+    expect(engine.isAtRest()).toBe(false);
     engine.destroy();
   });
 });

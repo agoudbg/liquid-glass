@@ -7,7 +7,7 @@ import dts from 'vite-plugin-dts';
  *
  * Externals:
  *   - react, react-dom (peer dependencies)
- *   - @agou/liquid-glass-core (peer dependency)
+ *   - @agou/liquid-glass-core (runtime dependency)
  */
 export default defineConfig({
   plugins: [

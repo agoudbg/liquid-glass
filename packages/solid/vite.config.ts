@@ -7,7 +7,7 @@ import solid from 'vite-plugin-solid';
  *
  * Externals:
  *   - solid-js (peer dependency)
- *   - @agou/liquid-glass-core (peer dependency)
+ *   - @agou/liquid-glass-core (runtime dependency)
  */
 export default defineConfig({
   plugins: [

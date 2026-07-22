@@ -9,6 +9,23 @@
  * @packageDocumentation
  */
 
+import './styles/glass.css';
+
+export { default as LgBackdropCanvas } from './components/LgBackdropCanvas.vue';
+export { default as LiquidGlass } from './components/LiquidGlass.vue';
+export { default as LiquidGlassMaterial } from './components/LiquidGlassMaterial.vue';
+export {
+  LIQUID_GLASS_CONTEXT_KEY,
+  useLiquidGlassContext,
+} from './composables/liquidGlassContext';
+export type {
+  LgBackdropCanvasProps,
+  LiquidGlassExposed,
+  LiquidGlassInjection,
+  LiquidGlassMaterialExposed,
+  LiquidGlassMaterialProps,
+  LiquidGlassProps,
+} from './types';
 export { CORE_VERSION } from '@agou/liquid-glass-core';
 
 /**

@@ -9,6 +9,26 @@
  * @packageDocumentation
  */
 
+import './styles/glass.css';
+
+export { BackdropCanvas } from './BackdropCanvas';
+export { LiquidGlass } from './LiquidGlass';
+export type { LiquidGlassContextValue } from './LiquidGlassContext';
+export {
+  LiquidGlassContext,
+  useLiquidGlassContext,
+} from './LiquidGlassContext';
+export { LiquidGlassMaterial } from './LiquidGlassMaterial';
+export type {
+  BackdropCanvasProps,
+  GlassStyle,
+  LiquidGlassHandle,
+  LiquidGlassMaterialHandle,
+  LiquidGlassMaterialProps,
+  LiquidGlassProps,
+  MaterialChildren,
+  MaterialRenderControls,
+} from './types';
 export { CORE_VERSION } from '@agou/liquid-glass-core';
 
 /**

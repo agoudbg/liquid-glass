@@ -9,6 +9,7 @@ import type {
   MaterialChanges,
   MaterialFeedback,
   MaterialHandle,
+  MaterialPresentationState,
   ProxyInterface,
 } from '../../src/index';
 
@@ -45,6 +46,10 @@ describe('public core contract', () => {
     >().toEqualTypeOf<Partial<Omit<CanvasBackdropSourceConfig, 'element' | 'kind'>>>();
 
     expectTypeOf<Parameters<MaterialHandle['update']>[0]>().toEqualTypeOf<MaterialChanges>();
+    expectTypeOf<ReturnType<MaterialHandle['getPresentation']>>()
+      .toEqualTypeOf<MaterialPresentationState>();
+    expectTypeOf<ReturnType<MaterialHandle['onPresentation']>>()
+      .toEqualTypeOf<() => void>();
   });
 
   it('uses discriminated feedback instead of untyped payload data', () => {

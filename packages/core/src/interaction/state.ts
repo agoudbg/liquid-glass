@@ -118,8 +118,23 @@ export function isInteractionAtRest(
     return false;
   }
 
+  return isInteractionMotionAtRest(state, config);
+}
+
+/**
+ * Tests animated values without requiring the pointer phase to be idle.
+ *
+ * @param state - Current engine state.
+ * @param config - Resolved interaction configuration.
+ * @returns `true` when a shared scheduler may sleep until the next input.
+ */
+export function isInteractionMotionAtRest(
+  state: InteractionEngineState,
+  config: InteractionConfig,
+): boolean {
+
   const { restThreshold, velocityThreshold } = config;
-  return isSpringAtRest(
+  const springsAtRest = isSpringAtRest(
     state.scaleX,
     state.targetScaleX,
     state.velocityScaleX,
@@ -162,4 +177,12 @@ export function isInteractionAtRest(
     restThreshold,
     velocityThreshold,
   );
+  const highlightAtRest = !config.showHighlight
+    || !state.highlightVisible
+    || config.highlightFollowSpeed <= 0
+    || (
+      Math.abs(state.highlightX - state.highlightTargetX) <= restThreshold
+      && Math.abs(state.highlightY - state.highlightTargetY) <= restThreshold
+    );
+  return springsAtRest && highlightAtRest;
 }

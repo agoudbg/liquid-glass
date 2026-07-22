@@ -33,6 +33,8 @@ export type {
   MaterialConfig,
   MaterialFeedback,
   MaterialHandle,
+  MaterialPresentationListener,
+  MaterialPresentationState,
   MaterialRenderData,
   MaterialStateFeedback,
   MaterialThemeFeedback,

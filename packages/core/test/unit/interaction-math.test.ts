@@ -122,6 +122,12 @@ describe('interaction factories', () => {
     const engine = createButtonEngine();
     engine.setElementSize(200, 100);
     engine.onPointerDown({ clientX: 40, clientY: 30, pointerId: 11 });
+    const externalState = engine.getState();
+    if (!externalState.pointerOrigin) {
+      throw new Error('Expected an active pointer origin.');
+    }
+    externalState.pointerOrigin.x = 999;
+    expect(engine.getState().pointerOrigin).toEqual({ x: 40, y: 30 });
     const ownedTargets = engine.getState();
 
     engine.onPointerDown({ clientX: 180, clientY: 80, pointerId: 12 });

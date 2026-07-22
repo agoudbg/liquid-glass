@@ -12,6 +12,7 @@ import {
   buildInteractionTransform,
   createInitialInteractionState,
   isInteractionAtRest,
+  isInteractionMotionAtRest,
   resetInteractionTargets,
 } from './state';
 import { updateActiveTargets, updateHoverTargets } from './targets';
@@ -53,6 +54,7 @@ export class InteractionEngine {
   private idleTimer: ReturnType<typeof setTimeout> | null = null;
   private onTransformUpdate?: TransformUpdateCallback;
   private onStateChange?: InteractionPhaseCallback;
+  private onAnimationRequest?: () => void;
 
   /**
    * Creates an interaction engine from a preset or button-based custom options.
@@ -100,6 +102,11 @@ export class InteractionEngine {
   /** Registers a callback invoked for interaction phase transitions. */
   setOnStateChange(callback: InteractionPhaseCallback): void {
     this.onStateChange = callback;
+  }
+
+  /** Registers a callback used to wake a sleeping animation scheduler. */
+  setOnAnimationRequest(callback: () => void): void {
+    this.onAnimationRequest = callback;
   }
 
   /** Starts an active pointer gesture. */
@@ -205,6 +212,9 @@ export class InteractionEngine {
 
     this.state.isPointerDown = false;
     this.state.pointerId = undefined;
+    this.state.pointerOrigin = this.state.isHovering && this.state.currentPointer
+      ? { ...this.state.currentPointer }
+      : null;
     this.state.phase = 'releasing';
     this.state.highlightVisible = false;
     this.clearIdleTimer();
@@ -289,14 +299,38 @@ export class InteractionEngine {
       && isInteractionAtRest(this.state, this.config);
   }
 
+  /** Returns whether every animated value has settled, regardless of pointer phase. */
+  isMotionAtRest(): boolean {
+    return isInteractionMotionAtRest(this.state, this.config);
+  }
+
   /** Returns the current interaction phase. */
   getPhase(): InteractionPhase {
     return this.state.phase;
   }
 
-  /** Returns a shallow snapshot of the engine's complete numeric state. */
+  /** Returns an isolated snapshot of the engine's complete numeric state. */
   getState(): InteractionEngineState {
-    return { ...this.state };
+    return {
+      ...this.state,
+      pointerOrigin: this.state.pointerOrigin
+        ? { ...this.state.pointerOrigin }
+        : null,
+      currentPointer: this.state.currentPointer
+        ? { ...this.state.currentPointer }
+        : null,
+      previousPointer: this.state.previousPointer
+        ? { ...this.state.previousPointer }
+        : null,
+      idleReturnTarget: this.state.idleReturnTarget
+        ? { ...this.state.idleReturnTarget }
+        : null,
+    };
+  }
+
+  /** Returns the current public interaction output without advancing time. */
+  getOutput(): InteractionTransform {
+    return buildInteractionTransform(this.state);
   }
 
   /** Restores initial state while retaining the resolved configuration. */
@@ -316,6 +350,7 @@ export class InteractionEngine {
     this.clearIdleTimer();
     this.onTransformUpdate = undefined;
     this.onStateChange = undefined;
+    this.onAnimationRequest = undefined;
   }
 
   private getActiveSpring(): SpringConfig {
@@ -389,5 +424,6 @@ export class InteractionEngine {
     } else {
       resetInteractionTargets(this.state, this.config);
     }
+    this.onAnimationRequest?.();
   }
 }

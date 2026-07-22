@@ -6,6 +6,8 @@ import type {
   MaterialChanges,
   MaterialConfig,
   MaterialHandle,
+  MaterialPresentationListener,
+  MaterialPresentationState,
   ViewportCaptureRect,
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
@@ -68,7 +70,7 @@ export interface MaterialRegistration {
   config: MaterialConfig;
   /** Consumer-authored fallback marker restored when core releases the material. */
   initialFallbackAttribute: string | null;
-  /** Latest framework interaction input reserved for P5 integration. */
+  /** Latest accepted framework interaction input. */
   interactionState: InteractionState | null;
   /** Whether the registration has been released. */
   destroyed: boolean;
@@ -181,6 +183,10 @@ export class DomBackdropRegistrationHandle implements BackdropSourceHandle<DomBa
 export interface MaterialHandleCallbacks {
   /** Apply material changes. */
   update(changes: MaterialChanges): void;
+  /** Read the current isolated presentation snapshot. */
+  getPresentation(): MaterialPresentationState;
+  /** Subscribe to framework-facing presentation changes. */
+  onPresentation(listener: MaterialPresentationListener): () => void;
   /** Store the latest interaction state. */
   setInteractionState(state: InteractionState): void;
   /** Request layout remeasurement. */
@@ -210,6 +216,16 @@ export class MaterialRegistrationHandle implements MaterialHandle {
   /** Apply mutable material fields. */
   public update(changes: MaterialChanges): void {
     this.callbacks.update(changes);
+  }
+
+  /** Read the latest framework-facing presentation snapshot. */
+  public getPresentation(): MaterialPresentationState {
+    return this.callbacks.getPresentation();
+  }
+
+  /** Subscribe and immediately receive the latest presentation snapshot. */
+  public onPresentation(listener: MaterialPresentationListener): () => void {
+    return this.callbacks.onPresentation(listener);
   }
 
   /** Forward framework pointer state to the owning context. */

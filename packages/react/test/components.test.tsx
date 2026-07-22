@@ -27,6 +27,8 @@ function createMaterialHarness(id = 'material-1') {
       return destroyed;
     },
     destroy,
+    getPresentation: vi.fn<MaterialHandle['getPresentation']>(),
+    onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
     refreshLayout: vi.fn<MaterialHandle['refreshLayout']>(),
     setInteractionState: vi.fn<MaterialHandle['setInteractionState']>(),
     update: vi.fn<MaterialHandle['update']>(),

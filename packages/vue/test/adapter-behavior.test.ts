@@ -33,6 +33,8 @@ function createMaterialHandle(id = 'material-1'): MaterialHandle {
     id,
     destroyed: false,
     destroy: vi.fn(),
+    getPresentation: vi.fn<MaterialHandle['getPresentation']>(),
+    onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
     refreshLayout: vi.fn(),
     setInteractionState: vi.fn(),
     update: vi.fn(),

@@ -8,14 +8,12 @@ import type {
   DomBackdropSourceConfig,
   GlassContext,
   GlassContextOptions,
-  MaterialChanges,
   MaterialConfig,
   MaterialHandle,
   TextureDirtyReason,
 } from '../types/context';
 import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
-import type { InteractionState } from '../types/interaction';
 import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import {
   resolveContextPrecision,
@@ -31,17 +29,11 @@ import {
 } from './create-context-renderer';
 import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { FallbackController } from './FallbackController';
-import {
-  restoreMaterialFallbackMode,
-  setMaterialFallbackMode,
-  setMaterialsFallbackMode,
-} from './material-fallback';
 import { resolveRendererMaterials } from './material-resolver';
+import { MaterialPresentationController } from './MaterialPresentationController';
 import {
   type BackdropRegistration,
-  createMaterialRegistration,
   type MaterialRegistration,
-  MaterialRegistrationHandle,
 } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -62,7 +54,7 @@ export class GlassContextImpl implements GlassContext {
   private readonly backdropComposite: ContextBackdropComposite;
   private readonly emitter = new TypedEventEmitter<GlassEventMap>();
   private readonly sources = new Map<string, BackdropRegistration>();
-  private readonly materials = new Map<string, MaterialRegistration>();
+  private readonly materials: MaterialPresentationController;
   private readonly canvasSources: CanvasBackdropSourceController;
   private readonly domCapture: DomBackdropCaptureController;
   private readonly contextEvents: ContextEventController;
@@ -72,6 +64,7 @@ export class GlassContextImpl implements GlassContext {
   private precision: number;
   private isDestroyed = false;
   private viewportMode = false;
+  private backdropTextureReady = false;
 
   /**
    * Create one context with a core-owned uniform canvas.
@@ -103,6 +96,25 @@ export class GlassContextImpl implements GlassContext {
       this.canvas,
       this.optionsSnapshot,
     );
+    this.materials = new MaterialPresentationController(runtime, {
+      assertContextUsable: () => this.assertUsable(),
+      onAdded: (registration) => this.emitter.emit(
+        'materialAdded',
+        registration.id,
+        registration.config,
+      ),
+      onRemoved: (registration) => this.emitter.emit(
+        'materialRemoved',
+        registration.id,
+      ),
+      onUpdated: (registration, changes) => this.emitter.emit(
+        'materialUpdated',
+        registration.id,
+        changes,
+      ),
+      renderImmediately: () => this.renderFrame(false),
+      renderMaterials: () => this.renderFrame(false),
+    });
     this.domCapture = new DomBackdropCaptureController(
       container,
       this.sources,
@@ -147,6 +159,7 @@ export class GlassContextImpl implements GlassContext {
       this.fallback.setRendererUnavailable(renderer === null);
       this.renderer = renderer;
       this.presentation.setFallbackMode(this.fallbackMode);
+      this.materials.setFallbackMode(this.fallbackMode);
       this.domCapture.setPaused(this.fallbackMode);
       container.appendChild(this.canvas);
       this.contextEvents = new ContextEventController(
@@ -165,6 +178,7 @@ export class GlassContextImpl implements GlassContext {
       );
     } catch (error) {
       renderer?.destroy();
+      this.materials.destroy();
       this.domCapture.destroy();
       this.presentation.destroy();
       if (this.canvas.parentNode === container) {
@@ -200,27 +214,7 @@ export class GlassContextImpl implements GlassContext {
 
   /** Register a measurable material and return its lifecycle handle. */
   public addMaterial(config: MaterialConfig): MaterialHandle {
-    this.assertUsable();
-    const registration = createMaterialRegistration(config);
-    const handle = new MaterialRegistrationHandle(registration, {
-      update: (changes) => this.updateMaterial(registration, changes),
-      setInteractionState: (state) => this.setMaterialInteraction(registration, state),
-      refreshLayout: () => this.refreshMaterial(registration),
-      destroy: () => this.removeMaterial(registration),
-    });
-    try {
-      setMaterialFallbackMode(registration, this.fallbackMode);
-      this.materials.set(registration.id, registration);
-      this.emitter.emit('materialAdded', registration.id, registration.config);
-      this.refresh('structural');
-      return handle;
-    } catch (error) {
-      restoreMaterialFallbackMode(registration);
-      registration.destroyed = true;
-      this.materials.delete(registration.id);
-      this.emitter.emit('materialRemoved', registration.id);
-      throw error;
-    }
+    return this.materials.add(config);
   }
 
   /** Replace context options in place and synchronously apply presentation changes. */
@@ -279,15 +273,18 @@ export class GlassContextImpl implements GlassContext {
     if (!this.domCapture.request(reason)) this.renderFrame();
   }
 
-  private renderFrame(): void {
+  private renderFrame(refreshBackdrop: boolean = true): void {
     try {
       const containerRect = this.container.getBoundingClientRect();
       const renderer = this.renderer;
       if (this.fallbackMode || !renderer) {
         const scale = this.getDeviceScale();
-        this.canvas.width = Math.max(1, Math.round(containerRect.width * scale));
-        this.canvas.height = Math.max(1, Math.round(containerRect.height * scale));
-        if (this.sources.size > 0) {
+        const width = Math.max(1, Math.round(containerRect.width * scale));
+        const height = Math.max(1, Math.round(containerRect.height * scale));
+        const resized = this.canvas.width !== width || this.canvas.height !== height;
+        if (this.canvas.width !== width) this.canvas.width = width;
+        if (this.canvas.height !== height) this.canvas.height = height;
+        if (this.sources.size > 0 && (refreshBackdrop || resized)) {
           this.backdropComposite.draw(containerRect, this.getDeviceScale());
         }
         this.emitRenderedFrame();
@@ -295,12 +292,17 @@ export class GlassContextImpl implements GlassContext {
       }
       renderer.resize(containerRect.width, containerRect.height);
       if (this.sources.size === 0) {
+        this.backdropTextureReady = false;
         renderer.clear();
         this.emitRenderedFrame();
         return;
       }
-      this.backdropComposite.draw(containerRect, this.getDeviceScale());
-      renderer.uploadBackdrop(this.compositeCanvas);
+      if (refreshBackdrop || !this.backdropTextureReady) {
+        this.backdropTextureReady = false;
+        this.backdropComposite.draw(containerRect, this.getDeviceScale());
+        renderer.uploadBackdrop(this.compositeCanvas);
+        this.backdropTextureReady = true;
+      }
       const materials = resolveRendererMaterials(
         this.materials.values(),
         this.container,
@@ -350,15 +352,11 @@ export class GlassContextImpl implements GlassContext {
     this.contextEvents.destroy();
     this.domCapture.destroy();
     this.presentation.destroy();
+    this.materials.destroy();
     for (const source of this.sources.values()) {
       source.destroyed = true;
     }
-    for (const material of this.materials.values()) {
-      restoreMaterialFallbackMode(material);
-      material.destroyed = true;
-    }
     this.sources.clear();
-    this.materials.clear();
     this.renderer?.destroy();
     if (this.canvas.parentNode === this.container) {
       this.container.removeChild(this.canvas);
@@ -374,7 +372,7 @@ export class GlassContextImpl implements GlassContext {
     }
     this.presentation.setFallbackMode(enabled);
     this.domCapture.setPaused(enabled);
-    setMaterialsFallbackMode(this.materials.values(), enabled);
+    this.materials.setFallbackMode(enabled);
     this.emitter.emit('fallbackModeChanged', enabled);
   }
 
@@ -422,43 +420,6 @@ export class GlassContextImpl implements GlassContext {
     registration.destroyed = true;
     this.sources.delete(registration.id);
     this.domCapture.sourceRemoved(registration);
-    if (!this.isDestroyed) {
-      this.refresh('structural');
-    }
-  }
-
-  private updateMaterial(
-    registration: MaterialRegistration,
-    changes: MaterialChanges,
-  ): void {
-    this.assertRegistration(registration);
-    registration.config = { ...registration.config, ...changes };
-    this.emitter.emit('materialUpdated', registration.id, changes);
-    this.refresh('material_interaction');
-  }
-
-  private setMaterialInteraction(
-    registration: MaterialRegistration,
-    state: InteractionState,
-  ): void {
-    this.assertRegistration(registration);
-    registration.interactionState = state;
-    this.refresh('material_interaction');
-  }
-
-  private refreshMaterial(registration: MaterialRegistration): void {
-    this.assertRegistration(registration);
-    this.refresh('layout');
-  }
-
-  private removeMaterial(registration: MaterialRegistration): void {
-    if (registration.destroyed) {
-      return;
-    }
-    restoreMaterialFallbackMode(registration);
-    registration.destroyed = true;
-    this.materials.delete(registration.id);
-    this.emitter.emit('materialRemoved', registration.id);
     if (!this.isDestroyed) {
       this.refresh('structural');
     }

@@ -13,7 +13,10 @@ export default defineConfig({
   plugins: [
     solid(),
     dts({
-      tsconfigPath: './tsconfig.json',
+      entryRoot: 'src',
+      include: ['src'],
+      rollupTypes: true,
+      tsconfigPath: './tsconfig.build.json',
     }),
   ],
   build: {
@@ -27,7 +30,7 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
     rollupOptions: {
-      external: ['solid-js', '@agou/liquid-glass-core'],
+      external: ['@agou/liquid-glass-core', /^solid-js(?:\/.*)?$/],
     },
   },
 });

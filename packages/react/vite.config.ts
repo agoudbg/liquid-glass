@@ -13,7 +13,10 @@ export default defineConfig({
   plugins: [
     react(),
     dts({
-      tsconfigPath: './tsconfig.json',
+      entryRoot: 'src',
+      include: ['src'],
+      rollupTypes: true,
+      tsconfigPath: './tsconfig.build.json',
     }),
   ],
   build: {
@@ -27,7 +30,11 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
     rollupOptions: {
-      external: ['react', 'react-dom', '@agou/liquid-glass-core'],
+      external: [
+        '@agou/liquid-glass-core',
+        /^react(?:\/.*)?$/,
+        /^react-dom(?:\/.*)?$/,
+      ],
     },
   },
 });

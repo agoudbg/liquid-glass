@@ -1,9 +1,10 @@
-import { defineWorkspace } from 'vitest/config'
+import { defineWorkspace } from 'vitest/config';
 
-/**
- * Vitest workspace configuration.
- *
- * Discovers and runs tests across all packages.
- * Each package can define its own vitest.config.ts for package-specific settings.
- */
-export default defineWorkspace(['packages/*', 'apps/*'])
+/** Explicit unit-test projects prevent a missing package configuration from being skipped. */
+export default defineWorkspace([
+  'packages/core/vitest.config.ts',
+  'packages/vue/vitest.config.ts',
+  'packages/react/vitest.config.ts',
+  'packages/solid/vitest.config.ts',
+  'apps/playground/vitest.config.ts',
+]);

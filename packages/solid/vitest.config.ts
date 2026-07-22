@@ -1,14 +1,24 @@
+import { fileURLToPath } from 'node:url';
+
+import solid from 'vite-plugin-solid';
 import { defineConfig } from 'vitest/config';
 
 /**
  * Vitest configuration for @agou/liquid-glass-solid.
  *
- * Uses 'node' environment since Phase 0 smoke tests don't need DOM.
- * Will be changed to 'jsdom' in Phase 5 when component tests are added.
+ * Runs component behavior in a DOM-compatible environment.
  */
 export default defineConfig({
+  plugins: [solid()],
+  resolve: {
+    alias: {
+      '@agou/liquid-glass-core': fileURLToPath(
+        new URL('../core/src/index.ts', import.meta.url),
+      ),
+    },
+  },
   test: {
-    environment: 'node',
-    include: ['test/**/*.test.ts'],
+    environment: 'jsdom',
+    include: ['test/**/*.test.{ts,tsx}'],
   },
 });

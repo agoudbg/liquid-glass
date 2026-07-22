@@ -5,10 +5,10 @@
  * Framework-specific demos will be mounted here as they are built.
  */
 
-const app = document.getElementById('app')
+const app = document.getElementById('app');
 
 if (!app) {
-  throw new Error('Could not find #app mount point')
+  throw new Error('Could not find #app mount point');
 }
 
 app.innerHTML = `
@@ -28,4 +28,4 @@ app.innerHTML = `
       Phase 0 infrastructure verified — all packages build successfully.
     </p>
   </div>
-`
+`;

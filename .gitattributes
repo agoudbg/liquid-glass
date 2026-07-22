@@ -5,5 +5,5 @@
 *.vert text eol=lf
 *.frag text eol=lf
 
-# Lock file
-pnpm-lock.yaml binary
+# Keep dependency changes reviewable and stable across platforms.
+pnpm-lock.yaml text eol=lf

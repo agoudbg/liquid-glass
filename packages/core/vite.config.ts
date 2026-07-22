@@ -13,7 +13,10 @@ import dts from 'vite-plugin-dts';
 export default defineConfig({
   plugins: [
     dts({
-      tsconfigPath: './tsconfig.json',
+      entryRoot: 'src',
+      include: ['src'],
+      rollupTypes: true,
+      tsconfigPath: './tsconfig.build.json',
     }),
   ],
   build: {
@@ -26,5 +29,8 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true,
     minify: false,
+    rollupOptions: {
+      external: ['html-to-image'],
+    },
   },
 });

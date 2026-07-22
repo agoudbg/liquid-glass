@@ -15,6 +15,7 @@ const contextOptions = computed<GlassContextOptions>(() => ({
   canvasZIndex: props.state.oracleMode ? 10 : undefined,
   renderMode: props.state.renderMode,
   renderPrecision: props.state.renderPrecision,
+  scrollable: props.state.scrollable,
 }));
 const materials = computed(() => resolveSceneMaterials(props.state));
 const backdropDraw = computed(() => getBackdropDraw(

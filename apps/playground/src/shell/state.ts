@@ -6,6 +6,7 @@ const DEFAULT_STATE: PlaygroundState = {
   scene: 'S001',
   renderMode: 'uniform',
   glassEnabled: true,
+  scrollable: false,
   thickness: 36,
   refractIndex: 1.21,
   refractIntensity: 0.72,
@@ -25,6 +26,7 @@ export function createInitialState(url: URL): PlaygroundState {
     framework: isFrameworkId(framework) ? framework : DEFAULT_STATE.framework,
     scene,
     glassEnabled: url.searchParams.get('glass') !== 'off',
+    scrollable: url.searchParams.get('scroll') === 'on',
     thickness: parseNumber(url.searchParams.get('thickness'), 4, 80, DEFAULT_STATE.thickness),
     refractIndex: parseNumber(url.searchParams.get('ior'), 1, 1.6, DEFAULT_STATE.refractIndex),
     refractIntensity: parseNumber(
@@ -62,6 +64,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('scene', state.scene);
   url.searchParams.set('mode', state.renderMode);
   url.searchParams.set('glass', state.glassEnabled ? 'on' : 'off');
+  url.searchParams.set('scroll', state.scrollable ? 'on' : 'off');
   url.searchParams.set('thickness', String(state.thickness));
   url.searchParams.set('ior', state.refractIndex.toFixed(2));
   url.searchParams.set('intensity', state.refractIntensity.toFixed(2));

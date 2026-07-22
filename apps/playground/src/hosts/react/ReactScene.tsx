@@ -18,6 +18,7 @@ export function ReactScene({
     canvasZIndex: state.oracleMode ? 10 : undefined,
     renderMode: state.renderMode,
     renderPrecision: state.renderPrecision,
+    scrollable: state.scrollable,
   };
   const materials = resolveSceneMaterials(state);
 

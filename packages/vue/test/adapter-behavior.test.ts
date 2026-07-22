@@ -103,6 +103,34 @@ afterEach(() => {
 });
 
 describe('Vue adapter behavior', () => {
+  it('preserves boolean values supplied through the options object', async () => {
+    const harness = createContextHarness();
+    const engine = createEngine(harness.context);
+    const wrapper = mount(LiquidGlass, {
+      props: {
+        engine: engine.engine,
+        options: {
+          debug: true,
+          enableBlurredEffect: true,
+          scrollable: true,
+        },
+      },
+    });
+
+    await nextTick();
+
+    expect(engine.createContext).toHaveBeenCalledWith(
+      expect.any(HTMLElement),
+      expect.objectContaining({
+        debug: true,
+        enableBlurredEffect: true,
+        scrollable: true,
+      }),
+    );
+
+    wrapper.unmount();
+  });
+
   it('maps legacy container props over options before creating the context', async () => {
     const harness = createContextHarness();
     const engine = createEngine(harness.context);

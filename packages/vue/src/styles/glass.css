@@ -5,6 +5,10 @@
   min-height: 0;
 }
 
+.liquid-glass-container[data-lg-scrollable='true'] {
+  overflow: auto;
+}
+
 .liquid-glass-container > .liquid-glass-canvas {
   position: absolute;
   inset: 0;

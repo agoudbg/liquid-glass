@@ -15,6 +15,8 @@ export interface PlaygroundState {
   renderMode: 'uniform';
   /** Whether the core-owned presentation canvas is visible. */
   glassEnabled: boolean;
+  /** Whether the framework host exposes a scrolling glass surface. */
+  scrollable: boolean;
   /** Material thickness in CSS pixels. */
   thickness: number;
   /** Material index of refraction. */

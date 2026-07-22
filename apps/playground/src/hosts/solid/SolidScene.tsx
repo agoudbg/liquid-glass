@@ -16,6 +16,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
     canvasZIndex: props.state.oracleMode ? 10 : undefined,
     renderMode: props.state.renderMode,
     renderPrecision: props.state.renderPrecision,
+    scrollable: props.state.scrollable,
   });
 
   return (

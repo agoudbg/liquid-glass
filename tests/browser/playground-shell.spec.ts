@@ -97,6 +97,57 @@ test('renders S001 and S002 through every public framework adapter', async ({ pa
   expect(runtimeErrors).toEqual([]);
 });
 
+test('keeps the uniform canvas pinned inside every scrollable adapter', async ({
+  page,
+}) => {
+  for (const framework of FRAMEWORKS) {
+    await page.goto(
+      `/?test=1&framework=${framework}&scene=S001&glass=on&scroll=on`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await expect(page.locator('#app')).toHaveAttribute('data-ready', 'true', {
+      timeout: 15_000,
+    });
+
+    const metrics = await page.locator('.glass-context').evaluate(async (container) => {
+      const canvas = container.querySelector<HTMLCanvasElement>(
+        ':scope > .liquid-glass-canvas',
+      );
+      if (!canvas) throw new Error('Missing the core-owned uniform canvas.');
+      const spacer = document.createElement('div');
+      spacer.style.width = '2000px';
+      spacer.style.height = '1600px';
+      spacer.style.pointerEvents = 'none';
+      container.append(spacer);
+      container.scrollLeft = 120;
+      container.scrollTop = 80;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const containerRect = container.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      return {
+        overflow: getComputedStyle(container).overflow,
+        scrollable: container.getAttribute('data-lg-scrollable'),
+        canvasLeft: canvasRect.left,
+        canvasTop: canvasRect.top,
+        containerLeft: containerRect.left,
+        containerTop: containerRect.top,
+        scrollLeft: container.scrollLeft,
+        scrollTop: container.scrollTop,
+        transform: canvas.style.transform,
+      };
+    });
+
+    expect(metrics.scrollLeft).toBe(120);
+    expect(metrics.scrollTop).toBe(80);
+    expect(metrics.scrollable).toBe('true');
+    expect(metrics.overflow).toBe('auto');
+    expect(Math.abs(metrics.canvasLeft - metrics.containerLeft)).toBeLessThan(1);
+    expect(Math.abs(metrics.canvasTop - metrics.containerTop)).toBeLessThan(1);
+    expect(metrics.transform).toBe('translate3d(120px, 80px, 0px)');
+  }
+});
+
 async function capturePrimaryMaterial(page: Page): Promise<Buffer> {
   const material = page.getByTestId('primary-material');
   await expect(material).toBeVisible();

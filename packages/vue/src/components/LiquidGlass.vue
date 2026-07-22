@@ -19,7 +19,11 @@ defineOptions({
   inheritAttrs: false,
 });
 
-const props = defineProps<LiquidGlassProps>();
+const props = withDefaults(defineProps<LiquidGlassProps>(), {
+  debug: undefined,
+  enableBlurredEffect: undefined,
+  scrollable: undefined,
+});
 const emit = defineEmits<{
   /** Emitted after the core context has mounted. */
   ready: [context: GlassContext];

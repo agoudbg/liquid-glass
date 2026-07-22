@@ -1,0 +1,4462 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-22T06:13:48.548Z",
+  "sourceCommit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
+  "comparison": {
+    "runCount": 20,
+    "ignoredChannelDeltaAtOrBelow": 3,
+    "thresholdFormula": "min(0.005, max(0.001, 3 * maxSelfDiffRatio))",
+    "thresholdCap": 0.005
+  },
+  "browsers": [
+    {
+      "browserName": "Google Chrome",
+      "browserVersion": "150.0.7871.129",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 1,
+      "scenarios": [
+        {
+          "id": "S001",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 814,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s001-main",
+              "rect": {
+                "x": 513,
+                "y": 288,
+                "width": 420,
+                "height": 220,
+                "top": 288,
+                "right": 933,
+                "bottom": 508,
+                "left": 513
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 88640,
+            "comparedPixels": 92400,
+            "diffRatio": 0.959307359307,
+            "meanAbsoluteChannelDelta": 15.572637,
+            "maxChannelDelta": 68,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s001-main",
+              "probe": "center",
+              "cssPosition": {
+                "x": 723,
+                "y": 398
+              },
+              "physicalPosition": {
+                "x": 723,
+                "y": 398
+              },
+              "glassOn": [
+                115,
+                68,
+                79,
+                255
+              ],
+              "glassOff": [
+                133,
+                79,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                18,
+                11,
+                12
+              ]
+            },
+            {
+              "materialId": "s001-main",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 618,
+                "y": 343
+              },
+              "physicalPosition": {
+                "x": 618,
+                "y": 343
+              },
+              "glassOn": [
+                146,
+                60,
+                69,
+                255
+              ],
+              "glassOff": [
+                169,
+                69,
+                80,
+                255
+              ],
+              "absoluteRgbDelta": [
+                23,
+                9,
+                11
+              ]
+            },
+            {
+              "materialId": "s001-main",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 828,
+                "y": 453
+              },
+              "physicalPosition": {
+                "x": 828,
+                "y": 453
+              },
+              "glassOn": [
+                84,
+                77,
+                89,
+                255
+              ],
+              "glassOff": [
+                97,
+                89,
+                103,
+                255
+              ],
+              "absoluteRgbDelta": [
+                13,
+                12,
+                14
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S002",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 814,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s002-a",
+              "rect": {
+                "x": 253,
+                "y": 193,
+                "width": 350,
+                "height": 210,
+                "top": 193,
+                "right": 603,
+                "bottom": 403,
+                "left": 253
+              }
+            },
+            {
+              "id": "s002-b",
+              "rect": {
+                "x": 573,
+                "y": 313,
+                "width": 350,
+                "height": 210,
+                "top": 313,
+                "right": 923,
+                "bottom": 523,
+                "left": 573
+              }
+            },
+            {
+              "id": "s002-c",
+              "rect": {
+                "x": 893,
+                "y": 453,
+                "width": 350,
+                "height": 210,
+                "top": 453,
+                "right": 1243,
+                "bottom": 663,
+                "left": 893
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 208368,
+            "comparedPixels": 215700,
+            "diffRatio": 0.966008344924,
+            "meanAbsoluteChannelDelta": 15.852915,
+            "maxChannelDelta": 90,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s002-a",
+              "probe": "center",
+              "cssPosition": {
+                "x": 428,
+                "y": 298
+              },
+              "physicalPosition": {
+                "x": 428,
+                "y": 298
+              },
+              "glassOn": [
+                210,
+                168,
+                162,
+                255
+              ],
+              "glassOff": [
+                243,
+                194,
+                187,
+                255
+              ],
+              "absoluteRgbDelta": [
+                33,
+                26,
+                25
+              ]
+            },
+            {
+              "materialId": "s002-a",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 340.5,
+                "y": 245.5
+              },
+              "physicalPosition": {
+                "x": 340,
+                "y": 245
+              },
+              "glassOn": [
+                201,
+                128,
+                101,
+                255
+              ],
+              "glassOff": [
+                232,
+                148,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                31,
+                20,
+                16
+              ]
+            },
+            {
+              "materialId": "s002-a",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 515.5,
+                "y": 350.5
+              },
+              "physicalPosition": {
+                "x": 515,
+                "y": 350
+              },
+              "glassOn": [
+                196,
+                99,
+                101,
+                255
+              ],
+              "glassOff": [
+                226,
+                114,
+                116,
+                255
+              ],
+              "absoluteRgbDelta": [
+                30,
+                15,
+                15
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "center",
+              "cssPosition": {
+                "x": 748,
+                "y": 418
+              },
+              "physicalPosition": {
+                "x": 748,
+                "y": 418
+              },
+              "glassOn": [
+                221,
+                221,
+                221,
+                255
+              ],
+              "glassOff": [
+                255,
+                255,
+                255,
+                255
+              ],
+              "absoluteRgbDelta": [
+                34,
+                34,
+                34
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 660.5,
+                "y": 365.5
+              },
+              "physicalPosition": {
+                "x": 660,
+                "y": 365
+              },
+              "glassOn": [
+                171,
+                101,
+                108,
+                255
+              ],
+              "glassOff": [
+                197,
+                116,
+                125,
+                255
+              ],
+              "absoluteRgbDelta": [
+                26,
+                15,
+                17
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 835.5,
+                "y": 470.5
+              },
+              "physicalPosition": {
+                "x": 835,
+                "y": 470
+              },
+              "glassOn": [
+                118,
+                115,
+                125,
+                255
+              ],
+              "glassOff": [
+                136,
+                133,
+                144,
+                255
+              ],
+              "absoluteRgbDelta": [
+                18,
+                18,
+                19
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1068,
+                "y": 558
+              },
+              "physicalPosition": {
+                "x": 1068,
+                "y": 558
+              },
+              "glassOn": [
+                124,
+                156,
+                163,
+                255
+              ],
+              "glassOff": [
+                143,
+                180,
+                188,
+                255
+              ],
+              "absoluteRgbDelta": [
+                19,
+                24,
+                25
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 980.5,
+                "y": 505.5
+              },
+              "physicalPosition": {
+                "x": 980,
+                "y": 505
+              },
+              "glassOn": [
+                42,
+                89,
+                102,
+                255
+              ],
+              "glassOff": [
+                48,
+                103,
+                118,
+                255
+              ],
+              "absoluteRgbDelta": [
+                6,
+                14,
+                16
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1155.5,
+                "y": 610.5
+              },
+              "physicalPosition": {
+                "x": 1155,
+                "y": 610
+              },
+              "glassOn": [
+                62,
+                112,
+                125,
+                255
+              ],
+              "glassOff": [
+                71,
+                129,
+                144,
+                255
+              ],
+              "absoluteRgbDelta": [
+                9,
+                17,
+                19
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S003",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 814,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s003-main",
+              "rect": {
+                "x": 518,
+                "y": 293,
+                "width": 420,
+                "height": 220,
+                "top": 293,
+                "right": 938,
+                "bottom": 513,
+                "left": 518
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 91244,
+            "comparedPixels": 92400,
+            "diffRatio": 0.987489177489,
+            "meanAbsoluteChannelDelta": 82.58403,
+            "maxChannelDelta": 209,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s003-main",
+              "probe": "center",
+              "cssPosition": {
+                "x": 728,
+                "y": 403
+              },
+              "physicalPosition": {
+                "x": 728,
+                "y": 403
+              },
+              "glassOn": [
+                170,
+                216,
+                210,
+                255
+              ],
+              "glassOff": [
+                42,
+                157,
+                143,
+                255
+              ],
+              "absoluteRgbDelta": [
+                128,
+                59,
+                67
+              ]
+            },
+            {
+              "materialId": "s003-main",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 623,
+                "y": 348
+              },
+              "physicalPosition": {
+                "x": 623,
+                "y": 348
+              },
+              "glassOn": [
+                170,
+                216,
+                210,
+                255
+              ],
+              "glassOff": [
+                42,
+                157,
+                143,
+                255
+              ],
+              "absoluteRgbDelta": [
+                128,
+                59,
+                67
+              ]
+            },
+            {
+              "materialId": "s003-main",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 833,
+                "y": 458
+              },
+              "physicalPosition": {
+                "x": 833,
+                "y": 458
+              },
+              "glassOn": [
+                252,
+                255,
+                252,
+                255
+              ],
+              "glassOff": [
+                228,
+                224,
+                180,
+                255
+              ],
+              "absoluteRgbDelta": [
+                24,
+                31,
+                72
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S004",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 814,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s004-button",
+              "rect": {
+                "x": 254.25,
+                "y": 360.75,
+                "width": 283.5,
+                "height": 178.5,
+                "top": 360.75,
+                "right": 537.75,
+                "bottom": 539.25,
+                "left": 254.25
+              }
+            },
+            {
+              "id": "s004-context",
+              "rect": {
+                "x": 585,
+                "y": 365,
+                "width": 270,
+                "height": 170,
+                "top": 365,
+                "right": 855,
+                "bottom": 535,
+                "left": 585
+              }
+            },
+            {
+              "id": "s004-slider",
+              "rect": {
+                "x": 909,
+                "y": 365,
+                "width": 270,
+                "height": 170,
+                "top": 365,
+                "right": 1179,
+                "bottom": 535,
+                "left": 909
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000091,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000081,
+                "maxChannelDelta": 2
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000083,
+                "maxChannelDelta": 2
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 138581,
+            "comparedPixels": 142920,
+            "diffRatio": 0.969640358242,
+            "meanAbsoluteChannelDelta": 15.622647,
+            "maxChannelDelta": 93,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s004-button",
+              "probe": "center",
+              "cssPosition": {
+                "x": 396,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 396,
+                "y": 450
+              },
+              "glassOn": [
+                173,
+                93,
+                90,
+                255
+              ],
+              "glassOff": [
+                187,
+                81,
+                77,
+                255
+              ],
+              "absoluteRgbDelta": [
+                14,
+                12,
+                13
+              ]
+            },
+            {
+              "materialId": "s004-button",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 325.125,
+                "y": 405.375
+              },
+              "physicalPosition": {
+                "x": 325,
+                "y": 405
+              },
+              "glassOn": [
+                199,
+                118,
+                101,
+                255
+              ],
+              "glassOff": [
+                230,
+                136,
+                116,
+                255
+              ],
+              "absoluteRgbDelta": [
+                31,
+                18,
+                15
+              ]
+            },
+            {
+              "materialId": "s004-button",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 466.875,
+                "y": 494.625
+              },
+              "physicalPosition": {
+                "x": 466,
+                "y": 494
+              },
+              "glassOn": [
+                171,
+                79,
+                87,
+                255
+              ],
+              "glassOff": [
+                185,
+                66,
+                76,
+                255
+              ],
+              "absoluteRgbDelta": [
+                14,
+                13,
+                11
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "center",
+              "cssPosition": {
+                "x": 720,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 720,
+                "y": 450
+              },
+              "glassOn": [
+                191,
+                176,
+                179,
+                255
+              ],
+              "glassOff": [
+                221,
+                203,
+                207,
+                255
+              ],
+              "absoluteRgbDelta": [
+                30,
+                27,
+                28
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 652.5,
+                "y": 407.5
+              },
+              "physicalPosition": {
+                "x": 652,
+                "y": 407
+              },
+              "glassOn": [
+                130,
+                64,
+                74,
+                255
+              ],
+              "glassOff": [
+                150,
+                74,
+                85,
+                255
+              ],
+              "absoluteRgbDelta": [
+                20,
+                10,
+                11
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 787.5,
+                "y": 492.5
+              },
+              "physicalPosition": {
+                "x": 787,
+                "y": 492
+              },
+              "glassOn": [
+                125,
+                113,
+                122,
+                255
+              ],
+              "glassOff": [
+                144,
+                130,
+                141,
+                255
+              ],
+              "absoluteRgbDelta": [
+                19,
+                17,
+                19
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1044,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 1044,
+                "y": 450
+              },
+              "glassOn": [
+                165,
+                186,
+                190,
+                255
+              ],
+              "glassOff": [
+                190,
+                214,
+                219,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                28,
+                29
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 976.5,
+                "y": 407.5
+              },
+              "physicalPosition": {
+                "x": 976,
+                "y": 407
+              },
+              "glassOn": [
+                56,
+                86,
+                97,
+                255
+              ],
+              "glassOff": [
+                65,
+                99,
+                112,
+                255
+              ],
+              "absoluteRgbDelta": [
+                9,
+                13,
+                15
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1111.5,
+                "y": 492.5
+              },
+              "physicalPosition": {
+                "x": 1111,
+                "y": 492
+              },
+              "glassOn": [
+                63,
+                125,
+                136,
+                255
+              ],
+              "glassOff": [
+                73,
+                144,
+                157,
+                255
+              ],
+              "absoluteRgbDelta": [
+                10,
+                19,
+                21
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S005",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 1798,
+              "rect": {
+                "x": 43,
+                "y": -387,
+                "width": 1354,
+                "height": 1798,
+                "top": -387,
+                "right": 1397,
+                "bottom": 1411,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s005-sticky",
+              "rect": {
+                "x": 920,
+                "y": 270,
+                "width": 340,
+                "height": 190,
+                "top": 270,
+                "right": 1260,
+                "bottom": 460,
+                "left": 920
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 420
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 63680,
+            "comparedPixels": 64600,
+            "diffRatio": 0.985758513932,
+            "meanAbsoluteChannelDelta": 95.683292,
+            "maxChannelDelta": 191,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s005-sticky",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1090,
+                "y": 365
+              },
+              "physicalPosition": {
+                "x": 1090,
+                "y": 365
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            },
+            {
+              "materialId": "s005-sticky",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 1005,
+                "y": 317.5
+              },
+              "physicalPosition": {
+                "x": 1005,
+                "y": 317
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            },
+            {
+              "materialId": "s005-sticky",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1175,
+                "y": 412.5
+              },
+              "physicalPosition": {
+                "x": 1175,
+                "y": 412
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S006",
+          "screenshotDimensions": {
+            "width": 1440,
+            "height": 900
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 1354,
+              "height": 1680,
+              "rect": {
+                "x": 43,
+                "y": -317,
+                "width": 1354,
+                "height": 1680,
+                "top": -317,
+                "right": 1397,
+                "bottom": 1363,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s006-sticky",
+              "rect": {
+                "x": 863,
+                "y": 143,
+                "width": 350,
+                "height": 190,
+                "top": 143,
+                "right": 1213,
+                "bottom": 333,
+                "left": 863
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 1296000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 65588,
+            "comparedPixels": 66500,
+            "diffRatio": 0.986285714286,
+            "meanAbsoluteChannelDelta": 90.85794,
+            "maxChannelDelta": 181,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s006-sticky",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1038,
+                "y": 238
+              },
+              "physicalPosition": {
+                "x": 1038,
+                "y": 238
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                209,
+                73,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                24,
+                117,
+                109
+              ]
+            },
+            {
+              "materialId": "s006-sticky",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 950.5,
+                "y": 190.5
+              },
+              "physicalPosition": {
+                "x": 950,
+                "y": 190
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                209,
+                73,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                24,
+                117,
+                109
+              ]
+            },
+            {
+              "materialId": "s006-sticky",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1125.5,
+                "y": 285.5
+              },
+              "physicalPosition": {
+                "x": 1125,
+                "y": 285
+              },
+              "glassOn": [
+                165,
+                201,
+                199,
+                255
+              ],
+              "glassOff": [
+                29,
+                120,
+                116,
+                255
+              ],
+              "absoluteRgbDelta": [
+                136,
+                81,
+                83
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "browserName": "Google Chrome",
+      "browserVersion": "150.0.7871.129",
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 2,
+      "scenarios": [
+        {
+          "id": "S001",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 1628,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s001-main",
+              "rect": {
+                "x": 513,
+                "y": 288,
+                "width": 420,
+                "height": 220,
+                "top": 288,
+                "right": 933,
+                "bottom": 508,
+                "left": 513
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 354173,
+            "comparedPixels": 369600,
+            "diffRatio": 0.958260281385,
+            "meanAbsoluteChannelDelta": 15.604123,
+            "maxChannelDelta": 68,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s001-main",
+              "probe": "center",
+              "cssPosition": {
+                "x": 723,
+                "y": 398
+              },
+              "physicalPosition": {
+                "x": 1446,
+                "y": 796
+              },
+              "glassOn": [
+                115,
+                68,
+                79,
+                255
+              ],
+              "glassOff": [
+                133,
+                79,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                18,
+                11,
+                12
+              ]
+            },
+            {
+              "materialId": "s001-main",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 618,
+                "y": 343
+              },
+              "physicalPosition": {
+                "x": 1236,
+                "y": 686
+              },
+              "glassOn": [
+                146,
+                59,
+                69,
+                255
+              ],
+              "glassOff": [
+                169,
+                68,
+                80,
+                255
+              ],
+              "absoluteRgbDelta": [
+                23,
+                9,
+                11
+              ]
+            },
+            {
+              "materialId": "s001-main",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 828,
+                "y": 453
+              },
+              "physicalPosition": {
+                "x": 1656,
+                "y": 906
+              },
+              "glassOn": [
+                121,
+                114,
+                123,
+                255
+              ],
+              "glassOff": [
+                140,
+                131,
+                142,
+                255
+              ],
+              "absoluteRgbDelta": [
+                19,
+                17,
+                19
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S002",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 1628,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s002-a",
+              "rect": {
+                "x": 253,
+                "y": 193,
+                "width": 350,
+                "height": 210,
+                "top": 193,
+                "right": 603,
+                "bottom": 403,
+                "left": 253
+              }
+            },
+            {
+              "id": "s002-b",
+              "rect": {
+                "x": 573,
+                "y": 313,
+                "width": 350,
+                "height": 210,
+                "top": 313,
+                "right": 923,
+                "bottom": 523,
+                "left": 573
+              }
+            },
+            {
+              "id": "s002-c",
+              "rect": {
+                "x": 893,
+                "y": 453,
+                "width": 350,
+                "height": 210,
+                "top": 453,
+                "right": 1243,
+                "bottom": 663,
+                "left": 893
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 833308,
+            "comparedPixels": 862800,
+            "diffRatio": 0.96581826611,
+            "meanAbsoluteChannelDelta": 15.919533,
+            "maxChannelDelta": 92,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s002-a",
+              "probe": "center",
+              "cssPosition": {
+                "x": 428,
+                "y": 298
+              },
+              "physicalPosition": {
+                "x": 856,
+                "y": 596
+              },
+              "glassOn": [
+                163,
+                76,
+                66,
+                255
+              ],
+              "glassOff": [
+                188,
+                88,
+                76,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                12,
+                10
+              ]
+            },
+            {
+              "materialId": "s002-a",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 340.5,
+                "y": 245.5
+              },
+              "physicalPosition": {
+                "x": 681,
+                "y": 491
+              },
+              "glassOn": [
+                166,
+                93,
+                68,
+                255
+              ],
+              "glassOff": [
+                191,
+                107,
+                78,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                14,
+                10
+              ]
+            },
+            {
+              "materialId": "s002-a",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 515.5,
+                "y": 350.5
+              },
+              "physicalPosition": {
+                "x": 1031,
+                "y": 701
+              },
+              "glassOn": [
+                160,
+                62,
+                66,
+                255
+              ],
+              "glassOff": [
+                185,
+                72,
+                76,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                10,
+                10
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "center",
+              "cssPosition": {
+                "x": 748,
+                "y": 418
+              },
+              "physicalPosition": {
+                "x": 1496,
+                "y": 836
+              },
+              "glassOn": [
+                221,
+                221,
+                221,
+                255
+              ],
+              "glassOff": [
+                255,
+                255,
+                255,
+                255
+              ],
+              "absoluteRgbDelta": [
+                34,
+                34,
+                34
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 660.5,
+                "y": 365.5
+              },
+              "physicalPosition": {
+                "x": 1321,
+                "y": 731
+              },
+              "glassOn": [
+                133,
+                63,
+                74,
+                255
+              ],
+              "glassOff": [
+                154,
+                73,
+                85,
+                255
+              ],
+              "absoluteRgbDelta": [
+                21,
+                10,
+                11
+              ]
+            },
+            {
+              "materialId": "s002-b",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 835.5,
+                "y": 470.5
+              },
+              "physicalPosition": {
+                "x": 1671,
+                "y": 941
+              },
+              "glassOn": [
+                80,
+                79,
+                91,
+                255
+              ],
+              "glassOff": [
+                92,
+                91,
+                105,
+                255
+              ],
+              "absoluteRgbDelta": [
+                12,
+                12,
+                14
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1068,
+                "y": 558
+              },
+              "physicalPosition": {
+                "x": 2136,
+                "y": 1116
+              },
+              "glassOn": [
+                161,
+                184,
+                189,
+                255
+              ],
+              "glassOff": [
+                186,
+                213,
+                218,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                29,
+                29
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 980.5,
+                "y": 505.5
+              },
+              "physicalPosition": {
+                "x": 1961,
+                "y": 1011
+              },
+              "glassOn": [
+                81,
+                126,
+                136,
+                255
+              ],
+              "glassOff": [
+                94,
+                145,
+                157,
+                255
+              ],
+              "absoluteRgbDelta": [
+                13,
+                19,
+                21
+              ]
+            },
+            {
+              "materialId": "s002-c",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1155.5,
+                "y": 610.5
+              },
+              "physicalPosition": {
+                "x": 2311,
+                "y": 1221
+              },
+              "glassOn": [
+                23,
+                75,
+                90,
+                255
+              ],
+              "glassOff": [
+                26,
+                87,
+                104,
+                255
+              ],
+              "absoluteRgbDelta": [
+                3,
+                12,
+                14
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S003",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 1628,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s003-main",
+              "rect": {
+                "x": 518,
+                "y": 293,
+                "width": 420,
+                "height": 220,
+                "top": 293,
+                "right": 938,
+                "bottom": 513,
+                "left": 518
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 365020,
+            "comparedPixels": 369600,
+            "diffRatio": 0.987608225108,
+            "meanAbsoluteChannelDelta": 82.701334,
+            "maxChannelDelta": 210,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s003-main",
+              "probe": "center",
+              "cssPosition": {
+                "x": 728,
+                "y": 403
+              },
+              "physicalPosition": {
+                "x": 1456,
+                "y": 806
+              },
+              "glassOn": [
+                170,
+                216,
+                210,
+                255
+              ],
+              "glassOff": [
+                42,
+                157,
+                143,
+                255
+              ],
+              "absoluteRgbDelta": [
+                128,
+                59,
+                67
+              ]
+            },
+            {
+              "materialId": "s003-main",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 623,
+                "y": 348
+              },
+              "physicalPosition": {
+                "x": 1246,
+                "y": 696
+              },
+              "glassOn": [
+                170,
+                216,
+                210,
+                255
+              ],
+              "glassOff": [
+                42,
+                157,
+                143,
+                255
+              ],
+              "absoluteRgbDelta": [
+                128,
+                59,
+                67
+              ]
+            },
+            {
+              "materialId": "s003-main",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 833,
+                "y": 458
+              },
+              "physicalPosition": {
+                "x": 1666,
+                "y": 916
+              },
+              "glassOn": [
+                252,
+                255,
+                252,
+                255
+              ],
+              "glassOff": [
+                240,
+                252,
+                243,
+                255
+              ],
+              "absoluteRgbDelta": [
+                12,
+                3,
+                9
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S004",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 1628,
+              "rect": {
+                "x": 43,
+                "y": 43,
+                "width": 1354,
+                "height": 814,
+                "top": 43,
+                "right": 1397,
+                "bottom": 857,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s004-button",
+              "rect": {
+                "x": 254.25,
+                "y": 360.75,
+                "width": 283.5,
+                "height": 178.5,
+                "top": 360.75,
+                "right": 537.75,
+                "bottom": 539.25,
+                "left": 254.25
+              }
+            },
+            {
+              "id": "s004-context",
+              "rect": {
+                "x": 585,
+                "y": 365,
+                "width": 270,
+                "height": 170,
+                "top": 365,
+                "right": 855,
+                "bottom": 535,
+                "left": 585
+              }
+            },
+            {
+              "id": "s004-slider",
+              "rect": {
+                "x": 909,
+                "y": 365,
+                "width": 270,
+                "height": 170,
+                "top": 365,
+                "right": 1179,
+                "bottom": 535,
+                "left": 909
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.000001,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0.00001,
+                "maxChannelDelta": 1
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 1
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 552255,
+            "comparedPixels": 570544,
+            "diffRatio": 0.967944628285,
+            "meanAbsoluteChannelDelta": 15.646229,
+            "maxChannelDelta": 90,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s004-button",
+              "probe": "center",
+              "cssPosition": {
+                "x": 396,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 792,
+                "y": 900
+              },
+              "glassOn": [
+                205,
+                124,
+                120,
+                255
+              ],
+              "glassOff": [
+                228,
+                122,
+                116,
+                255
+              ],
+              "absoluteRgbDelta": [
+                23,
+                2,
+                4
+              ]
+            },
+            {
+              "materialId": "s004-button",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 325.125,
+                "y": 405.375
+              },
+              "physicalPosition": {
+                "x": 650,
+                "y": 810
+              },
+              "glassOn": [
+                164,
+                81,
+                66,
+                255
+              ],
+              "glassOff": [
+                189,
+                94,
+                76,
+                255
+              ],
+              "absoluteRgbDelta": [
+                25,
+                13,
+                10
+              ]
+            },
+            {
+              "materialId": "s004-button",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 466.875,
+                "y": 494.625
+              },
+              "physicalPosition": {
+                "x": 933,
+                "y": 989
+              },
+              "glassOn": [
+                171,
+                79,
+                87,
+                255
+              ],
+              "glassOff": [
+                185,
+                66,
+                76,
+                255
+              ],
+              "absoluteRgbDelta": [
+                14,
+                13,
+                11
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "center",
+              "cssPosition": {
+                "x": 720,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 1440,
+                "y": 900
+              },
+              "glassOn": [
+                202,
+                196,
+                198,
+                255
+              ],
+              "glassOff": [
+                233,
+                226,
+                228,
+                255
+              ],
+              "absoluteRgbDelta": [
+                31,
+                30,
+                30
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 652.5,
+                "y": 407.5
+              },
+              "physicalPosition": {
+                "x": 1305,
+                "y": 815
+              },
+              "glassOn": [
+                167,
+                101,
+                109,
+                255
+              ],
+              "glassOff": [
+                193,
+                117,
+                126,
+                255
+              ],
+              "absoluteRgbDelta": [
+                26,
+                16,
+                17
+              ]
+            },
+            {
+              "materialId": "s004-context",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 787.5,
+                "y": 492.5
+              },
+              "physicalPosition": {
+                "x": 1575,
+                "y": 985
+              },
+              "glassOn": [
+                126,
+                113,
+                122,
+                255
+              ],
+              "glassOff": [
+                145,
+                130,
+                141,
+                255
+              ],
+              "absoluteRgbDelta": [
+                19,
+                17,
+                19
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1044,
+                "y": 450
+              },
+              "physicalPosition": {
+                "x": 2088,
+                "y": 900
+              },
+              "glassOn": [
+                213,
+                216,
+                216,
+                255
+              ],
+              "glassOff": [
+                246,
+                249,
+                250,
+                255
+              ],
+              "absoluteRgbDelta": [
+                33,
+                33,
+                34
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 976.5,
+                "y": 407.5
+              },
+              "physicalPosition": {
+                "x": 1953,
+                "y": 815
+              },
+              "glassOn": [
+                56,
+                86,
+                98,
+                255
+              ],
+              "glassOff": [
+                65,
+                99,
+                113,
+                255
+              ],
+              "absoluteRgbDelta": [
+                9,
+                13,
+                15
+              ]
+            },
+            {
+              "materialId": "s004-slider",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1111.5,
+                "y": 492.5
+              },
+              "physicalPosition": {
+                "x": 2223,
+                "y": 985
+              },
+              "glassOn": [
+                24,
+                89,
+                102,
+                255
+              ],
+              "glassOff": [
+                28,
+                103,
+                118,
+                255
+              ],
+              "absoluteRgbDelta": [
+                4,
+                14,
+                16
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S005",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 3596,
+              "rect": {
+                "x": 43,
+                "y": -387,
+                "width": 1354,
+                "height": 1798,
+                "top": -387,
+                "right": 1397,
+                "bottom": 1411,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s005-sticky",
+              "rect": {
+                "x": 920,
+                "y": 270,
+                "width": 340,
+                "height": 190,
+                "top": 270,
+                "right": 1260,
+                "bottom": 460,
+                "left": 920
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 420
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 254372,
+            "comparedPixels": 258400,
+            "diffRatio": 0.984411764706,
+            "meanAbsoluteChannelDelta": 95.814594,
+            "maxChannelDelta": 191,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s005-sticky",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1090,
+                "y": 365
+              },
+              "physicalPosition": {
+                "x": 2180,
+                "y": 730
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            },
+            {
+              "materialId": "s005-sticky",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 1005,
+                "y": 317.5
+              },
+              "physicalPosition": {
+                "x": 2010,
+                "y": 635
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            },
+            {
+              "materialId": "s005-sticky",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1175,
+                "y": 412.5
+              },
+              "physicalPosition": {
+                "x": 2350,
+                "y": 825
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                79,
+                93,
+                117,
+                255
+              ],
+              "absoluteRgbDelta": [
+                106,
+                97,
+                83
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        },
+        {
+          "id": "S006",
+          "screenshotDimensions": {
+            "width": 2880,
+            "height": 1800
+          },
+          "canvasDimensions": [
+            {
+              "className": "liquid-glass-uniform-canvas",
+              "width": 2708,
+              "height": 3360,
+              "rect": {
+                "x": 43,
+                "y": -317,
+                "width": 1354,
+                "height": 1680,
+                "top": -317,
+                "right": 1397,
+                "bottom": 1363,
+                "left": 43
+              }
+            }
+          ],
+          "materialRectangles": [
+            {
+              "id": "s006-sticky",
+              "rect": {
+                "x": 863,
+                "y": 143,
+                "width": 350,
+                "height": 190,
+                "top": 143,
+                "right": 1213,
+                "bottom": 333,
+                "left": 863
+              }
+            }
+          ],
+          "scrollPosition": {
+            "x": 0,
+            "y": 0
+          },
+          "selfDiff": {
+            "maxRatio": 0,
+            "maxRun": 1,
+            "threshold": 0.001,
+            "runs": [
+              {
+                "run": 2,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 3,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 4,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 5,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 6,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 7,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 8,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 9,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 10,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 11,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 12,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 13,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 14,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 15,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 16,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 17,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 18,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 19,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              },
+              {
+                "run": 20,
+                "changedPixels": 0,
+                "comparedPixels": 5184000,
+                "diffRatio": 0,
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
+              }
+            ]
+          },
+          "glassOnVersusOff": {
+            "changedPixels": 262201,
+            "comparedPixels": 266000,
+            "diffRatio": 0.985718045113,
+            "meanAbsoluteChannelDelta": 90.939941,
+            "maxChannelDelta": 181,
+            "exceedsThreshold": true
+          },
+          "keyPixels": [
+            {
+              "materialId": "s006-sticky",
+              "probe": "center",
+              "cssPosition": {
+                "x": 1038,
+                "y": 238
+              },
+              "physicalPosition": {
+                "x": 2076,
+                "y": 476
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                209,
+                73,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                24,
+                117,
+                109
+              ]
+            },
+            {
+              "materialId": "s006-sticky",
+              "probe": "upperLeftQuarter",
+              "cssPosition": {
+                "x": 950.5,
+                "y": 190.5
+              },
+              "physicalPosition": {
+                "x": 1901,
+                "y": 381
+              },
+              "glassOn": [
+                185,
+                190,
+                200,
+                255
+              ],
+              "glassOff": [
+                209,
+                73,
+                91,
+                255
+              ],
+              "absoluteRgbDelta": [
+                24,
+                117,
+                109
+              ]
+            },
+            {
+              "materialId": "s006-sticky",
+              "probe": "lowerRightQuarter",
+              "cssPosition": {
+                "x": 1125.5,
+                "y": 285.5
+              },
+              "physicalPosition": {
+                "x": 2251,
+                "y": 571
+              },
+              "glassOn": [
+                165,
+                201,
+                199,
+                255
+              ],
+              "glassOff": [
+                29,
+                120,
+                116,
+                255
+              ],
+              "absoluteRgbDelta": [
+                136,
+                81,
+                83
+              ]
+            }
+          ],
+          "consoleErrorCount": 0,
+          "consoleErrors": [],
+          "passed": true
+        }
+      ]
+    }
+  ],
+  "passed": true
+}

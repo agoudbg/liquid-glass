@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "capturedOn": "2026-07-22",
-  "status": "partial-visual-evidence",
+  "status": "complete-legacy-visual-oracle",
   "oracle": {
     "branch": "dev",
     "commit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
@@ -49,89 +49,63 @@
     }
   },
   "browserEvidence": {
-    "automation": "global playwright-cli policy",
-    "browser": "installed Google Chrome channel",
+    "automation": "global playwright-cli",
+    "browser": "Google Chrome",
+    "browserVersion": "150.0.7871.129",
     "headless": true,
     "isolatedContext": true,
     "viewport": {
       "width": 1440,
       "height": 900
     },
-    "browserVersion": null,
-    "devicePixelRatio": null,
-    "scenes": [
-      {
-        "id": "blog",
-        "label": "Blog Demo",
-        "source": "src/demo/LiquidGlassBlogDemo.vue",
-        "browserValidated": true,
-        "nonEmptyCanvas": true,
-        "consoleErrorCount": 0,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
+    "devicePixelRatios": [
+      1,
+      2
+    ],
+    "screenshotDimensions": {
+      "dpr1": {
+        "width": 1440,
+        "height": 900
       },
-      {
-        "id": "showcase",
-        "label": "Showcase",
-        "source": "src/demo/LiquidGlassShowcase.vue",
-        "browserValidated": true,
-        "nonEmptyCanvas": true,
-        "consoleErrorCount": 0,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
-      },
-      {
-        "id": "playground",
-        "label": "Playground",
-        "source": "src/demo/LiquidGlassPlayground.vue",
-        "browserValidated": false,
-        "nonEmptyCanvas": null,
-        "consoleErrorCount": null,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
-      },
-      {
-        "id": "multi",
-        "label": "Multi Glass",
-        "source": "src/demo/MultiGlassDemo.vue",
-        "browserValidated": true,
-        "nonEmptyCanvas": true,
-        "consoleErrorCount": 0,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
-      },
-      {
-        "id": "app",
-        "label": "App Demo",
-        "source": "src/demo/AppDemo.vue",
-        "browserValidated": true,
-        "nonEmptyCanvas": true,
-        "consoleErrorCount": 0,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
-      },
-      {
-        "id": "app2",
-        "label": "App2 Demo",
-        "source": "src/demo/App2Demo.vue",
-        "browserValidated": false,
-        "nonEmptyCanvas": null,
-        "consoleErrorCount": null,
-        "screenshot": null,
-        "canvasDimensions": null,
-        "materialRectangles": null,
-        "keyPixels": null
+      "dpr2": {
+        "width": 2880,
+        "height": 1800
       }
+    },
+    "scenarioIds": [
+      "S001",
+      "S002",
+      "S003",
+      "S004",
+      "S005",
+      "S006"
+    ],
+    "runCountPerScenePerDpr": 20,
+    "consoleErrorCount": 0,
+    "pageErrorCount": 0,
+    "selfDiffMaximum": 0,
+    "threshold": 0.001,
+    "glassOnOffDiffRatioRange": {
+      "minimum": 0.958260281385,
+      "maximum": 0.987608225108
+    },
+    "glassOffDefinition": "WebGL canvas plus material tint, highlight, border, and shadow disabled; backdrop and content retained",
+    "result": "pass",
+    "artifacts": {
+      "screenshots": "tests/baselines/legacy/visual/dpr-{1,2}/S00{1..6}-glass-{on,off}.png",
+      "dpr1Metadata": "tests/baselines/legacy/visual/browser-dpr-1.json",
+      "dpr2Metadata": "tests/baselines/legacy/visual/browser-dpr-2.json",
+      "calibration": "tests/baselines/legacy/visual-calibration.json",
+      "harness": "tests/legacy-oracle/"
+    },
+    "recordedFields": [
+      "Chrome version and user agent",
+      "CSS viewport and device pixel ratio",
+      "screenshot and canvas dimensions",
+      "material rectangles and scroll positions",
+      "three glass-on/off key pixels per material",
+      "nineteen self-diffs against run 1 per scenario",
+      "material-region glass-on/off diff metrics"
     ]
   },
   "physicsEvidence": {
@@ -147,13 +121,5 @@
     "storedSignificantDigits": 12,
     "comparisonAbsoluteTolerance": 1e-9
   },
-  "missingEvidence": [
-    "durable screenshots for all six scenes",
-    "browser version and device pixel ratio",
-    "canvas dimensions and material rectangles",
-    "glass-on and glass-off material-region pixels",
-    "key pixel probes",
-    "twenty-run self-diff calibration per scene",
-    "browser validation for playground and app2"
-  ]
+  "missingEvidence": []
 }

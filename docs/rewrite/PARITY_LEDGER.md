@@ -9,6 +9,12 @@ the README promised behavior that the legacy runtime did not implement; and
 The oracle for every legacy statement is
 `dev@345a9be6906bcc8a801208054e7fe134c6bfe641`.
 
+The S001-S006 legacy side is now durable under
+`tests/baselines/legacy/visual/`, with Chrome/DPR/layout metadata in
+`browser-dpr-{1,2}.json` and 20-run calibration plus key pixels in
+`visual-calibration.json`. This evidence characterizes the oracle; it does not
+mark the rewrite acceptance rows complete.
+
 ## Optical and rendering contract
 
 | ID | Legacy behavior or claim | Evidence | Disposition | Rewrite acceptance |
@@ -113,22 +119,22 @@ The oracle for every legacy statement is
 
 ## Gate mapping
 
-| Scenario | Ledger coverage |
-| --- | --- |
-| S001 Static single material | OPT-001 through OPT-007, OPT-010 |
-| S002 Multiple materials | CMP-001, CMP-003 |
-| S003 DOM capture | CMP-004, CMP-005, CMP-008, CMP-009 |
-| S004 Interaction presets | INT-001 through INT-009 |
-| S005 Body scroll | CMP-010 |
-| S006 Internal scroll and sticky material | CMP-010, CMP-011 |
-| S007 Nested glass | CMP-012 |
-| S008 External proxy material | CMP-013 |
-| S009 Dedicated mode | CMP-002 |
-| S010 CSS fallback | CMP-014 |
-| S011 Theme feedback | OPT-011, VUE-006 |
-| S012 Lifecycle stress | CMP-015 through CMP-018 |
-| S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 |
-| S014 Packed React/Solid consumers | PKG-003 through PKG-005 |
+| Scenario | Ledger coverage | Durable legacy evidence |
+| --- | --- | --- |
+| S001 Static single material | OPT-001 through OPT-007, OPT-010 | DPR 1/2 on/off plus 20-run calibration |
+| S002 Multiple materials | CMP-001, CMP-003 | DPR 1/2 on/off plus 20-run calibration |
+| S003 DOM capture | CMP-004, CMP-005, CMP-008, CMP-009 | DPR 1/2 on/off plus 20-run calibration |
+| S004 Interaction presets | INT-001 through INT-009 | DPR 1/2 pressed-state on/off plus 20-run calibration |
+| S005 Body scroll | CMP-010 | DPR 1/2 scrolled on/off plus 20-run calibration |
+| S006 Internal scroll and sticky material | CMP-010, CMP-011 | DPR 1/2 scrolled on/off plus 20-run calibration |
+| S007 Nested glass | CMP-012 | Pending |
+| S008 External proxy material | CMP-013 | Pending |
+| S009 Dedicated mode | CMP-002 | Pending |
+| S010 CSS fallback | CMP-014 | Pending |
+| S011 Theme feedback | OPT-011, VUE-006 | Pending |
+| S012 Lifecycle stress | CMP-015 through CMP-018 | Pending |
+| S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending |
+| S014 Packed React/Solid consumers | PKG-003 through PKG-005 | Pending |
 
 Every implementation phase must update this ledger when evidence changes. A
 green unit test does not close a visual row, and a non-empty canvas does not

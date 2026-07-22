@@ -121,22 +121,38 @@ An isolated copy of the oracle commit completed `pnpm build:demo` with Vite.
 The legacy `vue-tsc` project-reference configuration fails with TS6310, so its
 type-check result is not a quality baseline.
 
-The repository's global browser policy used an isolated, headless Chrome
-context at 1440 by 900. The following scenes were observed with at least one
-non-empty canvas and zero console errors:
+The durable visual oracle was captured in installed Google Chrome
+`150.0.7871.129`, headless and isolated, with a 1440 by 900 CSS viewport at DPR
+1 and DPR 2. Physical screenshots are 1440 by 900 and 2880 by 1800
+respectively. All scenarios recorded zero `console.error` and `pageerror`
+events.
 
-| Scene | Isolated build | Browser canvas | Console errors | Durable screenshot |
+| Scenario | Legacy capability | Runs per DPR | Max self-diff | Glass-on/off diff |
 | --- | --- | --- | --- | --- |
-| `blog` | Pass | Non-empty | 0 | Missing |
-| `showcase` | Pass | Non-empty | 0 | Missing |
-| `multi` | Pass | Non-empty | 0 | Missing |
-| `app` | Pass | Non-empty | 0 | Missing |
-| `playground` | Pass as part of bundle | Not recorded | Not recorded | Missing |
-| `app2` | Pass as part of bundle | Not recorded | Not recorded | Missing |
+| S001 | Static custom-canvas material | 20 | 0% | 95.83% to 95.93% |
+| S002 | Multiple materials and render order | 20 | 0% | 96.58% to 96.60% |
+| S003 | DOM capture and manual refresh | 20 | 0% | 98.75% to 98.76% |
+| S004 | Pressed interaction presets | 20 | 0% | 96.79% to 96.96% |
+| S005 | Body scroll and fixed material | 20 | 0% | 98.44% to 98.58% |
+| S006 | Internal scroll, sticky material, viewport capture | 20 | 0% | 98.57% to 98.63% |
 
-The exact Chrome version, DPR, canvas dimensions, material rectangles, pixel
-samples, and per-scene screenshots were not retained. A transient Blog image
-outside the repository is deliberately not treated as a baseline artifact.
+Each run reconstructs the page before capture. The analyzer ignores RGB channel
+deltas of 3 or less and sets the scene threshold to
+`min(0.5%, max(0.1%, 3 * maxSelfDiff))`. Every scenario therefore uses the
+0.1% floor and exceeds it. Glass-off disables the WebGL canvas plus material
+tint, highlight, border, and shadow while retaining the backdrop and content.
+
+Durable artifacts are:
+
+- `tests/baselines/legacy/visual/dpr-{1,2}/S00{1..6}-glass-{on,off}.png`
+- `tests/baselines/legacy/visual/browser-dpr-{1,2}.json`
+- `tests/baselines/legacy/visual-calibration.json`
+- `tests/legacy-oracle/` and `scripts/legacy/capture-legacy-oracle.ps1`
+
+The browser metadata records user agent, viewport, DPR, canvas dimensions,
+material rectangles, and scroll positions. The calibration report records 19
+self-diffs against run 1, three key pixel probes per material, and aggregate
+glass-on/off material-region metrics for every scenario and DPR.
 
 ## Deterministic numeric evidence
 
@@ -181,27 +197,19 @@ must be replayed against the rewritten interaction modules in CI.
 10. The public `saturation` material prop is watched but never reaches either
     the renderer or shader, so it has no visual effect.
 
-## Missing Phase 0 capture work
+## Phase 0 visual oracle status
 
-The current baseline is sufficient for source and numeric parity, but visual
-parity is not yet fully calibrated. Before declaring Phase 0 complete:
-
-1. Replay all six scenes from the exact oracle in an isolated worktree.
-2. Fix Chrome version, viewport, DPR, fonts, reduced-motion state, and asset
-   readiness in the capture metadata.
-3. Capture each scene twenty times to measure self-diff noise.
-4. Persist screenshots, canvas dimensions, material rectangles, glass-on and
-   glass-off pixel regions, and key pixel probes under
-   `tests/baselines/legacy/`.
-5. Calculate the scene threshold as `max(0.1%, 3 * selfDiff)`, capped at
-   `0.5%`, while ignoring channel deltas of 3 or less in the first pass.
-
-Until those artifacts exist, a successful build or a non-empty canvas proves
-that rendering occurred, not that the rewrite is visually identical.
+Legacy capture work for S001 through S006 is complete. This closes the oracle
+side only. The rewritten renderer and adapters must replay the same scene schema
+and compare against these artifacts before any visual parity row can close. A
+successful rewrite build or non-empty canvas still proves only that rendering
+occurred.
 
 ## Replay rule
 
 Always reconstruct the legacy app from the Git commit, never from the active
-rewrite tree. Use an isolated worktree or copy, install with a separate Codex
-pnpm store, run `pnpm build:demo`, and serve `dist-demo`. Do not modify, merge,
-or depend on `dev`, and do not make `.plan/reference` a production or CI input.
+rewrite tree. Run `scripts/legacy/capture-legacy-oracle.ps1`; it exports the
+commit into an isolated temporary copy, installs with a separate Codex pnpm
+store, builds `dist-demo`, rejects an occupied preview port, and uses the global
+`playwright-cli` with the installed Chrome channel. Do not modify, merge, or
+depend on `dev`, and do not make `.plan/reference` a production or CI input.

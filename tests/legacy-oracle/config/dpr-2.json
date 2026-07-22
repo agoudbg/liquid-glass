@@ -1,0 +1,29 @@
+{
+  "browser": {
+    "browserName": "chromium",
+    "isolated": true,
+    "launchOptions": {
+      "channel": "chrome",
+      "headless": true
+    },
+    "contextOptions": {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "deviceScaleFactor": 2,
+      "colorScheme": "light",
+      "reducedMotion": "reduce",
+      "locale": "en-US",
+      "timezoneId": "UTC"
+    }
+  },
+  "console": {
+    "level": "warning"
+  },
+  "timeouts": {
+    "action": 15000,
+    "navigation": 60000
+  },
+  "codegen": "typescript"
+}

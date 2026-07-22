@@ -188,6 +188,7 @@ describe('DomBackdropCaptureController', () => {
     expect(onCaptured).toHaveBeenCalledWith(expect.objectContaining({
       id: replacement.id,
       canvas: replacementCanvas,
+      viewportRect: { x: 0, y: 0, width: 320, height: 180 },
     }));
     expect(capture).toHaveBeenCalledTimes(2);
     controller.destroy();

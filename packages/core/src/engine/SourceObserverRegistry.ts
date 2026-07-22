@@ -148,6 +148,7 @@ export class SourceObserverRegistry {
     if (observer) {
       observation.mutationObserver = observer;
       observer.observe(registration.config.element, {
+        attributes: true,
         characterData: true,
         childList: true,
         subtree: true,

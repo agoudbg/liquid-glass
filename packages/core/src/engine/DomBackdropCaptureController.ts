@@ -358,6 +358,7 @@ export class DomBackdropCaptureController {
         canvas: result.canvas,
         width: result.canvas.width,
         height: result.canvas.height,
+        viewportRect: { ...result.viewportRect },
       });
     }
   }

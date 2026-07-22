@@ -8,6 +8,7 @@ import type {
   MaterialConfig,
   MaterialFeedback,
   TextureDirtyReason,
+  ViewportCaptureRect,
 } from './context';
 
 /**
@@ -16,6 +17,8 @@ import type {
 export interface BackdropCapturedPayload extends CanvasRenderPayload {
   /** Identifier of the captured source. */
   id: string;
+  /** Source-local region represented by a bounded DOM capture. */
+  viewportRect?: ViewportCaptureRect;
 }
 
 /**

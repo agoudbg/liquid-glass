@@ -20,18 +20,14 @@ describe('captureDomElement', () => {
     vi.useRealTimers();
   });
 
-  it('preserves full html-to-image layout before cropping bounded pixels', async () => {
+  it('renders html-to-image directly into bounded viewport pixels', async () => {
     const canvas = new FakeCanvas();
-    canvas.width = 1600;
-    canvas.height = 2400;
-    const cropped = new FakeCanvas();
     const captureHtmlToImage = vi.fn(async () => (
       canvas as unknown as HTMLCanvasElement
     ));
     const runtime: DomCaptureRuntime = {
       captureHtmlToImage,
       clearTimeout,
-      createCanvas: () => cropped as unknown as HTMLCanvasElement,
       loadHtml2Canvas: vi.fn(),
       setTimeout,
     };
@@ -47,24 +43,26 @@ describe('captureDomElement', () => {
     }, runtime);
 
     expect(result).toEqual({
-      canvas: cropped,
+      canvas,
       viewportRect: { x: 50, y: 80, width: 300, height: 200 },
     });
     expect(captureHtmlToImage).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         backgroundColor: '#102030',
-        height: 1200,
+        canvasHeight: 200,
+        canvasWidth: 300,
+        height: 200,
         pixelRatio: 2,
-        width: 800,
+        style: {
+          height: '1200px',
+          transform: 'translate(-50px, -80px)',
+          transformOrigin: 'top left',
+          width: '800px',
+        },
+        width: 300,
       }),
     );
-    expect(cropped.width).toBe(600);
-    expect(cropped.height).toBe(400);
-    expect(cropped.context2d.calls).toContainEqual({
-      name: 'drawImage',
-      args: [canvas, 100, 160, 600, 400, 0, 0, 600, 400],
-    });
   });
 
   it('loads html2canvas lazily with direct viewport bounds', async () => {
@@ -82,7 +80,6 @@ describe('captureDomElement', () => {
     }, {
       captureHtmlToImage: vi.fn(),
       clearTimeout,
-      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
       loadHtml2Canvas,
       setTimeout,
     });
@@ -106,7 +103,6 @@ describe('captureDomElement', () => {
     const runtime: DomCaptureRuntime = {
       captureHtmlToImage,
       clearTimeout,
-      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
       loadHtml2Canvas: vi.fn(),
       setTimeout,
     };
@@ -143,7 +139,6 @@ describe('captureDomElement', () => {
     }, {
       captureHtmlToImage: vi.fn(),
       clearTimeout,
-      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
       loadHtml2Canvas: async () => {
         throw missingModule;
       },
@@ -171,7 +166,6 @@ describe('captureDomElement', () => {
     }, {
       captureHtmlToImage,
       clearTimeout,
-      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
       loadHtml2Canvas: vi.fn(),
       setTimeout,
     });

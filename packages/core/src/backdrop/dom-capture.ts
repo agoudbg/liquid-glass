@@ -42,8 +42,6 @@ export interface DomCaptureRuntime {
   ): Promise<HTMLCanvasElement>;
   /** Clear an owned timeout. */
   clearTimeout(handle: ReturnType<typeof setTimeout>): void;
-  /** Create a canvas used to crop full-layout html-to-image captures. */
-  createCanvas(): HTMLCanvasElement;
   /** Lazily resolve the optional html2canvas capture function. */
   loadHtml2Canvas(): Promise<Html2CanvasCapture>;
   /** Create an owned timeout. */
@@ -97,12 +95,6 @@ async function loadHtml2Canvas(): Promise<Html2CanvasCapture> {
 const DEFAULT_DOM_CAPTURE_RUNTIME: DomCaptureRuntime = {
   captureHtmlToImage: toCanvas,
   clearTimeout: (handle) => globalThis.clearTimeout(handle),
-  createCanvas: () => {
-    if (typeof globalThis.document === 'undefined') {
-      throw new Error('A document is required to crop a DOM capture.');
-    }
-    return globalThis.document.createElement('canvas');
-  },
   loadHtml2Canvas,
   setTimeout: (callback, timeoutMs) => globalThis.setTimeout(callback, timeoutMs),
 };
@@ -133,17 +125,24 @@ async function runCapture(
   if (request.library === 'html-to-image') {
     const fullWidth = request.element.scrollWidth;
     const fullHeight = request.element.scrollHeight;
-    const canvas = await runtime.captureHtmlToImage(request.element, {
+    const boundedStyle = request.captureRect === null
+      ? undefined
+      : {
+          height: `${String(fullHeight)}px`,
+          transform: `translate(${-captureRect.x}px, ${-captureRect.y}px)`,
+          transformOrigin: 'top left',
+          width: `${String(fullWidth)}px`,
+        };
+    return runtime.captureHtmlToImage(request.element, {
       backgroundColor: request.backgroundColor,
+      canvasHeight: captureRect.height,
+      canvasWidth: captureRect.width,
       filter: (node) => !hasGlassClass(node),
-      height: fullHeight,
+      height: captureRect.height,
       pixelRatio: request.pixelRatio,
-      width: fullWidth,
+      style: boundedStyle,
+      width: captureRect.width,
     });
-    if (request.captureRect === null) {
-      return canvas;
-    }
-    return cropCanvas(canvas, captureRect, fullWidth, fullHeight, runtime);
   }
 
   const captureHtml2Canvas = await runtime.loadHtml2Canvas();
@@ -156,40 +155,6 @@ async function runCapture(
     x: captureRect.x,
     y: captureRect.y,
   });
-}
-
-function cropCanvas(
-  source: HTMLCanvasElement,
-  captureRect: ViewportCaptureRect,
-  fullWidth: number,
-  fullHeight: number,
-  runtime: DomCaptureRuntime,
-): HTMLCanvasElement {
-  const scaleX = source.width / Math.max(1, fullWidth);
-  const scaleY = source.height / Math.max(1, fullHeight);
-  const sourceX = Math.round(captureRect.x * scaleX);
-  const sourceY = Math.round(captureRect.y * scaleY);
-  const width = Math.max(1, Math.round(captureRect.width * scaleX));
-  const height = Math.max(1, Math.round(captureRect.height * scaleY));
-  const cropped = runtime.createCanvas();
-  cropped.width = width;
-  cropped.height = height;
-  const context = cropped.getContext('2d');
-  if (!context) {
-    throw new Error('Failed to create a 2D context for DOM capture cropping.');
-  }
-  context.drawImage(
-    source,
-    sourceX,
-    sourceY,
-    width,
-    height,
-    0,
-    0,
-    width,
-    height,
-  );
-  return cropped;
 }
 
 /**

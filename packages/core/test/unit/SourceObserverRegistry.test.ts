@@ -147,6 +147,7 @@ describe('SourceObserverRegistry', () => {
     expect(mutationRecords).toHaveLength(2);
     expect(mutationRecords[0]?.observed[0]?.target).toBe(root);
     expect(mutationRecords[0]?.observed[0]?.options).toEqual({
+      attributes: true,
       characterData: true,
       childList: true,
       subtree: true,

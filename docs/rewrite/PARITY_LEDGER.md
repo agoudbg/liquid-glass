@@ -60,8 +60,8 @@ mark the rewrite acceptance rows complete.
 | CMP-009 | Converter viewport capture | `viewportCapture` prop | Fix | Capture peak work is bounded to the requested region; full-page rasterize-then-crop is not preserved. |
 | CMP-010 | Body scroll, internal scroll, sticky material, and viewport manager mode | Manager scroll/viewport paths | Preserve intent | S005 and S006 pass with correct coordinates and bounded recapture frequency. |
 | CMP-011 | Visibility culling and resize response | Intersection/resize observers and RAF layout | Preserve intent | Complete: every composite synchronously culls disconnected, invalid, empty, CSS-hidden, and non-intersecting transformed bounds while preserving partial intersections and context-excluded opacity. Shared ResizeObserver and filtered MutationObserver invalidation coalesce into material-only frames; shared IntersectionObserver pauses offscreen interaction RAF and resumes unfinished motion without becoming authoritative render visibility. All observer handles are reference-counted and context-owned. |
-| CMP-012 | Nested glass full-canvas composition | Child manager backdrop registration | Preserve | S007 renders child glass into the parent without duplicate DOM capture. |
-| CMP-013 | External material proxy delegation | `useExternalRenderer` and `useMaterialDelegation` | Preserve | S008 preserves coordinates, feedback, update, and unregister behavior. |
+| CMP-012 | Nested glass full-canvas composition | Child manager backdrop registration | Preserve | S009 renders child glass into the parent without duplicate DOM capture. |
+| CMP-013 | External material proxy delegation | `useExternalRenderer` and `useMaterialDelegation` | Preserve | S010 preserves coordinates, feedback, update, and unregister behavior. |
 | CMP-014 | CSS fallback when WebGL is unavailable | Manager fallback state and material CSS | Preserve | Forced fallback remains readable and interactive with no WebGL context. |
 | CMP-015 | Context loss/restoration | Not implemented | Add | Context loss pauses work, restoration rebuilds resources, and current materials/backdrop return. |
 | CMP-016 | Resource cleanup | Partial `dispose`/`destroy` implementations | Fix | Textures, shaders, programs, buffers, canvases, observers, listeners, timers, and RAF counters return to zero. |
@@ -129,10 +129,10 @@ mark the rewrite acceptance rows complete.
 | S004 Interaction presets | INT-001 through INT-009 | DPR 1/2 pressed-state on/off plus 20-run calibration |
 | S005 Body scroll | CMP-010 | DPR 1/2 scrolled on/off plus 20-run calibration |
 | S006 Internal scroll and sticky material | CMP-010, CMP-011 | DPR 1/2 scrolled on/off plus 20-run calibration |
-| S007 Nested glass | CMP-012 | Pending |
-| S008 External proxy material | CMP-013 | Pending |
-| S009 Dedicated mode | CMP-002 | Pending |
-| S010 CSS fallback | CMP-014 | Pending |
+| S007 CSS fallback | CMP-014 | Pending |
+| S008 Dedicated mode | CMP-002 | Pending |
+| S009 Nested glass | CMP-012 | Pending |
+| S010 External proxy material | CMP-013 | Pending |
 | S011 Theme feedback | OPT-011, VUE-006 | Pending |
 | S012 Lifecycle stress | CMP-015 through CMP-019 | Pending |
 | S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending |

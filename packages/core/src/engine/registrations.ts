@@ -12,6 +12,7 @@ import type {
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
 import { generateUUID } from '../utils/uuid';
+import { snapshotMaterialConfig } from './material-config';
 
 /** Mutable canvas-backdrop registration owned by one context. */
 export interface CanvasBackdropRegistration {
@@ -80,10 +81,11 @@ export interface MaterialRegistration {
 export function createMaterialRegistration(
   config: MaterialConfig,
 ): MaterialRegistration {
+  const snapshot = snapshotMaterialConfig(config);
   return {
     id: generateUUID(),
-    config: { ...config },
-    initialFallbackAttribute: config.element.getAttribute('is-fallback-mode'),
+    config: snapshot,
+    initialFallbackAttribute: snapshot.element.getAttribute('is-fallback-mode'),
     interactionState: null,
     destroyed: false,
   };

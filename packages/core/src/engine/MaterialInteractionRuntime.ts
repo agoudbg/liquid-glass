@@ -2,7 +2,6 @@ import { DEFAULT_MATERIAL_THEME_MODE } from '../appearance';
 import { InteractionEngine } from '../interaction';
 import type {
   AutomaticBackgroundColorMode,
-  MaterialChanges,
   MaterialConfig,
   MaterialPresentationListener,
   MaterialPresentationState,
@@ -32,6 +31,18 @@ export interface MaterialInteractionRuntimeOptions {
   blurred: boolean;
   /** Whether CSS fallback presentation currently replaces WebGL. */
   fallbackMode: boolean;
+}
+
+/** Candidate interaction state created before a material update is committed. */
+export interface PreparedMaterialInteractionUpdate {
+  /** Fully constructed candidate engine owned by this transaction. */
+  candidate: InteractionEngine;
+  /** Whether the resolved interaction behavior changed. */
+  interactionChanged: boolean;
+  /** Whether pointer acceptance policy changed. */
+  interactionPolicyChanged: boolean;
+  /** Canonical configuration committed with the candidate. */
+  next: MaterialConfig;
 }
 
 function createEngine(config: MaterialConfig): InteractionEngine {
@@ -69,24 +80,38 @@ export class MaterialInteractionRuntime {
     this.engine.setOnAnimationRequest(() => this.callbacks.wake());
   }
 
-  /** Apply material changes while retaining the existing update semantics. */
-  public update(changes: MaterialChanges): void {
+  /** Construct and validate an interaction update without mutating live state. */
+  public prepareUpdate(next: MaterialConfig): PreparedMaterialInteractionUpdate {
     const previous = this.registration.config;
-    const next = { ...previous, ...changes };
-    this.registration.config = next;
     const candidate = createEngine(next);
-    const interactionChanged = !interactionConfigsEqual(
-      this.engine.getConfig(),
-      candidate.getConfig(),
-    );
-    const interactionPolicyChanged = previous.disableInteractions !== next.disableInteractions
-      || previous.onlyClickInteractions !== next.onlyClickInteractions;
-
-    if (interactionChanged) {
-      this.replaceEngine(candidate);
-    } else {
+    try {
+      return {
+        candidate,
+        interactionChanged: !interactionConfigsEqual(
+          this.engine.getConfig(),
+          candidate.getConfig(),
+        ),
+        interactionPolicyChanged: (
+          previous.disableInteractions !== next.disableInteractions
+          || previous.onlyClickInteractions !== next.onlyClickInteractions
+        ),
+        next,
+      };
+    } catch (error) {
       candidate.destroy();
-      if (interactionPolicyChanged) this.resetInteraction();
+      throw error;
+    }
+  }
+
+  /** Commit a prepared update before publishing presentation side effects. */
+  public commitUpdate(update: PreparedMaterialInteractionUpdate): void {
+    this.registration.config = update.next;
+
+    if (update.interactionChanged) {
+      this.replaceEngine(update.candidate);
+    } else {
+      update.candidate.destroy();
+      if (update.interactionPolicyChanged) this.resetInteraction();
     }
   }
 

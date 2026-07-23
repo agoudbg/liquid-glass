@@ -29,6 +29,7 @@ import {
 } from './create-context-renderer';
 import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { FallbackController } from './FallbackController';
+import { cloneMaterialConfig } from './material-config';
 import { MaterialPresentationController } from './MaterialPresentationController';
 import {
   type BackdropRegistration,
@@ -119,7 +120,7 @@ export class GlassContextImpl implements GlassContext {
       onAdded: (registration) => this.emitter.emit(
         'materialAdded',
         registration.id,
-        registration.config,
+        cloneMaterialConfig(registration.config),
       ),
       onRemoved: (registration) => this.emitter.emit(
         'materialRemoved',

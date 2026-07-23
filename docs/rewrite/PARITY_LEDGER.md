@@ -68,6 +68,7 @@ mark the rewrite acceptance rows complete.
 | CMP-017 | Capture lock and error recovery | Manager and converter async capture | Fix | Locks and temporary nodes are released in `finally`; a later capture can succeed after a failure. |
 | CMP-018 | SSR-safe imports | Browser globals in runtime modules | Fix | Importing core and adapter entry points in Node does not access `window` or `document`. |
 | CMP-019 | Inactive-page blurred appearance | Container blur, focus, and visibility listeners | Preserve intent | When enabled, window focus and document visibility update material presentation without redrawing WebGL; dynamic disable and context teardown release all listeners. |
+| CMP-020 | Material update ownership and frame batching | Manager config merge and synchronous update paths | Fix | Material add/update inputs are validated into detached transactional snapshots; invalid precommit work has no side effects, true no-ops emit and schedule nothing, and committed listener failures still request one render. Same-frame update batching remains pending. |
 
 ## Vue compatibility contract
 

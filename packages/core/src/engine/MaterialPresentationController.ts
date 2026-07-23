@@ -9,6 +9,7 @@ import type {
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
 import { ContextFrameScheduler } from './ContextFrameScheduler';
+import { prepareMaterialUpdate } from './material-config';
 import {
   restoreMaterialFallbackMode,
   setMaterialFallbackMode,
@@ -184,9 +185,34 @@ export class MaterialPresentationController {
     changes: MaterialChanges,
   ): void {
     this.assertRegistration(materialRuntime);
-    materialRuntime.interaction.update(changes);
-    this.callbacks.onUpdated(materialRuntime.registration, changes);
-    this.requestRender();
+    const prepared = prepareMaterialUpdate(
+      materialRuntime.registration.config,
+      changes,
+    );
+    if (!prepared) return;
+    const interactionUpdate = materialRuntime.interaction.prepareUpdate(prepared.next);
+    let firstError: unknown;
+    let failed = false;
+
+    try {
+      materialRuntime.interaction.commitUpdate(interactionUpdate);
+    } catch (error) {
+      firstError = error;
+      failed = true;
+    }
+    try {
+      this.callbacks.onUpdated(materialRuntime.registration, prepared.changes);
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    try {
+      this.requestRender();
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    if (failed) throw firstError;
   }
 
   private setInteractionState(

@@ -91,7 +91,9 @@ The runtime supports:
 - Shared `uniform` and per-material `dedicated` presentation.
 - Multiple materials with DOM-derived or explicit render order.
 - DOM capture through `html-to-image` and a selectable `html2canvas` path.
-- Custom canvas backdrops.
+- Custom canvas backdrops whose draw callbacks receive physical backing-store
+  dimensions with an identity 2D transform. DPR, render precision, and source
+  scale affect sampling resolution without changing CSS layout bounds.
 - Nested glass composition and cross-component material delegation.
 - Body and internal scrolling, viewport-sized manager buffers, optional
   converter viewport cropping, resize tracking, and visibility culling.

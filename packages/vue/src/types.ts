@@ -99,7 +99,7 @@ export interface LiquidGlassMaterialExposed {
 
 /** Props accepted by the Vue custom-canvas backdrop. */
 export interface LgBackdropCanvasProps {
-  /** Draw the visible backdrop and the core texture source. */
+  /** Draw in physical backing-store coordinates using an identity transform. */
   draw: CustomDrawCallback;
   /** Explicit order among registered backdrop sources. */
   zIndex?: number;

@@ -154,8 +154,10 @@ describe('GlassEngine', () => {
       drawingContext:
         | CanvasRenderingContext2D
         | OffscreenCanvasRenderingContext2D,
+      width: number,
+      height: number,
     ) => {
-      drawingContext.fillRect(0, 0, 320, 180);
+      drawingContext.fillRect(0, 0, width, height);
     });
     const rendered = vi.fn();
     context.on('materialsRendered', rendered);
@@ -174,11 +176,14 @@ describe('GlassEngine', () => {
       dispersion: 0.02,
     });
 
-    expect(draw).toHaveBeenLastCalledWith(expect.anything(), 320, 180);
+    expect(draw).toHaveBeenLastCalledWith(expect.anything(), 640, 360);
     expect(runtime.canvases[3]).toMatchObject({ width: 640, height: 360 });
+    expect(runtime.canvases[3].context2d.calls.filter(
+      (call) => call.name === 'setTransform',
+    ).every((call) => call.args.join(',') === '1,0,0,1,0,0')).toBe(true);
     expect(runtime.canvases[3].context2d.calls).toContainEqual({
-      name: 'setTransform',
-      args: [2, 0, 0, 2, 0, 0],
+      name: 'fillRect',
+      args: [0, 0, 640, 360],
     });
     expect(backdrop).toMatchObject({ width: 640, height: 360 });
     expect(callsNamed(runtime.canvases[0].gl, 'drawArrays')).toHaveLength(1);
@@ -215,8 +220,10 @@ describe('GlassEngine', () => {
       drawingContext:
         | CanvasRenderingContext2D
         | OffscreenCanvasRenderingContext2D,
+      width: number,
+      height: number,
     ) => {
-      drawingContext.fillRect(0, 0, 200, 100);
+      drawingContext.fillRect(0, 0, width, height);
     });
 
     const source = context.addBackdropSource({
@@ -227,7 +234,7 @@ describe('GlassEngine', () => {
     const ownedSource = runtime.canvases[3];
 
     expect(draw).toHaveBeenCalledOnce();
-    expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 200, 100);
+    expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 400, 200);
     expect(backdrop.context2d.calls.filter((call) => call.name === 'fillRect'))
       .toHaveLength(0);
     expect(backdrop.context2d.calls.filter((call) => call.name === 'drawImage'))
@@ -244,6 +251,37 @@ describe('GlassEngine', () => {
       .toHaveLength(2);
     context.refresh('scroll');
     expect(draw).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses source scale as resolution without changing composite layout', () => {
+    const runtime = createRuntime(2);
+    const container = new FakeElement({ x: 10, y: 20, width: 200, height: 100 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 10, y: 20, width: 200, height: 100 }));
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const draw = vi.fn();
+
+    context.addBackdropSource({
+      kind: 'canvas',
+      element: backdrop as unknown as HTMLCanvasElement,
+      draw,
+      scale: 1.5,
+    });
+    const ownedSource = runtime.canvases[3];
+
+    expect(ownedSource).toMatchObject({ width: 600, height: 300 });
+    expect(backdrop).toMatchObject({ width: 600, height: 300 });
+    expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 600, 300);
+    expect(runtime.canvases[1].context2d.calls.filter(
+      (call) => call.name === 'drawImage',
+    )).toEqual([{
+      name: 'drawImage',
+      args: [ownedSource, 0, 0, 400, 200],
+    }]);
+
+    context.destroy();
   });
 
   it('captures a bounded DOM source without recapturing it for material updates', async () => {
@@ -453,6 +491,7 @@ describe('GlassEngine', () => {
     expect(context.canvas).toMatchObject({ width: 400, height: 200 });
     expect(runtime.canvases[0]).toMatchObject({ width: 400, height: 200 });
     expect(runtime.canvases[3]).toMatchObject({ width: 400, height: 200 });
+    expect(draw).toHaveBeenLastCalledWith(expect.anything(), 400, 200);
     expect(source).toMatchObject({ id: sourceId, destroyed: false });
     expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
   });

@@ -42,8 +42,10 @@ function drawAuthoritativeSource(
   height: number,
   scale: number,
 ): void {
-  source.canvas.width = Math.max(1, Math.round(width * scale));
-  source.canvas.height = Math.max(1, Math.round(height * scale));
+  const physicalWidth = Math.max(1, Math.round(width * scale));
+  const physicalHeight = Math.max(1, Math.round(height * scale));
+  source.canvas.width = physicalWidth;
+  source.canvas.height = physicalHeight;
   const sourceContext = require2DContext(
     source.canvas,
     'Unable to allocate a custom-backdrop drawing context.',
@@ -51,10 +53,9 @@ function drawAuthoritativeSource(
   );
 
   sourceContext.setTransform(1, 0, 0, 1, 0, 0);
-  sourceContext.clearRect(0, 0, source.canvas.width, source.canvas.height);
-  sourceContext.setTransform(scale, 0, 0, scale, 0, 0);
+  sourceContext.clearRect(0, 0, physicalWidth, physicalHeight);
   try {
-    source.config.draw(sourceContext, width, height);
+    source.config.draw(sourceContext, physicalWidth, physicalHeight);
   } finally {
     sourceContext.setTransform(1, 0, 0, 1, 0, 0);
   }

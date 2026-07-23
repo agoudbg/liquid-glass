@@ -54,7 +54,7 @@ mark the rewrite acceptance rows complete.
 | CMP-003 | DOM-derived and explicit `renderOrder` | Manager material sort | Preserve | Automatic materials follow CSS z-index and live DOM order; every finite explicit order renders above the automatic group with deterministic tie handling. |
 | CMP-004 | DOM capture with `html-to-image` | `LgBackdropConverter` default | Preserve | Primary capture path handles text, images, colors, mutation, and manual refresh. |
 | CMP-005 | Selectable `html2canvas` capture | `captureLib` prop | Preserve as optional fallback | The fallback is lazy and tested; absence produces a contextual setup error rather than a silent failure. |
-| CMP-006 | Custom canvas backdrop | `LgBackdropCanvas` | Preserve | Draw callback updates the refracted texture and releases temporary resources. |
+| CMP-006 | Custom canvas backdrop | `LgBackdropCanvas` | Preserve | Draw callback receives physical backing-store dimensions at DPR 1 and DPR 2, updates the refracted texture, and releases temporary resources. |
 | CMP-007 | Backdrop `zIndex` | Both backdrop components | Preserve | Backdrop composition order follows numeric z-index. |
 | CMP-008 | `watchResize` and `watchNodeChanges` props documented in README | Converter hardcodes both to true and declares neither prop | Add | Vue exposes both options with default `true`; equivalent core capture policy is available to all adapters. |
 | CMP-009 | Converter viewport capture | `viewportCapture` prop | Fix | Capture peak work is bounded to the requested region; full-page rasterize-then-crop is not preserved. |
@@ -83,7 +83,7 @@ mark the rewrite acceptance rows complete.
 | VUE-007 | Documented material `colorDebounceMs` | README only | Drop | Theme feedback uses core update batching; no unsupported timing knob is exposed in v1. |
 | VUE-008 | Documented material `zIndex` | README only; runtime uses CSS stacking and `renderOrder` | Replace | Use normal CSS `z-index` for DOM stacking and typed `renderOrder` for the render pipeline; no ambiguous prop. |
 | VUE-009 | `LgBackdropConverter` name, slot, `captureLib`, `zIndex`, and `viewportCapture` | Public index and component | Preserve | Vue wrapper remains thin and delegates capture policy to core. |
-| VUE-010 | `LgBackdropCanvas` name and draw callback | Public index and component | Preserve | Callback and redraw lifecycle remain typed. |
+| VUE-010 | `LgBackdropCanvas` name and draw callback | Public index and component | Preserve | Callback and redraw lifecycle remain typed, with physical dimensions and an identity transform at DPR 1 and DPR 2. |
 | VUE-011 | `LiquidGlassDebugger` public component | Public index | Drop from production adapter | Typed diagnostics ship from core; the polished playground owns the debugger UI. |
 | VUE-012 | Public `useMaterialDelegation` composable | Public index, but tightly coupled to legacy manager internals | Replace | Delegation remains an adapter-internal composable; consumers use typed material handles and `proxyTarget`. |
 | VUE-013 | Public `useExternalRenderer` composable | Public index, but tightly coupled to legacy manager internals | Replace | External registration remains internal; the public container handle exposes the stable proxy interface. |

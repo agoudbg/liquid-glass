@@ -78,7 +78,7 @@ export interface LiquidGlassMaterialHandle {
 
 /** Props accepted by the React custom-canvas backdrop. */
 export interface BackdropCanvasProps extends Omit<HTMLAttributes<HTMLCanvasElement>, 'children'> {
-  /** Draw the visible backdrop and the core texture source. */
+  /** Draw in physical backing-store coordinates using an identity transform. */
   draw: CustomDrawCallback;
   /** Explicit order among registered backdrop sources. */
   zIndex?: number;

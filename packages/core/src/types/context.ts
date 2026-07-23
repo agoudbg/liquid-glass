@@ -104,6 +104,11 @@ export interface GlassContextOptions {
 
 /**
  * Drawing callback used by a programmatic backdrop source.
+ *
+ * The context uses an identity transform. Width and height are the authoritative
+ * backing-store dimensions in physical pixels after applying device pixel ratio,
+ * context render precision, and the source scale. Source scale changes sampling
+ * resolution without changing the source's CSS layout bounds.
  */
 export type CustomDrawCallback = (
   context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,

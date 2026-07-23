@@ -107,6 +107,7 @@
 
 #app[data-oracle-mode="true"] .oracle-s004 {
   top: 322px !important;
+  z-index: 0 !important;
   width: 270px !important;
   height: 170px !important;
   touch-action: none;

@@ -1,6 +1,4 @@
-import { DEFAULT_MATERIAL_THEME_MODE } from '../appearance';
 import { GlassError } from '../errors/GlassError';
-import { InteractionEngine } from '../interaction';
 import type {
   AutomaticBackgroundColorMode,
   MaterialChanges,
@@ -15,12 +13,7 @@ import {
   restoreMaterialFallbackMode,
   setMaterialFallbackMode,
 } from './material-fallback';
-import { normalizeMaterialPointerInput } from './material-input';
-import {
-  cloneMaterialPresentation,
-  interactionConfigsEqual,
-  interactionOutputsEqual,
-} from './material-presentation-state';
+import { MaterialInteractionRuntime } from './MaterialInteractionRuntime';
 import { MaterialObserverRegistry } from './MaterialObserverRegistry';
 import {
   createMaterialRegistration,
@@ -31,10 +24,8 @@ import type { GlassEngineRuntime } from './runtime';
 
 interface MaterialRuntimeState {
   registration: MaterialRegistration;
-  engine: InteractionEngine;
+  interaction: MaterialInteractionRuntime;
   inViewport: boolean;
-  presentation: MaterialPresentationState;
-  listeners: Set<MaterialPresentationListener>;
 }
 
 /** Context callbacks used by the material presentation lifecycle. */
@@ -51,13 +42,6 @@ export interface MaterialPresentationControllerCallbacks {
   renderImmediately(): void;
   /** Draw one coalesced material-only frame. */
   renderMaterials(): void;
-}
-
-function createEngine(config: MaterialConfig): InteractionEngine {
-  return new InteractionEngine(
-    config.interactionPreset ?? 'button',
-    config.interactionConfig,
-  );
 }
 
 /** Owns material registrations, presentation snapshots, and one shared RAF loop. */
@@ -98,21 +82,23 @@ export class MaterialPresentationController {
   public add(config: MaterialConfig): MaterialHandle {
     this.callbacks.assertContextUsable();
     const registration = createMaterialRegistration(config);
-    const engine = createEngine(registration.config);
+    const interaction = new MaterialInteractionRuntime(
+      registration,
+      {
+        blurred: this.blurred,
+        fallbackMode: this.fallbackMode,
+      },
+      {
+        deactivate: () => this.activeMaterials.delete(registration.id),
+        shouldStopPublishing: () => this.destroyed || registration.destroyed,
+        wake: () => this.wake(registration),
+      },
+    );
     const materialRuntime: MaterialRuntimeState = {
       registration,
-      engine,
+      interaction,
       inViewport: true,
-      listeners: new Set(),
-      presentation: {
-        interactionOutput: engine.getOutput(),
-        interactionConfig: engine.getConfig(),
-        themeColorMode: DEFAULT_MATERIAL_THEME_MODE,
-        fallbackMode: this.fallbackMode,
-        blurred: this.blurred,
-      },
     };
-    engine.setOnAnimationRequest(() => this.wake(materialRuntime));
     const handle = new MaterialRegistrationHandle(registration, {
       update: (changes) => this.update(materialRuntime, changes),
       getPresentation: () => this.getPresentation(materialRuntime),
@@ -133,7 +119,7 @@ export class MaterialPresentationController {
       return handle;
     } catch (error) {
       this.observers.untrack(registration);
-      engine.destroy();
+      interaction.destroy();
       restoreMaterialFallbackMode(registration);
       registration.destroyed = true;
       this.registrations.delete(registration.id);
@@ -149,7 +135,7 @@ export class MaterialPresentationController {
     const materials = [...this.registrations.values()];
     for (const materialRuntime of materials) {
       setMaterialFallbackMode(materialRuntime.registration, enabled);
-      materialRuntime.presentation.fallbackMode = enabled;
+      materialRuntime.interaction.setFallbackMode(enabled);
     }
     this.publishAll(materials);
   }
@@ -160,7 +146,7 @@ export class MaterialPresentationController {
     this.blurred = blurred;
     const materials = [...this.registrations.values()];
     for (const materialRuntime of materials) {
-      materialRuntime.presentation.blurred = blurred;
+      materialRuntime.interaction.setBlurred(blurred);
     }
     this.publishAll(materials);
   }
@@ -171,11 +157,10 @@ export class MaterialPresentationController {
     themeColorMode: AutomaticBackgroundColorMode,
   ): void {
     const materialRuntime = this.registrations.get(materialId);
-    if (!materialRuntime || materialRuntime.presentation.themeColorMode === themeColorMode) {
+    if (!materialRuntime || !materialRuntime.interaction.setTheme(themeColorMode)) {
       return;
     }
-    materialRuntime.presentation.themeColorMode = themeColorMode;
-    this.publish(materialRuntime);
+    materialRuntime.interaction.publish();
   }
 
   /** Release all engines, listeners, timers, and the shared animation frame. */
@@ -185,8 +170,7 @@ export class MaterialPresentationController {
     this.observers.destroy();
     this.cancelFrame();
     for (const materialRuntime of this.registrations.values()) {
-      materialRuntime.engine.destroy();
-      materialRuntime.listeners.clear();
+      materialRuntime.interaction.destroy();
       restoreMaterialFallbackMode(materialRuntime.registration);
       materialRuntime.registration.destroyed = true;
     }
@@ -200,47 +184,9 @@ export class MaterialPresentationController {
     changes: MaterialChanges,
   ): void {
     this.assertRegistration(materialRuntime);
-    const previous = materialRuntime.registration.config;
-    const next = { ...previous, ...changes };
-    materialRuntime.registration.config = next;
-    const candidate = createEngine(next);
-    const interactionChanged = !interactionConfigsEqual(
-      materialRuntime.engine.getConfig(),
-      candidate.getConfig(),
-    );
-    const interactionPolicyChanged = previous.disableInteractions !== next.disableInteractions
-      || previous.onlyClickInteractions !== next.onlyClickInteractions;
-
-    if (interactionChanged) {
-      this.replaceEngine(materialRuntime, candidate);
-    } else {
-      candidate.destroy();
-      if (interactionPolicyChanged) this.resetInteraction(materialRuntime);
-    }
+    materialRuntime.interaction.update(changes);
     this.callbacks.onUpdated(materialRuntime.registration, changes);
     this.requestRender();
-  }
-
-  private replaceEngine(
-    materialRuntime: MaterialRuntimeState,
-    engine: InteractionEngine,
-  ): void {
-    materialRuntime.engine.destroy();
-    materialRuntime.engine = engine;
-    materialRuntime.registration.interactionState = null;
-    this.activeMaterials.delete(materialRuntime.registration.id);
-    engine.setOnAnimationRequest(() => this.wake(materialRuntime));
-    materialRuntime.presentation.interactionConfig = engine.getConfig();
-    materialRuntime.presentation.interactionOutput = engine.getOutput();
-    this.publish(materialRuntime);
-  }
-
-  private resetInteraction(materialRuntime: MaterialRuntimeState): void {
-    materialRuntime.engine.reset();
-    materialRuntime.registration.interactionState = null;
-    this.activeMaterials.delete(materialRuntime.registration.id);
-    materialRuntime.presentation.interactionOutput = materialRuntime.engine.getOutput();
-    this.publish(materialRuntime);
   }
 
   private setInteractionState(
@@ -248,55 +194,14 @@ export class MaterialPresentationController {
     state: InteractionState,
   ): void {
     this.assertRegistration(materialRuntime);
-    if (materialRuntime.registration.config.disableInteractions) return;
-    const data = normalizeMaterialPointerInput(state);
-    const engineState = materialRuntime.engine.getState();
-    if (
-      engineState.isPointerDown
-      && engineState.pointerId !== undefined
-      && data.pointerId !== undefined
-      && engineState.pointerId !== data.pointerId
-    ) {
-      return;
-    }
-
-    const { pointerState: pointer } = state;
-    const hovering = !materialRuntime.registration.config.onlyClickInteractions
-      && pointer.isHovering;
-    materialRuntime.engine.setElementSize(
-      state.elementRect.width,
-      state.elementRect.height,
-    );
-
-    if (engineState.isPointerDown) {
-      if (!hovering && engineState.isHovering) {
-        materialRuntime.engine.onPointerLeave(data.pointerId);
-      }
-      if (pointer.isActive) {
-        materialRuntime.engine.onPointerMove(data);
-      } else {
-        materialRuntime.engine.onPointerUp(data.pointerId);
-      }
-    } else if (pointer.isActive) {
-      materialRuntime.engine.onPointerDown(data);
-    } else if (hovering) {
-      if (!engineState.isHovering) materialRuntime.engine.onPointerEnter(data);
-      materialRuntime.engine.onPointerMove(data);
-    } else if (engineState.isHovering) {
-      materialRuntime.engine.onPointerLeave(data.pointerId);
-    } else {
-      return;
-    }
-
-    materialRuntime.registration.interactionState = state;
-    this.wake(materialRuntime);
+    materialRuntime.interaction.setInteractionState(state);
   }
 
   private getPresentation(
     materialRuntime: MaterialRuntimeState,
   ): MaterialPresentationState {
     this.assertRegistration(materialRuntime);
-    return cloneMaterialPresentation(materialRuntime.presentation);
+    return materialRuntime.interaction.getPresentation();
   }
 
   private onPresentation(
@@ -304,14 +209,7 @@ export class MaterialPresentationController {
     listener: MaterialPresentationListener,
   ): () => void {
     this.assertRegistration(materialRuntime);
-    materialRuntime.listeners.add(listener);
-    try {
-      listener(cloneMaterialPresentation(materialRuntime.presentation));
-    } catch (error) {
-      materialRuntime.listeners.delete(listener);
-      throw error;
-    }
-    return () => materialRuntime.listeners.delete(listener);
+    return materialRuntime.interaction.onPresentation(listener);
   }
 
   private refreshLayout(materialRuntime: MaterialRuntimeState): void {
@@ -341,16 +239,15 @@ export class MaterialPresentationController {
     }
 
     this.requestRender();
-    if (!materialRuntime.engine.isMotionAtRest()) {
-      this.wake(materialRuntime);
+    if (!materialRuntime.interaction.isMotionAtRest()) {
+      this.wake(registration);
     }
   }
 
   private remove(materialRuntime: MaterialRuntimeState): void {
     if (materialRuntime.registration.destroyed) return;
     this.observers.untrack(materialRuntime.registration);
-    materialRuntime.engine.destroy();
-    materialRuntime.listeners.clear();
+    materialRuntime.interaction.destroy();
     restoreMaterialFallbackMode(materialRuntime.registration);
     materialRuntime.registration.destroyed = true;
     this.activeMaterials.delete(materialRuntime.registration.id);
@@ -360,17 +257,20 @@ export class MaterialPresentationController {
     this.cancelFrameWhenIdle();
   }
 
-  private wake(materialRuntime: MaterialRuntimeState): void {
+  private wake(registration: MaterialRegistration): void {
+    const materialRuntime = this.registrations.get(registration.id);
     if (
       this.destroyed
-      || materialRuntime.registration.destroyed
+      || !materialRuntime
+      || materialRuntime.registration !== registration
+      || registration.destroyed
       || !materialRuntime.inViewport
     ) {
       return;
     }
-    if (!this.activeMaterials.has(materialRuntime.registration.id)) {
-      materialRuntime.engine.resetTimestamp();
-      this.activeMaterials.add(materialRuntime.registration.id);
+    if (!this.activeMaterials.has(registration.id)) {
+      materialRuntime.interaction.resetTimestamp();
+      this.activeMaterials.add(registration.id);
     }
     this.ensureFrame();
   }
@@ -396,11 +296,9 @@ export class MaterialPresentationController {
         this.activeMaterials.delete(materialId);
         continue;
       }
-      const output = materialRuntime.engine.step(timestamp);
-      if (!interactionOutputsEqual(output, materialRuntime.presentation.interactionOutput)) {
-        materialRuntime.presentation.interactionOutput = output;
+      if (materialRuntime.interaction.step(timestamp)) {
         try {
-          this.publish(materialRuntime);
+          materialRuntime.interaction.publish();
         } catch (error) {
           if (!publishFailed) publishError = error;
           publishFailed = true;
@@ -408,7 +306,7 @@ export class MaterialPresentationController {
         presentationChanged = true;
       }
       if (this.destroyed) break;
-      if (materialRuntime.engine.isMotionAtRest()) {
+      if (materialRuntime.interaction.isMotionAtRest()) {
         this.activeMaterials.delete(materialId);
       }
     }
@@ -424,24 +322,12 @@ export class MaterialPresentationController {
     if (publishFailed) throw publishError;
   }
 
-  private publish(materialRuntime: MaterialRuntimeState): void {
-    for (const listener of [...materialRuntime.listeners]) {
-      try {
-        listener(cloneMaterialPresentation(materialRuntime.presentation));
-      } catch (error) {
-        materialRuntime.listeners.delete(listener);
-        throw error;
-      }
-      if (this.destroyed || materialRuntime.registration.destroyed) break;
-    }
-  }
-
   private publishAll(materials: MaterialRuntimeState[]): void {
     let publishError: unknown;
     let publishFailed = false;
     for (const materialRuntime of materials) {
       try {
-        this.publish(materialRuntime);
+        materialRuntime.interaction.publish();
       } catch (error) {
         if (!publishFailed) publishError = error;
         publishFailed = true;

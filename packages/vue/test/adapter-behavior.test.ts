@@ -390,6 +390,36 @@ describe('Vue adapter behavior', () => {
     wrapper.unmount();
   });
 
+  it('updates moveable behavior without replacing the material registration', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const wrapper = mount(LiquidGlassMaterial, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+      props: { isMoveable: true },
+    });
+    await nextTick();
+
+    expect(harness.addMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      isMoveable: true,
+    }));
+
+    await wrapper.setProps({ isMoveable: false });
+    await nextTick();
+
+    expect(materialHandle.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      isMoveable: false,
+    }));
+    expect(harness.addMaterial).toHaveBeenCalledTimes(1);
+    expect(materialHandle.destroy).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
   it('bridges pointer input and applies presentation snapshots without consuming child events', async () => {
     const materialHandle = createMaterialHandle();
     const harness = createContextHarness(materialHandle);

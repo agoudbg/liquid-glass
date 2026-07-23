@@ -53,6 +53,7 @@ const materialChanges = computed<MaterialChanges>(() => ({
   dispersion: props.dispersion,
   disableInteractions: props.disableInteractions,
   onlyClickInteractions: props.onlyClickInteractions,
+  isMoveable: props.isMoveable,
   interactionPreset: props.interactionPreset,
   interactionConfig: props.interactionConfig,
   renderMode: props.renderMode,

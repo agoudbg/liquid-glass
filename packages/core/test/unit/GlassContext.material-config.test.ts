@@ -232,6 +232,64 @@ describe('GlassContext material config transactions', () => {
     context.destroy();
   });
 
+  it('disables movement without suppressing other interaction overrides', () => {
+    const { context, handle, harness, material } = mount({
+      interactionConfig: {
+        activeScale: 1.2,
+        enableHoverFollow: true,
+        translateFactor: 0.9,
+      },
+    });
+
+    handle.setInteractionState({
+      elementRect: material.getBoundingClientRect(),
+      pointerState: {
+        clientX: 120,
+        clientY: 60,
+        isActive: true,
+        isHovering: true,
+        pointerId: 7,
+        pointerType: 'mouse',
+      },
+    });
+    harness.flushFrame();
+    harness.flushFrame();
+    const activeOutput = handle.getPresentation().interactionOutput;
+    expect(activeOutput.isActive).toBe(true);
+    expect(activeOutput.scaleX).toBeGreaterThan(1);
+
+    handle.update({ isMoveable: true });
+
+    expect(handle.getPresentation().interactionConfig).toMatchObject({
+      activeScale: 1.2,
+      enableHoverFollow: false,
+      translateFactor: 0,
+    });
+    expect(handle.getPresentation().interactionOutput).toEqual(activeOutput);
+
+    handle.update({ isMoveable: false });
+
+    expect(handle.getPresentation().interactionConfig).toMatchObject({
+      activeScale: 1.2,
+      enableHoverFollow: true,
+      translateFactor: 0.9,
+    });
+
+    handle.update({ isMoveable: true });
+    handle.update({ isMoveable: undefined });
+
+    expect(handle.getPresentation().interactionConfig).toMatchObject({
+      activeScale: 1.2,
+      enableHoverFollow: true,
+      translateFactor: 0.9,
+    });
+
+    handle.update({ disableInteractions: true, isMoveable: true });
+
+    expect(handle.getPresentation().interactionOutput.isActive).toBe(false);
+    context.destroy();
+  });
+
   it('leaves state, events, GL work, and RAF untouched after precommit failure', () => {
     const { context, handle, harness } = mount({ radius: 12 });
     const updated = vi.fn();

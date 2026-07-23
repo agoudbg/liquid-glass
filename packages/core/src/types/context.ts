@@ -185,6 +185,8 @@ export interface MaterialConfig {
   disableInteractions?: boolean;
   /** Whether press events are accepted while drag behavior is ignored. */
   onlyClickInteractions?: boolean;
+  /** Whether material translation and hover-follow are suppressed for a moveable host. */
+  isMoveable?: boolean;
   /** Stable interaction preset name. */
   interactionPreset?: InteractionPreset;
   /** Preset overrides or complete custom interaction configuration. */

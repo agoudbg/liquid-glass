@@ -399,6 +399,7 @@ describe('Solid adapter lifecycle', () => {
         <LiquidGlass engine={engineHarness.engine}>
           <LiquidGlassMaterial
             disableInteractions={disabled()}
+            isMoveable={disabled()}
             onPointerDown={consumerPointerDown}
             renderMode="dedicated"
           />
@@ -413,6 +414,7 @@ describe('Solid adapter lifecycle', () => {
     expect(material.getAttribute('disable-interactions')).toBe('false');
     expect(material.getAttribute('only-click-interactions')).toBe('false');
     expect(material.getAttribute('render-mode')).toBe('dedicated');
+    expect(contextHarness.addMaterial).toHaveBeenCalledWith(expect.objectContaining({ isMoveable: false }));
 
     dispatchPointer(material, 'pointerdown');
     expect(consumerPointerDown).toHaveBeenCalledTimes(1);
@@ -431,6 +433,8 @@ describe('Solid adapter lifecycle', () => {
     dispatchPointer(material, 'pointerdown', { pointerId: 2 });
     expect(consumerPointerDown).toHaveBeenCalledTimes(2);
     expect(contextHarness.material.setInteractionState).toHaveBeenCalledTimes(1);
+    expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(expect.objectContaining({ isMoveable: true }));
+    expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
   });
 
   it('applies presentation frames directly and fully cleans up the subscription', async () => {

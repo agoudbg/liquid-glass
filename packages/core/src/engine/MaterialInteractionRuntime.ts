@@ -8,6 +8,7 @@ import type {
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
 import { normalizeMaterialPointerInput } from './material-input';
+import { materialInteractionConfigsEqual } from './material-interaction-config';
 import {
   cloneMaterialPresentation,
   interactionConfigsEqual,
@@ -41,14 +42,23 @@ export interface PreparedMaterialInteractionUpdate {
   interactionChanged: boolean;
   /** Whether pointer acceptance policy changed. */
   interactionPolicyChanged: boolean;
+  /** Whether the resolved config can update without replacing active gesture state. */
+  preserveInteractionState: boolean;
   /** Canonical configuration committed with the candidate. */
   next: MaterialConfig;
 }
 
 function createEngine(config: MaterialConfig): InteractionEngine {
+  const interactionConfig = config.isMoveable
+    ? {
+        ...config.interactionConfig,
+        enableHoverFollow: false,
+        translateFactor: 0,
+      }
+    : config.interactionConfig;
   return new InteractionEngine(
     config.interactionPreset ?? 'button',
-    config.interactionConfig,
+    interactionConfig,
   );
 }
 
@@ -84,6 +94,10 @@ export class MaterialInteractionRuntime {
   public prepareUpdate(next: MaterialConfig): PreparedMaterialInteractionUpdate {
     const previous = this.registration.config;
     const candidate = createEngine(next);
+    const interactionPolicyChanged = (
+      previous.disableInteractions !== next.disableInteractions
+      || previous.onlyClickInteractions !== next.onlyClickInteractions
+    );
     try {
       return {
         candidate,
@@ -91,9 +105,15 @@ export class MaterialInteractionRuntime {
           this.engine.getConfig(),
           candidate.getConfig(),
         ),
-        interactionPolicyChanged: (
-          previous.disableInteractions !== next.disableInteractions
-          || previous.onlyClickInteractions !== next.onlyClickInteractions
+        interactionPolicyChanged,
+        preserveInteractionState: (
+          previous.isMoveable !== next.isMoveable
+          && !interactionPolicyChanged
+          && previous.interactionPreset === next.interactionPreset
+          && materialInteractionConfigsEqual(
+            previous.interactionConfig,
+            next.interactionConfig,
+          )
         ),
         next,
       };
@@ -108,7 +128,11 @@ export class MaterialInteractionRuntime {
     this.registration.config = update.next;
 
     if (update.interactionChanged) {
-      this.replaceEngine(update.candidate);
+      if (update.preserveInteractionState) {
+        this.updateEngineConfig(update.candidate);
+      } else {
+        this.replaceEngine(update.candidate);
+      }
     } else {
       update.candidate.destroy();
       if (update.interactionPolicyChanged) this.resetInteraction();
@@ -244,6 +268,14 @@ export class MaterialInteractionRuntime {
     engine.setOnAnimationRequest(() => this.callbacks.wake());
     this.presentation.interactionConfig = engine.getConfig();
     this.presentation.interactionOutput = engine.getOutput();
+    this.publish();
+  }
+
+  private updateEngineConfig(candidate: InteractionEngine): void {
+    const config = candidate.getConfig();
+    candidate.destroy();
+    this.engine.setConfig(config);
+    this.presentation.interactionConfig = this.engine.getConfig();
     this.publish();
   }
 

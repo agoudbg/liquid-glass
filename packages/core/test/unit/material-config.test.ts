@@ -75,6 +75,7 @@ describe('material config boundary', () => {
     expect(snapshotMaterialConfig(config({
       blur: 0,
       dispersion: 0,
+      isMoveable: true,
       radius: 0,
       refractIndex: Number.EPSILON,
       refractIntensity: 0,
@@ -82,6 +83,7 @@ describe('material config boundary', () => {
       thickness: 0,
     }))).toMatchObject({
       blur: 0,
+      isMoveable: true,
       refractIndex: Number.EPSILON,
       renderOrder: -2,
     });
@@ -90,6 +92,9 @@ describe('material config boundary', () => {
   it('rejects invalid booleans, enums, deferred modes, and unknown fields', () => {
     expect(() => snapshotMaterialConfig(config({
       disableInteractions: 1 as unknown as boolean,
+    }))).toThrow(GlassError);
+    expect(() => snapshotMaterialConfig(config({
+      isMoveable: 1 as unknown as boolean,
     }))).toThrow(GlassError);
     expect(() => snapshotMaterialConfig(config({
       onlyClickInteractions: 'yes' as unknown as boolean,

@@ -128,6 +128,31 @@ afterEach(() => {
 });
 
 describe('React material presentation', () => {
+  it('updates moveable behavior without replacing the material registration', async () => {
+    const harness = createHarness();
+    const view = (isMoveable: boolean) => (
+      <LiquidGlass engine={harness.engine}>
+        <LiquidGlassMaterial isMoveable={isMoveable}>Glass content</LiquidGlassMaterial>
+      </LiquidGlass>
+    );
+    const mounted = render(view(true));
+    await waitFor(() => {
+      expect(harness.context.addMaterial).toHaveBeenCalledWith(expect.objectContaining({
+        isMoveable: true,
+      }));
+    });
+
+    mounted.rerender(view(false));
+    await waitFor(() => {
+      expect(harness.material.update).toHaveBeenLastCalledWith(expect.objectContaining({
+        isMoveable: false,
+      }));
+    });
+
+    expect(harness.context.addMaterial).toHaveBeenCalledTimes(1);
+    expect(harness.material.destroy).not.toHaveBeenCalled();
+  });
+
   it('forwards native pointer input without replacing consumer handlers', async () => {
     const harness = createHarness();
     const onPointerDown = vi.fn();

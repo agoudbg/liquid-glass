@@ -35,6 +35,7 @@ const MATERIAL_OPTION_FIELDS = [
   'dispersion',
   'disableInteractions',
   'onlyClickInteractions',
+  'isMoveable',
   'interactionPreset',
   'interactionConfig',
   'renderMode',
@@ -258,6 +259,7 @@ function snapshotOptions(
   copyNumber(source, target, 'dispersion', { minimum: 0 }, retainUndefined);
   copyBoolean(source, target, 'disableInteractions', retainUndefined);
   copyBoolean(source, target, 'onlyClickInteractions', retainUndefined);
+  copyBoolean(source, target, 'isMoveable', retainUndefined);
   copyInteractionPreset(source, target, retainUndefined);
   copyInteractionConfig(source, target, retainUndefined);
   copyRenderMode(source, target, retainUndefined);

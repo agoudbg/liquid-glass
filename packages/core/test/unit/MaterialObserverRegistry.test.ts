@@ -338,8 +338,10 @@ describe('MaterialObserverRegistry', () => {
 
   it('attempts every disconnect and clears late callbacks when teardown throws', () => {
     const container = testNode();
+    const intersectionDisconnected = vi.fn();
     const resizeDisconnected = vi.fn();
     const mutationDisconnected = vi.fn();
+    const intersectionCallbacks: IntersectionObserverCallback[] = [];
     const resizeCallbacks: ResizeObserverCallback[] = [];
     const mutationCallbacks: MutationCallback[] = [];
     const onInvalidate = vi.fn();
@@ -356,6 +358,21 @@ describe('MaterialObserverRegistry', () => {
             observe: vi.fn(),
             takeRecords: () => [],
           } as MutationObserver;
+        },
+        createIntersectionObserver: (callback) => {
+          intersectionCallbacks.push(callback);
+          return {
+            disconnect: () => {
+              intersectionDisconnected();
+              throw new Error('intersection disconnect failed');
+            },
+            observe: vi.fn(),
+            root: null,
+            rootMargin: '50px',
+            takeRecords: () => [],
+            thresholds: [0],
+            unobserve: vi.fn(),
+          } as IntersectionObserver;
         },
         createResizeObserver: (callback) => {
           resizeCallbacks.push(callback);
@@ -375,8 +392,10 @@ describe('MaterialObserverRegistry', () => {
     registry.track(registration('material', testNode(container)));
 
     expect(() => registry.destroy()).not.toThrow();
+    expect(intersectionDisconnected).toHaveBeenCalledOnce();
     expect(resizeDisconnected).toHaveBeenCalledOnce();
     expect(mutationDisconnected).toHaveBeenCalledOnce();
+    intersectionCallbacks[0]?.([], {} as IntersectionObserver);
     resizeCallbacks[0]?.([], {} as ResizeObserver);
     mutationCallbacks[0]?.(
       [mutation('childList', container)],

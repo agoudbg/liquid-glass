@@ -8,8 +8,14 @@ interface MaterialElementObservation {
 /** Callback invoked when observed material geometry or DOM state may have changed. */
 export type MaterialInvalidationCallback = () => void;
 
+/** Callback invoked when a tracked material crosses the viewport observation boundary. */
+export type MaterialViewportChangeCallback = (
+  registration: MaterialRegistration,
+  inViewport: boolean,
+) => void;
+
 /**
- * Own shared resize and mutation observation for one material context.
+ * Own shared resize, mutation, and intersection observation for one material context.
  *
  * Observation only invalidates the material frame. Synchronous measurement and
  * culling remain in the render coordinator so observer delivery is never used
@@ -18,6 +24,9 @@ export type MaterialInvalidationCallback = () => void;
 export class MaterialObserverRegistry {
   private readonly elements = new Map<HTMLElement, MaterialElementObservation>();
   private readonly registrations = new Map<string, MaterialRegistration>();
+  private intersectionObserver: IntersectionObserver | null = null;
+  private intersectionToken: symbol | null = null;
+  private intersectionInitialized = false;
   private resizeObserver: ResizeObserver | null = null;
   private resizeToken: symbol | null = null;
   private resizeInitialized = false;
@@ -30,6 +39,7 @@ export class MaterialObserverRegistry {
     private readonly container: HTMLElement,
     private readonly runtime: GlassEngineRuntime,
     private readonly onInvalidate: MaterialInvalidationCallback,
+    private readonly onViewportChange: MaterialViewportChangeCallback = () => undefined,
   ) {}
 
   /** Observe one material while sharing browser observers across the context. */
@@ -43,7 +53,8 @@ export class MaterialObserverRegistry {
     const existing = this.elements.get(element);
     const firstRegistration = this.registrations.size === 0;
     let createdMutationObserver = false;
-    let observedElement = false;
+    let observedResizeElement = false;
+    let observedIntersectionElement = false;
 
     try {
       if (firstRegistration) {
@@ -52,15 +63,22 @@ export class MaterialObserverRegistry {
       if (!existing) {
         this.ensureResizeObserver();
         if (this.resizeObserver) {
-          observedElement = true;
+          observedResizeElement = true;
           this.resizeObserver.observe(element);
+        }
+        this.ensureIntersectionObserver();
+        if (this.intersectionObserver) {
+          observedIntersectionElement = true;
+          this.intersectionObserver.observe(element);
         }
       }
     } catch (error) {
       if (firstRegistration) {
         this.safelyTeardownResizeObserver();
-      } else if (observedElement) {
-        this.releaseElementObservation(element);
+        this.safelyTeardownIntersectionObserver();
+      } else {
+        if (observedResizeElement) this.releaseResizeObservation(element);
+        if (observedIntersectionElement) this.releaseIntersectionObservation(element);
       }
       if (createdMutationObserver) {
         this.safelyTeardownMutationObserver();
@@ -91,7 +109,8 @@ export class MaterialObserverRegistry {
     }
     if (observation && observation.registrations.size === 0) {
       this.elements.delete(element);
-      this.releaseElementObservation(element);
+      this.releaseResizeObservation(element);
+      this.releaseIntersectionObservation(element);
     }
   }
 
@@ -126,6 +145,40 @@ export class MaterialObserverRegistry {
     if (!observer) return;
     this.resizeObserver = observer;
     this.resizeToken = token;
+  }
+
+  private ensureIntersectionObserver(): void {
+    if (this.intersectionInitialized) return;
+    this.intersectionInitialized = true;
+    const token = Symbol('material-intersection-observer');
+    let observer: IntersectionObserver | null;
+    try {
+      observer = this.createIntersectionObserver((entries) => {
+        if (
+          this.destroyed
+          || this.intersectionToken !== token
+          || this.registrations.size === 0
+        ) {
+          return;
+        }
+        for (const entry of entries) {
+          const observation = this.elements.get(entry.target as HTMLElement);
+          if (!observation) continue;
+          for (const registrationId of [...observation.registrations]) {
+            const registration = this.registrations.get(registrationId);
+            if (registration && !registration.destroyed) {
+              this.onViewportChange(registration, entry.isIntersecting);
+            }
+          }
+        }
+      });
+    } catch (error) {
+      this.intersectionInitialized = false;
+      throw error;
+    }
+    if (!observer) return;
+    this.intersectionObserver = observer;
+    this.intersectionToken = token;
   }
 
   private ensureMutationObserver(): boolean {
@@ -176,7 +229,7 @@ export class MaterialObserverRegistry {
     return false;
   }
 
-  private releaseElementObservation(element: HTMLElement): void {
+  private releaseResizeObservation(element: HTMLElement): void {
     try {
       this.resizeObserver?.unobserve(element);
       return;
@@ -195,9 +248,29 @@ export class MaterialObserverRegistry {
     }
   }
 
+  private releaseIntersectionObservation(element: HTMLElement): void {
+    try {
+      this.intersectionObserver?.unobserve(element);
+      return;
+    } catch {
+      this.safelyTeardownIntersectionObserver();
+    }
+
+    // Preserve observation for registrations that still belong to the context.
+    try {
+      this.ensureIntersectionObserver();
+      for (const trackedElement of this.elements.keys()) {
+        this.intersectionObserver?.observe(trackedElement);
+      }
+    } catch {
+      this.safelyTeardownIntersectionObserver();
+    }
+  }
+
   private safelyTeardownObservers(): void {
     // Observer teardown is best-effort because non-standard runtime failures
     // must not prevent the other observer or owning material state from cleanup.
+    this.safelyTeardownIntersectionObserver();
     this.safelyTeardownResizeObserver();
     this.safelyTeardownMutationObserver();
   }
@@ -205,6 +278,14 @@ export class MaterialObserverRegistry {
   private safelyTeardownResizeObserver(): void {
     try {
       this.teardownResizeObserver();
+    } catch {
+      // Internal ownership was cleared before the non-standard runtime failure.
+    }
+  }
+
+  private safelyTeardownIntersectionObserver(): void {
+    try {
+      this.teardownIntersectionObserver();
     } catch {
       // Internal ownership was cleared before the non-standard runtime failure.
     }
@@ -226,6 +307,14 @@ export class MaterialObserverRegistry {
     observer?.disconnect();
   }
 
+  private teardownIntersectionObserver(): void {
+    const observer = this.intersectionObserver;
+    this.intersectionObserver = null;
+    this.intersectionToken = null;
+    this.intersectionInitialized = false;
+    observer?.disconnect();
+  }
+
   private teardownMutationObserver(): void {
     const observer = this.mutationObserver;
     this.mutationObserver = null;
@@ -241,6 +330,22 @@ export class MaterialObserverRegistry {
     }
     return typeof globalThis.ResizeObserver === 'function'
       ? new globalThis.ResizeObserver(callback)
+      : null;
+  }
+
+  private createIntersectionObserver(
+    callback: IntersectionObserverCallback,
+  ): IntersectionObserver | null {
+    const options: IntersectionObserverInit = {
+      root: null,
+      rootMargin: '50px',
+      threshold: 0,
+    };
+    if (this.runtime.createIntersectionObserver) {
+      return this.runtime.createIntersectionObserver(callback, options);
+    }
+    return typeof globalThis.IntersectionObserver === 'function'
+      ? new globalThis.IntersectionObserver(callback, options)
       : null;
   }
 

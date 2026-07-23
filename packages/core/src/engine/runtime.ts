@@ -19,6 +19,11 @@ export interface GlassEngineRuntime {
   cancelAnimationFrame?(handle: number): void;
   /** Capture a DOM source through the configured rasterization runtime. */
   captureDomElement?(request: DomCaptureRequest): Promise<DomCaptureResult>;
+  /** Create an intersection observer when the host supports one. */
+  createIntersectionObserver?(
+    callback: IntersectionObserverCallback,
+    options: IntersectionObserverInit,
+  ): IntersectionObserver | null;
   /** Create a mutation observer when the host supports one. */
   createMutationObserver?(callback: MutationCallback): MutationObserver | null;
   /** Create a resize observer when the host supports one. */
@@ -58,6 +63,11 @@ export const DEFAULT_GLASS_ENGINE_RUNTIME: GlassEngineRuntime = {
   },
   cancelAnimationFrame: (handle) => globalThis.cancelAnimationFrame(handle),
   captureDomElement,
+  createIntersectionObserver: (callback, options) => (
+    typeof globalThis.IntersectionObserver === 'function'
+      ? new globalThis.IntersectionObserver(callback, options)
+      : null
+  ),
   createMutationObserver: (callback) => (
     typeof globalThis.MutationObserver === 'function'
       ? new globalThis.MutationObserver(callback)

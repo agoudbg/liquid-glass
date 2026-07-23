@@ -32,6 +32,7 @@ import type { GlassEngineRuntime } from './runtime';
 interface MaterialRuntimeState {
   registration: MaterialRegistration;
   engine: InteractionEngine;
+  inViewport: boolean;
   presentation: MaterialPresentationState;
   listeners: Set<MaterialPresentationListener>;
 }
@@ -81,6 +82,10 @@ export class MaterialPresentationController {
       container,
       runtime,
       () => this.requestRender(),
+      (registration, inViewport) => this.setViewportVisibility(
+        registration,
+        inViewport,
+      ),
     );
   }
 
@@ -97,6 +102,7 @@ export class MaterialPresentationController {
     const materialRuntime: MaterialRuntimeState = {
       registration,
       engine,
+      inViewport: true,
       listeners: new Set(),
       presentation: {
         interactionOutput: engine.getOutput(),
@@ -313,6 +319,33 @@ export class MaterialPresentationController {
     this.requestRender();
   }
 
+  private setViewportVisibility(
+    registration: MaterialRegistration,
+    inViewport: boolean,
+  ): void {
+    if (this.destroyed) return;
+    const materialRuntime = this.registrations.get(registration.id);
+    if (
+      !materialRuntime
+      || materialRuntime.registration.destroyed
+      || materialRuntime.inViewport === inViewport
+    ) {
+      return;
+    }
+
+    materialRuntime.inViewport = inViewport;
+    if (!inViewport) {
+      this.activeMaterials.delete(registration.id);
+      this.requestRender();
+      return;
+    }
+
+    this.requestRender();
+    if (!materialRuntime.engine.isMotionAtRest()) {
+      this.wake(materialRuntime);
+    }
+  }
+
   private remove(materialRuntime: MaterialRuntimeState): void {
     if (materialRuntime.registration.destroyed) return;
     this.observers.untrack(materialRuntime.registration);
@@ -328,7 +361,13 @@ export class MaterialPresentationController {
   }
 
   private wake(materialRuntime: MaterialRuntimeState): void {
-    if (this.destroyed || materialRuntime.registration.destroyed) return;
+    if (
+      this.destroyed
+      || materialRuntime.registration.destroyed
+      || !materialRuntime.inViewport
+    ) {
+      return;
+    }
     if (!this.activeMaterials.has(materialRuntime.registration.id)) {
       materialRuntime.engine.resetTimestamp();
       this.activeMaterials.add(materialRuntime.registration.id);

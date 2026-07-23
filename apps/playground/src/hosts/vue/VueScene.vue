@@ -11,7 +11,9 @@ import { computed, useTemplateRef, watchEffect } from 'vue';
 
 import {
   getBackdropDraw,
-  isDomCaptureScene,
+  isDomCaptureState,
+  isEditorialDomCaptureState,
+  resolveBackdropBackgroundColor,
   resolveDomCaptureContent,
   resolveViewportCapture,
   SCROLL_BANDS,
@@ -30,7 +32,11 @@ const contextOptions = computed<GlassContextOptions>(() => ({
 }));
 const materials = computed(() => resolveSceneMaterials(props.state));
 const domContent = computed(() => resolveDomCaptureContent(props.state.domVariant));
-const domScene = computed(() => isDomCaptureScene(props.state.scene));
+const domScene = computed(() => isDomCaptureState(props.state));
+const editorialDomScene = computed(() => isEditorialDomCaptureState(props.state));
+const backdropBackgroundColor = computed(
+  () => resolveBackdropBackgroundColor(props.state),
+);
 const viewportCapture = computed(() => resolveViewportCapture(props.state));
 const backdropDraw = computed(() => getBackdropDraw(
   props.state.scene,
@@ -39,7 +45,7 @@ const backdropDraw = computed(() => getBackdropDraw(
 const backdropConverter = useTemplateRef<LgBackdropConverterExposed>('backdropConverter');
 
 watchEffect((onCleanup) => {
-  if (!isDomCaptureScene(props.state.scene) || !backdropConverter.value) {
+  if (!domScene.value || !backdropConverter.value) {
     props.callbacks.onBackdropRefreshReady(null);
     return;
   }
@@ -65,6 +71,7 @@ function handleError(error: unknown): void {
     }"
     :data-framework="'vue'"
     :data-glass-enabled="String(state.glassEnabled)"
+    :data-lab-source="state.scene === 'S001' ? state.lab.source.kind : undefined"
     :data-scene="state.scene"
     :options="contextOptions"
     @error="handleError"
@@ -73,16 +80,16 @@ function handleError(error: unknown): void {
     <LgBackdropConverter
       v-if="domScene"
       ref="backdropConverter"
-      background-color="#dce4df"
+      :background-color="backdropBackgroundColor"
       class="scene-backdrop"
-      :class="state.scene === 'S003'
+      :class="editorialDomScene
         ? 'dom-capture-backdrop'
         : ['scroll-backdrop', state.scene === 'S005'
           ? 'body-scroll-backdrop'
           : 'internal-scroll-backdrop']"
       :viewport-capture="viewportCapture"
     >
-      <template v-if="state.scene === 'S003'">
+      <template v-if="editorialDomScene">
         <div class="dom-capture-photo">
           <img
             alt="Boats crossing a turquoise alpine lake below the Dolomites"

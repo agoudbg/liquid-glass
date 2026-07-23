@@ -7,6 +7,8 @@ import './styles/scroll-scenes.css';
 import './styles/interaction-scenes.css';
 import './styles/interaction-policy-fixture.css';
 import './styles/scene-controls.css';
+import './styles/workbench-tabs.css';
+import './styles/lab-controls.css';
 import './styles/responsive.css';
 
 import { PLAYGROUND_MARKUP } from './shell/markup';

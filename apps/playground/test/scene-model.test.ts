@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest';
 import {
   getBackdropDraw,
   isDomCaptureScene,
+  isDomCaptureState,
+  isEditorialDomCaptureState,
   isScrollCaptureScene,
+  resolveBackdropBackgroundColor,
+  resolveStageSource,
   resolveViewportCapture,
 } from '../src/shared/scene-backdrops';
 import {
@@ -89,6 +93,26 @@ describe('playground scene model', () => {
       ...viewportState,
       viewportEnabled: false,
     })).toBe(false);
+  });
+
+  it('switches only the focused Lab backdrop between stable source types', () => {
+    const canvas = createInitialState(new URL(
+      'https://example.test/?scene=S001&source=canvas',
+    ));
+    const dom = createInitialState(new URL(
+      'https://example.test/?scene=S001&source=dom',
+    ));
+    const oracle = createInitialState(new URL(
+      'https://example.test/?scene=S001&source=dom&oracle=1',
+    ));
+
+    expect(isDomCaptureState(canvas)).toBe(false);
+    expect(isDomCaptureState(dom)).toBe(true);
+    expect(isEditorialDomCaptureState(dom)).toBe(true);
+    expect(resolveBackdropBackgroundColor(dom)).toBe('#dce4df');
+    expect(resolveStageSource(dom)).toBe('01 / DOM SOURCE');
+    expect(isDomCaptureState(oracle)).toBe(false);
+    expect(resolveStageSource(oracle)).toBe('01 / CUSTOM CANVAS');
   });
 
   it('preserves stable canvas callbacks and canonical material sets', () => {

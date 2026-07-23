@@ -7,11 +7,13 @@ import {
   LiquidGlass,
   LiquidGlassMaterial,
 } from '@agou/liquid-glass-solid';
-import { For, Show } from 'solid-js';
+import { For, Index, Show } from 'solid-js';
 
 import {
   getBackdropDraw,
-  isDomCaptureScene,
+  isDomCaptureState,
+  isEditorialDomCaptureState,
+  resolveBackdropBackgroundColor,
   resolveDomCaptureContent,
   resolveViewportCapture,
   SCROLL_BANDS,
@@ -45,13 +47,16 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
       ].filter(Boolean).join(' ')}
       data-framework="solid"
       data-glass-enabled={String(props.state.glassEnabled)}
+      data-lab-source={props.state.scene === 'S001'
+        ? props.state.lab.source.kind
+        : undefined}
       data-scene={props.state.scene}
       options={contextOptions()}
       onError={props.callbacks.onError}
       onReady={props.callbacks.onContextReady}
     >
       <Show
-        when={isDomCaptureScene(props.state.scene)}
+        when={isDomCaptureState(props.state)}
         fallback={(
           <BackdropCanvas
             class="scene-backdrop"
@@ -61,8 +66,8 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
       >
         <BackdropConverter
           apiRef={publishBackdropHandle}
-          backgroundColor="#dce4df"
-          class={props.state.scene === 'S003'
+          backgroundColor={resolveBackdropBackgroundColor(props.state)}
+          class={isEditorialDomCaptureState(props.state)
             ? 'scene-backdrop dom-capture-backdrop'
             : `scene-backdrop scroll-backdrop ${
                 props.state.scene === 'S005'
@@ -72,7 +77,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
           viewportCapture={resolveViewportCapture(props.state)}
         >
           <Show
-            when={props.state.scene === 'S003'}
+            when={isEditorialDomCaptureState(props.state)}
             fallback={(
               <div class="scroll-band-grid" data-testid="scroll-band-grid">
                 <For each={SCROLL_BANDS}>
@@ -115,37 +120,39 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
           </Show>
         </BackdropConverter>
       </Show>
-      <For each={resolveSceneMaterials(props.state)}>
+      <Index each={resolveSceneMaterials(props.state)}>
         {(material, index) => (
           <LiquidGlassMaterial
-            {...material.options}
-            class={material.className}
-            data-interaction-preset={material.options.interactionPreset}
-            data-material-id={material.id}
-            data-oracle-material={props.state.oracleMode ? material.id : undefined}
-            data-testid={material.testId ?? (
-              index() === 0 ? 'primary-material' : undefined
+            {...material().options}
+            class={material().className}
+            data-interaction-preset={material().options.interactionPreset}
+            data-material-id={material().id}
+            data-oracle-material={props.state.oracleMode
+              ? material().id
+              : undefined}
+            data-testid={material().testId ?? (
+              index === 0 ? 'primary-material' : undefined
             )}
           >
             <Show
-              when={material.control}
+              when={material().control}
               fallback={(
                 <div class="material-copy">
                   <Show
                     when={props.state.oracleMode}
                     fallback={(
                       <>
-                        <span>{material.label}</span>
-                        <strong>{material.name}</strong>
+                        <span>{material().label}</span>
+                        <strong>{material().name}</strong>
                         <small>
-                          {material.options.thickness} px ·{' '}
-                          {material.options.refractIndex?.toFixed(2)} IOR
+                          {material().options.thickness} px ·{' '}
+                          {material().options.refractIndex?.toFixed(2)} IOR
                         </small>
                       </>
                     )}
                   >
-                    <strong>{material.name}</strong>
-                    <Show when={material.detail}>
+                    <strong>{material().name}</strong>
+                    <Show when={material().detail}>
                       {(detail) => <span>{detail()}</span>}
                     </Show>
                   </Show>
@@ -156,7 +163,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
             </Show>
           </LiquidGlassMaterial>
         )}
-      </For>
+      </Index>
     </LiquidGlass>
   );
 }

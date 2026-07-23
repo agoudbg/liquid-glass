@@ -1,12 +1,16 @@
-import { getSceneDefinition } from '../shared/scene-catalog';
 import {
-  isLabSceneEditable,
-  resolveSceneControlValues,
-} from '../shared/scene-render-options';
+  isDomCaptureState,
+  resolveStageSource,
+} from '../shared/scene-backdrops';
+import { getSceneDefinition } from '../shared/scene-catalog';
 import type {
   HostRuntimeReport,
   PlaygroundState,
 } from '../shared/types';
+import {
+  renderCopyStatus,
+  renderLabWorkbench,
+} from './lab-view';
 
 /** DOM facade for the framework-neutral playground shell. */
 export class PlaygroundShellView {
@@ -16,7 +20,7 @@ export class PlaygroundShellView {
   public readonly glassToggle: HTMLInputElement;
   /** Static canonical scene selector. */
   public readonly sceneSelect: HTMLSelectElement;
-  private readonly refreshBackdropButton: HTMLButtonElement;
+  private readonly refreshBackdropButtons: HTMLButtonElement[];
 
   /** Resolve the required static shell elements within one app root. */
   public constructor(private readonly app: HTMLElement) {
@@ -27,9 +31,12 @@ export class PlaygroundShellView {
     this.sceneSelect = this.requireElement<HTMLSelectElement>(
       '[data-testid="scene-select"]',
     );
-    this.refreshBackdropButton = this.requireElement<HTMLButtonElement>(
-      '[data-action="refresh-backdrop"]',
+    this.refreshBackdropButtons = this.queryElements<HTMLButtonElement>(
+      '[data-action="refresh-backdrop"], [data-action="refresh-lab-backdrop"]',
     );
+    if (this.refreshBackdropButtons.length === 0) {
+      throw new Error('Missing playground backdrop refresh actions.');
+    }
   }
 
   /** Resolve one required shell-owned element by scoped selector. */
@@ -46,7 +53,17 @@ export class PlaygroundShellView {
 
   /** Enable the capture refresh command only while a host supplies it. */
   public setBackdropRefreshAvailable(available: boolean): void {
-    this.refreshBackdropButton.disabled = !available;
+    for (const button of this.refreshBackdropButtons) {
+      button.disabled = !available;
+    }
+  }
+
+  /** Publish accessible copy feedback beside the Lab action buttons. */
+  public setCopyStatus(
+    message: string,
+    status: 'error' | 'success' | 'idle',
+  ): void {
+    renderCopyStatus(this.app, message, status);
   }
 
   /** Render URL-addressable state without reading framework-host material nodes. */
@@ -54,7 +71,9 @@ export class PlaygroundShellView {
     state: PlaygroundState,
     backdropRefreshAvailable: boolean,
   ): void {
-    for (const button of this.queryElements<HTMLButtonElement>('[data-framework]')) {
+    for (const button of this.queryElements<HTMLButtonElement>(
+      'button[data-framework]',
+    )) {
       const active = button.dataset.framework === state.framework;
       button.dataset.active = String(active);
       button.setAttribute('aria-pressed', String(active));
@@ -78,40 +97,16 @@ export class PlaygroundShellView {
     }
 
     this.glassToggle.checked = state.glassEnabled;
-    const labEditable = isLabSceneEditable(state);
-    for (const input of this.queryElements<HTMLInputElement>('[data-control]')) {
-      input.setAttribute('aria-disabled', String(!labEditable));
-      input.tabIndex = labEditable ? 0 : -1;
-    }
-    const controlValues = resolveSceneControlValues(state);
-    this.setInputValue('thickness', controlValues.thickness);
-    this.setInputValue('refractIndex', controlValues.refractIndex);
-    this.setInputValue('refractIntensity', controlValues.refractIntensity);
-    this.setInputValue('radius', controlValues.radius);
-    this.setInputValue('renderPrecision', controlValues.renderPrecision);
-    this.setText(
-      '#thickness-value',
-      `${String(controlValues.thickness)} px`,
-    );
-    this.setText('#ior-value', controlValues.refractIndex.toFixed(2));
-    this.setText(
-      '#intensity-value',
-      controlValues.refractIntensity.toFixed(2),
-    );
-    this.setText('#radius-value', `${String(controlValues.radius)} px`);
-    this.setText(
-      '#precision-value',
-      `${controlValues.renderPrecision.toFixed(1)}×`,
-    );
+    renderLabWorkbench(this.app, state);
     const sceneDefinition = getSceneDefinition(state.scene);
     this.setText('#scene-kicker', `SCENE ${state.scene.slice(1)}`);
     this.setText('#scene-title', sceneDefinition.title);
     this.setText('#material-count', String(sceneDefinition.materialCount));
     this.setText(
       '#backdrop-type',
-      sceneDefinition.captureKind === 'canvas' ? 'Canvas 2D' : 'Captured DOM',
+      isDomCaptureState(state) ? 'Captured DOM' : 'Canvas 2D',
     );
-    this.setText('#stage-source', sceneDefinition.stageSource);
+    this.setText('#stage-source', resolveStageSource(state));
     this.setText(
       '[data-action="mutate-dom"]',
       state.domVariant === 'source' ? 'Mutate DOM' : 'Restore source',
@@ -125,6 +120,7 @@ export class PlaygroundShellView {
     this.app.dataset.fallbackRequest = state.fallbackEnabled ? 'on' : 'off';
     this.app.dataset.viewportRequest = state.viewportEnabled ? 'on' : 'off';
     this.app.dataset.domVariant = state.domVariant;
+    this.app.dataset.labSource = state.lab.source.kind;
     this.app.dataset.testMode = String(state.testMode);
     if (state.testFixture) {
       this.app.dataset.testFixture = state.testFixture;
@@ -188,10 +184,6 @@ export class PlaygroundShellView {
     this.frameworkHost.dataset.ready = String(ready);
     this.frameworkHost.dataset.fallback = report.fallbackMode ? 'on' : 'off';
     document.documentElement.dataset.playgroundReady = String(ready);
-  }
-
-  private setInputValue(control: string, value: number): void {
-    this.requireElement<HTMLInputElement>(`[data-control="${control}"]`).value = String(value);
   }
 
   private setText(selector: string, value: string): void {

@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 import {
   cloneLabState,
   createDefaultLabState,
+  isLabBooleanControl,
+  isLabInteractionPreset,
+  isLabSourceKind,
+  updateLabBooleanControl,
+  updateLabColor,
+  updateLabInteractionPreset,
   updateLabNumericControl,
+  updateLabSourceKind,
 } from '../src/shared/lab-state';
 import { resolveSceneMaterials } from '../src/shared/scene-materials';
 import {
@@ -75,6 +82,51 @@ describe('isolated Lab state', () => {
     expect(createInitialState(serialized).lab).toEqual(parsed.lab);
   });
 
+  it('round-trips complete Lab controls through a reproducible URL', () => {
+    const parsed = createInitialState(new URL(
+      'https://example.test/?scene=S001&blur=7.5&dispersion=0.085'
+      + '&radiusTL=12&radiusTR=22&radiusBR=32&radiusBL=42'
+      + '&renderOrder=35&customColor=on&color=%23f5c9ba'
+      + '&lightAngle=145&lightIntensity=0.77&interaction=custom'
+      + '&interactions=off&clickOnly=on&moveable=on'
+      + '&activeScale=1.16&translateFactor=0.31'
+      + '&stretchFactor=0.0024&highlightOpacity=0.58&source=dom',
+    ));
+    expect(parsed.lab).toMatchObject({
+      optics: { blur: 7.5, dispersion: 0.085 },
+      shape: {
+        radiusTL: 12,
+        radiusTR: 22,
+        radiusBR: 32,
+        radiusBL: 42,
+      },
+      appearance: {
+        useCustomColor: true,
+        backgroundColor: '#f5c9ba29',
+        illuminationAngle: 145,
+        illuminationIntensity: 0.77,
+      },
+      interaction: {
+        disableInteractions: true,
+        onlyClickInteractions: true,
+        isMoveable: true,
+        preset: 'custom',
+        config: {
+          activeScale: 1.16,
+          translateFactor: 0.31,
+          stretchFactor: 0.0024,
+          highlightOpacity: 0.58,
+        },
+      },
+      render: { order: 35 },
+      source: { kind: 'dom' },
+    });
+
+    window.history.replaceState(null, '', '/');
+    replacePlaygroundUrl(parsed);
+    expect(createInitialState(new URL(window.location.href)).lab).toEqual(parsed.lab);
+  });
+
   it('applies edited optical, shape, appearance, interaction, and render values to S001', () => {
     const initial = createInitialState(new URL('https://example.test/?scene=S001'));
     const edited = transitionPlaygroundState(initial, {
@@ -139,6 +191,69 @@ describe('isolated Lab state', () => {
       renderOrder: 27,
     });
     expect(resolveSceneRenderPrecision(edited)).toBe(1.35);
+  });
+
+  it('keeps custom draft values inert for the default button preset', () => {
+    const state = createInitialState(new URL('https://example.test/?scene=S001'));
+    const options = resolveSceneMaterials(state)[0]?.options;
+
+    expect(options?.interactionPreset).toBe('button');
+    expect(options?.interactionConfig).toBeUndefined();
+    expect(state.lab.interaction.config).toMatchObject({
+      activeScale: 1.08,
+      translateFactor: 0.2,
+      stretchFactor: 0.0015,
+      highlightOpacity: 0.35,
+    });
+  });
+
+  it('updates every Lab group immutably through typed control helpers', () => {
+    const initial = createDefaultLabState();
+    const blurred = updateLabNumericControl(initial, 'blur', 6.5);
+    const corner = updateLabNumericControl(blurred, 'radiusTR', 72);
+    const shared = updateLabNumericControl(corner, 'radius', 48);
+    const order = updateLabNumericControl(shared, 'renderOrder', 24);
+    const light = updateLabNumericControl(
+      order,
+      'illuminationIntensity',
+      0.8,
+    );
+    const custom = updateLabNumericControl(light, 'activeScale', 1.14);
+    const tinted = updateLabColor(custom, '#f5c9ba');
+    const disabled = updateLabBooleanControl(
+      tinted,
+      'disableInteractions',
+      true,
+    );
+    const preset = updateLabInteractionPreset(disabled, 'custom');
+    const source = updateLabSourceKind(preset, 'dom');
+
+    expect(initial.optics.blur).toBe(0);
+    expect(source).toMatchObject({
+      optics: { blur: 6.5 },
+      shape: {
+        radius: 48,
+        radiusTL: 48,
+        radiusTR: 48,
+        radiusBR: 48,
+        radiusBL: 48,
+      },
+      appearance: {
+        backgroundColor: '#f5c9ba29',
+        illuminationIntensity: 0.8,
+        useCustomColor: true,
+      },
+      interaction: {
+        disableInteractions: true,
+        preset: 'custom',
+        config: { activeScale: 1.14 },
+      },
+      render: { order: 24 },
+      source: { kind: 'dom' },
+    });
+    expect(isLabBooleanControl('isMoveable')).toBe(true);
+    expect(isLabInteractionPreset('slider')).toBe(true);
+    expect(isLabSourceKind('dom')).toBe(true);
   });
 
   it('keeps S002 through S007 canonical when Lab values change', () => {

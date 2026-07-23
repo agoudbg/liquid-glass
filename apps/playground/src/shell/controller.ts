@@ -1,10 +1,5 @@
 import { observeGlassContext } from '../shared/diagnostics';
-import {
-  isLabNumericControl,
-  updateLabNumericControl,
-} from '../shared/lab-state';
 import { isSceneId } from '../shared/scene-catalog';
-import { isLabSceneEditable } from '../shared/scene-render-options';
 import type {
   FrameworkHostCallbacks,
   FrameworkHostController,
@@ -12,6 +7,8 @@ import type {
   HostRuntimeReport,
   PlaygroundState,
 } from '../shared/types';
+import { getWorkbenchTabDefaultScene } from '../shared/workbench-tabs';
+import { bindLabControls } from './lab-controller';
 import {
   clonePlaygroundState,
   createInitialState,
@@ -20,6 +17,7 @@ import {
   transitionPlaygroundScene,
   transitionPlaygroundState,
 } from './state';
+import { bindWorkbenchTabs } from './tab-controller';
 import { PlaygroundShellView } from './view';
 
 /** Lifecycle owner returned by the framework-neutral shell bootstrap. */
@@ -59,14 +57,25 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   const renderDiagnostics = (): void => {
     view.renderDiagnostics(currentState, runtimeReport);
   };
+  const backdropRefreshAvailable = (): boolean => (
+    activeBackdropRefresh !== null || activeContext !== null
+  );
+  const refreshActiveBackdrop = (): void => {
+    if (activeBackdropRefresh) {
+      activeBackdropRefresh();
+      return;
+    }
+    activeContext?.refresh('external');
+  };
   const renderState = (): void => {
-    view.renderState(currentState, activeBackdropRefresh !== null);
+    view.renderState(currentState, backdropRefreshAvailable());
     renderDiagnostics();
   };
   const hostCallbacks: FrameworkHostCallbacks = {
     onContextReady: (context) => {
       if (destroyed) return;
       activeContext = context;
+      view.setBackdropRefreshAvailable(true);
       stopObservingContext?.();
       stopObservingContext = observeGlassContext(context, (report) => {
         runtimeReport = report;
@@ -78,7 +87,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     onBackdropRefreshReady: (refresh) => {
       if (destroyed) return;
       activeBackdropRefresh = refresh;
-      view.setBackdropRefreshAvailable(refresh !== null);
+      view.setBackdropRefreshAvailable(backdropRefreshAvailable());
     },
     onError: (error) => {
       if (destroyed) return;
@@ -143,7 +152,9 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     listenerDisposers.push(() => target.removeEventListener(type, listener));
   };
 
-  for (const button of view.queryElements<HTMLButtonElement>('[data-framework]')) {
+  for (const button of view.queryElements<HTMLButtonElement>(
+    'button[data-framework]',
+  )) {
     listen(button, 'click', () => {
       const framework = button.dataset.framework;
       if (framework === 'vue' || framework === 'react' || framework === 'solid') {
@@ -154,6 +165,15 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       }
     });
   }
+  listenerDisposers.push(
+    bindWorkbenchTabs(app, (tab) => {
+      runtimeReport = createInitializingReport();
+      updateState(transitionPlaygroundScene(
+        currentState,
+        getWorkbenchTabDefaultScene(tab),
+      ));
+    }),
+  );
 
   listen(view.sceneSelect, 'change', () => {
     const scene = view.sceneSelect.value;
@@ -175,7 +195,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   listen(
     view.requireElement<HTMLButtonElement>('[data-action="refresh-backdrop"]'),
     'click',
-    () => activeBackdropRefresh?.(),
+    refreshActiveBackdrop,
   );
 
   for (const button of view.queryElements<HTMLButtonElement>('[data-fallback-mode]')) {
@@ -188,22 +208,13 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       updateState({ viewportEnabled: button.dataset.viewportMode === 'bounded' });
     });
   }
-  for (const input of view.queryElements<HTMLInputElement>('[data-control]')) {
-    listen(input, 'input', () => {
-      const value = Number(input.value);
-      const control = input.dataset.control;
-      if (!Number.isFinite(value) || !control || !isLabNumericControl(control)) {
-        return;
-      }
-      if (!isLabSceneEditable(currentState)) {
-        renderState();
-        return;
-      }
-      updateState({
-        lab: updateLabNumericControl(currentState.lab, control, value),
-      });
-    });
-  }
+  listenerDisposers.push(bindLabControls({
+    root: app,
+    getState: () => currentState,
+    updateLab: (lab) => updateState({ lab }),
+    refreshBackdrop: refreshActiveBackdrop,
+    setCopyStatus: (message, status) => view.setCopyStatus(message, status),
+  }));
   listen(view.glassToggle, 'change', () => {
     updateState({ glassEnabled: view.glassToggle.checked });
   });

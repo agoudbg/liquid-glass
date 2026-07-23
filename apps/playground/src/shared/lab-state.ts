@@ -1,9 +1,16 @@
-import type { PartialInteractionConfig } from '@agou/liquid-glass-core';
+import type {
+  InteractionPreset,
+  PartialInteractionConfig,
+} from '@agou/liquid-glass-core';
 
 import type {
   LabShapeState,
   LabState,
 } from './types';
+
+const RGB_HEX_PATTERN = /^#[0-9a-f]{6}$/iu;
+const RGBA_HEX_PATTERN = /^#[0-9a-f]{8}$/iu;
+const DEFAULT_TINT_ALPHA = '29';
 
 /** URL-backed values currently exposed by the compact Lab inspector. */
 export interface LabUrlValues {
@@ -20,7 +27,28 @@ export interface LabUrlValues {
 }
 
 /** Numeric controls currently rendered by the compact inspector. */
-export type LabNumericControl = keyof LabUrlValues;
+export type LabNumericControl =
+  | keyof LabUrlValues
+  | 'blur'
+  | 'dispersion'
+  | 'radiusTL'
+  | 'radiusTR'
+  | 'radiusBR'
+  | 'radiusBL'
+  | 'renderOrder'
+  | 'illuminationAngle'
+  | 'illuminationIntensity'
+  | 'activeScale'
+  | 'translateFactor'
+  | 'stretchFactor'
+  | 'highlightOpacity';
+
+/** Binary controls rendered by the Lab inspector. */
+export type LabBooleanControl =
+  | 'useCustomColor'
+  | 'disableInteractions'
+  | 'onlyClickInteractions'
+  | 'isMoveable';
 
 /** Defaults that preserve the current S001 playground presentation. */
 export const DEFAULT_LAB_URL_VALUES: Readonly<LabUrlValues> = {
@@ -57,7 +85,7 @@ export function createDefaultLabState(
     shape: createLabShapeState(values.radius),
     appearance: {
       useCustomColor: false,
-      backgroundColor: 'rgba(229, 244, 239, 0.16)',
+      backgroundColor: '#d9f2ea29',
       illuminationAngle: 34,
       illuminationIntensity: 0.62,
     },
@@ -66,7 +94,12 @@ export function createDefaultLabState(
       onlyClickInteractions: false,
       isMoveable: false,
       preset: 'button',
-      config: {},
+      config: {
+        activeScale: 1.08,
+        translateFactor: 0.2,
+        stretchFactor: 0.0015,
+        highlightOpacity: 0.35,
+      },
     },
     render: {
       precision: values.renderPrecision,
@@ -118,15 +151,68 @@ export function updateLabNumericControl(
       optics: { ...state.optics, refractIntensity: value },
     };
   }
+  if (control === 'blur') {
+    return {
+      ...state,
+      optics: { ...state.optics, blur: value },
+    };
+  }
+  if (control === 'dispersion') {
+    return {
+      ...state,
+      optics: { ...state.optics, dispersion: value },
+    };
+  }
   if (control === 'radius') {
     return {
       ...state,
-      shape: createLabShapeState(value),
+      shape: {
+        radius: value,
+        radiusTL: value,
+        radiusTR: value,
+        radiusBR: value,
+        radiusBL: value,
+      },
+    };
+  }
+  if (
+    control === 'radiusTL'
+    || control === 'radiusTR'
+    || control === 'radiusBR'
+    || control === 'radiusBL'
+  ) {
+    return {
+      ...state,
+      shape: { ...state.shape, [control]: value },
+    };
+  }
+  if (control === 'renderPrecision') {
+    return {
+      ...state,
+      render: { ...state.render, precision: value },
+    };
+  }
+  if (control === 'renderOrder') {
+    return {
+      ...state,
+      render: { ...state.render, order: value },
+    };
+  }
+  if (
+    control === 'illuminationAngle'
+    || control === 'illuminationIntensity'
+  ) {
+    return {
+      ...state,
+      appearance: { ...state.appearance, [control]: value },
     };
   }
   return {
     ...state,
-    render: { ...state.render, precision: value },
+    interaction: {
+      ...state.interaction,
+      config: { ...state.interaction.config, [control]: value },
+    },
   };
 }
 
@@ -135,8 +221,118 @@ export function isLabNumericControl(value: string): value is LabNumericControl {
   return value === 'thickness'
     || value === 'refractIndex'
     || value === 'refractIntensity'
+    || value === 'blur'
+    || value === 'dispersion'
     || value === 'radius'
-    || value === 'renderPrecision';
+    || value === 'radiusTL'
+    || value === 'radiusTR'
+    || value === 'radiusBR'
+    || value === 'radiusBL'
+    || value === 'renderPrecision'
+    || value === 'renderOrder'
+    || value === 'illuminationAngle'
+    || value === 'illuminationIntensity'
+    || value === 'activeScale'
+    || value === 'translateFactor'
+    || value === 'stretchFactor'
+    || value === 'highlightOpacity';
+}
+
+/** Apply one Lab checkbox without mutating prior state. */
+export function updateLabBooleanControl(
+  state: Readonly<LabState>,
+  control: LabBooleanControl,
+  value: boolean,
+): LabState {
+  if (control === 'useCustomColor') {
+    return {
+      ...state,
+      appearance: { ...state.appearance, useCustomColor: value },
+    };
+  }
+  return {
+    ...state,
+    interaction: { ...state.interaction, [control]: value },
+  };
+}
+
+/** Narrow a data attribute to one supported Lab checkbox. */
+export function isLabBooleanControl(value: string): value is LabBooleanControl {
+  return value === 'useCustomColor'
+    || value === 'disableInteractions'
+    || value === 'onlyClickInteractions'
+    || value === 'isMoveable';
+}
+
+/** Apply a validated material tint without mutating prior state. */
+export function updateLabColor(
+  state: Readonly<LabState>,
+  color: string,
+): LabState {
+  const normalized = normalizeLabTintColor(color);
+  if (!normalized) return cloneLabState(state);
+  return {
+    ...state,
+    appearance: {
+      ...state.appearance,
+      backgroundColor: normalized,
+      useCustomColor: true,
+    },
+  };
+}
+
+/** Normalize an RGB color input to a restrained translucent CSS tint. */
+export function normalizeLabTintColor(color: string): string | null {
+  const normalized = color.toLowerCase();
+  if (RGBA_HEX_PATTERN.test(normalized)) return normalized;
+  if (RGB_HEX_PATTERN.test(normalized)) {
+    return `${normalized}${DEFAULT_TINT_ALPHA}`;
+  }
+  return null;
+}
+
+/** Convert a stored translucent tint into a value accepted by type=color. */
+export function resolveLabColorInputValue(color: string): string {
+  return normalizeLabTintColor(color)?.slice(0, 7) ?? '#d9f2ea';
+}
+
+/** Apply a public interaction preset without mutating prior Lab state. */
+export function updateLabInteractionPreset(
+  state: Readonly<LabState>,
+  preset: InteractionPreset,
+): LabState {
+  return {
+    ...state,
+    interaction: { ...state.interaction, preset },
+  };
+}
+
+/** Narrow an option value to a public interaction preset. */
+export function isLabInteractionPreset(
+  value: string,
+): value is InteractionPreset {
+  return value === 'button'
+    || value === 'context-menu'
+    || value === 'slider'
+    || value === 'custom';
+}
+
+/** Apply a focused backdrop source without mutating prior Lab state. */
+export function updateLabSourceKind(
+  state: Readonly<LabState>,
+  kind: LabState['source']['kind'],
+): LabState {
+  return {
+    ...state,
+    source: { ...state.source, kind },
+  };
+}
+
+/** Narrow an option value to a focused backdrop source kind. */
+export function isLabSourceKind(
+  value: string,
+): value is LabState['source']['kind'] {
+  return value === 'canvas' || value === 'dom';
 }
 
 function cloneInteractionConfig(

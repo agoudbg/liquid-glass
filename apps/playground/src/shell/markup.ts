@@ -1,7 +1,21 @@
 import { SCENE_DEFINITIONS } from '../shared/scene-catalog';
+import { WORKBENCH_TABS } from '../shared/workbench-tabs';
+import { LAB_INSPECTOR_MARKUP } from './lab-markup';
 
 const SCENE_OPTIONS = SCENE_DEFINITIONS.map(
   ({ id, title }) => `<option value="${id}">${id} &middot; ${title}</option>`,
+).join('');
+
+const WORKBENCH_TAB_BUTTONS = WORKBENCH_TABS.map(
+  ({ id, label }) => `
+    <button
+      type="button"
+      id="workbench-tab-${id}"
+      role="tab"
+      data-workbench-tab="${id}"
+      aria-controls="workspace"
+    >${label}</button>
+  `,
 ).join('');
 
 /** Static framework-neutral workbench chrome mounted around every adapter host. */
@@ -15,6 +29,10 @@ export const PLAYGROUND_MARKUP = `
           <p>Optical workbench</p>
         </div>
       </div>
+
+      <nav class="workbench-tabs" role="tablist" aria-label="Workbench">
+        ${WORKBENCH_TAB_BUTTONS}
+      </nav>
 
       <label class="scene-picker" for="scene-control">
         <span>Scene</span>
@@ -38,68 +56,47 @@ export const PLAYGROUND_MARKUP = `
       </div>
     </header>
 
-    <main class="workspace">
+    <main
+      id="workspace"
+      class="workspace"
+      role="tabpanel"
+      aria-labelledby="workbench-tab-lab"
+    >
       <section class="stage" aria-label="Liquid glass stage">
         <div id="framework-host" class="framework-host"></div>
         <div id="stage-source" class="stage-coordinate stage-coordinate-top" aria-hidden="true">01 / CUSTOM CANVAS</div>
         <div id="stage-pipeline" class="stage-coordinate stage-coordinate-bottom" aria-hidden="true">1440 &middot; WEBGL2 &middot; UNIFORM</div>
       </section>
 
-      <aside class="inspector" aria-label="Optical controls">
+      <aside class="inspector" aria-label="Workbench controls">
         <header class="inspector-heading">
           <p id="scene-kicker">SCENE 001</p>
           <h2 id="scene-title">Single material</h2>
         </header>
 
         <div class="control-list">
-          <label class="range-control" for="thickness-control">
-            <span>Thickness</span>
-            <output id="thickness-value" for="thickness-control">36 px</output>
-            <input id="thickness-control" data-control="thickness" type="range" min="4" max="80" step="1" />
-          </label>
+          ${LAB_INSPECTOR_MARKUP}
 
-          <label class="range-control" for="ior-control">
-            <span>Index of refraction</span>
-            <output id="ior-value" for="ior-control">1.21</output>
-            <input id="ior-control" data-control="refractIndex" type="range" min="1" max="1.6" step="0.01" />
-          </label>
+          <div class="fixed-scene-panel" data-fixed-panel>
+            <div class="scene-action-panel" data-scene-actions="S003">
+              <button type="button" data-action="mutate-dom">Mutate DOM</button>
+              <button type="button" data-action="refresh-backdrop">Refresh capture</button>
+            </div>
 
-          <label class="range-control" for="intensity-control">
-            <span>Refraction</span>
-            <output id="intensity-value" for="intensity-control">0.72</output>
-            <input id="intensity-control" data-control="refractIntensity" type="range" min="0" max="1.4" step="0.01" />
-          </label>
+            <div class="mode-control viewport-control" data-scene-controls="S006">
+              <span>Capture</span>
+              <div class="segment-control viewport-switcher" aria-label="Capture bounds">
+                <button type="button" data-viewport-mode="full">Full source</button>
+                <button type="button" data-viewport-mode="bounded">Viewport</button>
+              </div>
+            </div>
+          </div>
 
-          <label class="range-control" for="radius-control">
-            <span>Corner radius</span>
-            <output id="radius-value" for="radius-control">34 px</output>
-            <input id="radius-control" data-control="radius" type="range" min="0" max="64" step="1" />
-          </label>
-
-          <label class="range-control" for="precision-control">
-            <span>Render precision</span>
-            <output id="precision-value" for="precision-control">1.0&times;</output>
-            <input id="precision-control" data-control="renderPrecision" type="range" min="0.5" max="1.5" step="0.1" />
-          </label>
-
-          <div class="mode-control">
+          <div class="mode-control shared-renderer-control">
             <span>Renderer</span>
             <div class="segment-control fallback-switcher" aria-label="Renderer mode">
               <button type="button" data-fallback-mode="webgl">WebGL</button>
               <button type="button" data-fallback-mode="css">CSS fallback</button>
-            </div>
-          </div>
-
-          <div class="scene-action-panel" data-scene-actions="S003">
-            <button type="button" data-action="mutate-dom">Mutate DOM</button>
-            <button type="button" data-action="refresh-backdrop">Refresh capture</button>
-          </div>
-
-          <div class="mode-control viewport-control" data-scene-controls="S006">
-            <span>Capture</span>
-            <div class="segment-control viewport-switcher" aria-label="Capture bounds">
-              <button type="button" data-viewport-mode="full">Full source</button>
-              <button type="button" data-viewport-mode="bounded">Viewport</button>
             </div>
           </div>
         </div>

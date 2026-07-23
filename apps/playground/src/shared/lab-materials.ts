@@ -9,7 +9,7 @@ export function resolveLabMaterials(lab: Readonly<LabState>): readonly SceneMate
         useCustomColor: true,
       }
     : {};
-  const interactionConfig = Object.keys(lab.interaction.config).length > 0
+  const interactionConfig = lab.interaction.preset === 'custom'
     ? lab.interaction.config
     : undefined;
 

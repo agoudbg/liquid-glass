@@ -2,8 +2,11 @@ import { isFrameworkId } from '../app-meta';
 import {
   cloneLabState,
   createDefaultLabState,
-  DEFAULT_LAB_URL_VALUES,
 } from '../shared/lab-state';
+import {
+  parseLabUrlState,
+  writeLabUrlState,
+} from '../shared/lab-url-state';
 import {
   getSceneDefinition,
   isSceneId,
@@ -50,38 +53,7 @@ export function createInitialState(url: URL): PlaygroundState {
   const testMode = url.searchParams.get('test') === '1';
   const oracleMode = url.searchParams.get('oracle') === '1'
     && sceneDefinition.supportsOracle;
-  const lab = createDefaultLabState({
-    thickness: parseNumber(
-      url.searchParams.get('thickness'),
-      4,
-      80,
-      DEFAULT_LAB_URL_VALUES.thickness,
-    ),
-    refractIndex: parseNumber(
-      url.searchParams.get('ior'),
-      1,
-      1.6,
-      DEFAULT_LAB_URL_VALUES.refractIndex,
-    ),
-    refractIntensity: parseNumber(
-      url.searchParams.get('intensity'),
-      0,
-      1.4,
-      DEFAULT_LAB_URL_VALUES.refractIntensity,
-    ),
-    radius: parseNumber(
-      url.searchParams.get('radius'),
-      0,
-      64,
-      DEFAULT_LAB_URL_VALUES.radius,
-    ),
-    renderPrecision: parseNumber(
-      url.searchParams.get('precision'),
-      0.5,
-      1.5,
-      DEFAULT_LAB_URL_VALUES.renderPrecision,
-    ),
-  });
+  const lab = parseLabUrlState(url.searchParams);
   const parsedState: PlaygroundState = {
     ...defaults,
     framework: isFrameworkId(framework) ? framework : defaults.framework,
@@ -152,14 +124,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('scroll', state.scrollable ? 'on' : 'off');
   url.searchParams.set('viewport', state.viewportEnabled ? 'on' : 'off');
   url.searchParams.set('content', state.domVariant);
-  url.searchParams.set('thickness', String(state.lab.optics.thickness));
-  url.searchParams.set('ior', state.lab.optics.refractIndex.toFixed(2));
-  url.searchParams.set(
-    'intensity',
-    state.lab.optics.refractIntensity.toFixed(2),
-  );
-  url.searchParams.set('radius', String(state.lab.shape.radius));
-  url.searchParams.set('precision', state.lab.render.precision.toFixed(1));
+  writeLabUrlState(url.searchParams, state.lab);
   if (state.testMode) {
     url.searchParams.set('test', '1');
   } else {
@@ -193,18 +158,4 @@ function normalizePlaygroundState(state: PlaygroundState): PlaygroundState {
 
 function parseScene(value: string | null): SceneId {
   return isSceneId(value) ? value : 'S001';
-}
-
-function parseNumber(
-  value: string | null,
-  minimum: number,
-  maximum: number,
-  fallback: number,
-): number {
-  if (value === null || value.trim() === '') return fallback;
-
-  const parsed = Number(value);
-  return Number.isFinite(parsed)
-    ? Math.min(maximum, Math.max(minimum, parsed))
-    : fallback;
 }

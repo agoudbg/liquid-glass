@@ -11,7 +11,9 @@ import { useEffect, useRef } from 'react';
 
 import {
   getBackdropDraw,
-  isDomCaptureScene,
+  isDomCaptureState,
+  isEditorialDomCaptureState,
+  resolveBackdropBackgroundColor,
   resolveDomCaptureContent,
   resolveViewportCapture,
   SCROLL_BANDS,
@@ -35,16 +37,17 @@ export function ReactScene({
   const materials = resolveSceneMaterials(state);
   const converterRef = useRef<BackdropConverterHandle>(null);
   const domContent = resolveDomCaptureContent(state.domVariant);
-  const domScene = isDomCaptureScene(state.scene);
+  const domScene = isDomCaptureState(state);
+  const editorialDomScene = isEditorialDomCaptureState(state);
 
   useEffect(() => {
-    if (!isDomCaptureScene(state.scene)) {
+    if (!domScene) {
       callbacks.onBackdropRefreshReady(null);
       return undefined;
     }
     callbacks.onBackdropRefreshReady(() => converterRef.current?.refresh());
     return () => callbacks.onBackdropRefreshReady(null);
-  }, [callbacks, state.scene]);
+  }, [callbacks, domScene]);
 
   return (
     <LiquidGlass
@@ -57,6 +60,7 @@ export function ReactScene({
         .join(' ')}
       data-framework="react"
       data-glass-enabled={String(state.glassEnabled)}
+      data-lab-source={state.scene === 'S001' ? state.lab.source.kind : undefined}
       data-scene={state.scene}
       options={contextOptions}
       onError={callbacks.onError}
@@ -65,8 +69,8 @@ export function ReactScene({
       {domScene ? (
         <BackdropConverter
           ref={converterRef}
-          backgroundColor="#dce4df"
-          className={state.scene === 'S003'
+          backgroundColor={resolveBackdropBackgroundColor(state)}
+          className={editorialDomScene
             ? 'scene-backdrop dom-capture-backdrop'
             : `scene-backdrop scroll-backdrop ${
                 state.scene === 'S005'
@@ -75,7 +79,7 @@ export function ReactScene({
               }`}
           viewportCapture={resolveViewportCapture(state)}
         >
-          {state.scene === 'S003' ? (
+          {editorialDomScene ? (
             <>
               <div className="dom-capture-photo">
                 <img

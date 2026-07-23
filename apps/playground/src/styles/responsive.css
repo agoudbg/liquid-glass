@@ -1,6 +1,6 @@
 @media (max-width: 1040px) {
   .topbar {
-    grid-template-columns: 190px minmax(280px, 1fr) auto;
+    grid-template-columns: 160px auto minmax(200px, 1fr) auto;
     gap: 12px;
   }
 
@@ -37,7 +37,7 @@
 
   .scene-picker {
     grid-column: 1 / -1;
-    grid-row: 2;
+    grid-row: 3;
     justify-self: stretch;
     width: 100%;
   }

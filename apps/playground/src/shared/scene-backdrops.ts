@@ -83,6 +83,45 @@ export function isDomCaptureScene(scene: SceneId): boolean {
   return getSceneDefinition(scene).captureKind !== 'canvas';
 }
 
+/** Return whether current state selects a real DOM backdrop converter. */
+export function isDomCaptureState(state: PlaygroundState): boolean {
+  return isDomCaptureScene(state.scene)
+    || (
+      state.scene === 'S001'
+      && !state.oracleMode
+      && state.lab.source.kind === 'dom'
+    );
+}
+
+/** Return whether a DOM source uses the editorial image-and-copy layout. */
+export function isEditorialDomCaptureState(state: PlaygroundState): boolean {
+  return state.scene === 'S003'
+    || (
+      state.scene === 'S001'
+      && !state.oracleMode
+      && state.lab.source.kind === 'dom'
+    );
+}
+
+/** Resolve the fill supplied to the active DOM backdrop converter. */
+export function resolveBackdropBackgroundColor(state: PlaygroundState): string {
+  return state.scene === 'S001' && !state.oracleMode
+    ? state.lab.source.backgroundColor
+    : '#dce4df';
+}
+
+/** Resolve the current source label shown over the stage. */
+export function resolveStageSource(state: PlaygroundState): string {
+  if (
+    state.scene === 'S001'
+    && !state.oracleMode
+    && state.lab.source.kind === 'dom'
+  ) {
+    return '01 / DOM SOURCE';
+  }
+  return getSceneDefinition(state.scene).stageSource;
+}
+
 /** Return whether a scene exercises body or internal scrolling. */
 export function isScrollCaptureScene(scene: SceneId): boolean {
   const captureKind = getSceneDefinition(scene).captureKind;

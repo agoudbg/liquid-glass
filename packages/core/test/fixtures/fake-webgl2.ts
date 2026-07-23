@@ -271,6 +271,10 @@ export class FakeWebGL2Context {
 /** Minimal 2D context recorder used by custom-backdrop tests. */
 export class FakeCanvas2DContext {
   readonly calls: FakeGlCall[] = [];
+  /** Optional deterministic pixels returned by `getImageData`. */
+  pixelData: Uint8ClampedArray | null = null;
+  /** Optional deterministic failure raised by `getImageData`. */
+  pixelReadError: unknown = null;
 
   setTransform(...args: unknown[]): void {
     this.calls.push({ name: 'setTransform', args });
@@ -286,6 +290,31 @@ export class FakeCanvas2DContext {
 
   drawImage(...args: unknown[]): void {
     this.calls.push({ name: 'drawImage', args });
+  }
+
+  getImageData(
+    _sourceX: number,
+    _sourceY: number,
+    width: number,
+    height: number,
+  ): ImageData {
+    if (this.pixelReadError !== null) {
+      throw this.pixelReadError;
+    }
+    const expectedLength = width * height * 4;
+    const data = this.pixelData?.length === expectedLength
+      ? new Uint8ClampedArray(this.pixelData)
+      : new Uint8ClampedArray(expectedLength);
+    this.calls.push({
+      name: 'getImageData',
+      args: [0, 0, width, height],
+    });
+    return {
+      colorSpace: 'srgb',
+      data,
+      height,
+      width,
+    } as ImageData;
   }
 }
 

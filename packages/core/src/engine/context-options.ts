@@ -1,5 +1,6 @@
 import { GlassError } from '../errors/GlassError';
 import type { GlassContextOptions } from '../types/context';
+import { resolveThemeColorThresholds } from './backdrop-theme';
 
 /** Resolve the renderer precision while rejecting unusable numeric values. */
 export function resolveContextPrecision(options: GlassContextOptions): number {
@@ -24,8 +25,8 @@ export function snapshotContextOptions(
   return {
     ...options,
     renderMode: 'uniform',
-    themeColorThresholds: options.themeColorThresholds
-      ? { ...options.themeColorThresholds }
-      : undefined,
+    themeColorThresholds: resolveThemeColorThresholds(
+      options.themeColorThresholds,
+    ),
   };
 }

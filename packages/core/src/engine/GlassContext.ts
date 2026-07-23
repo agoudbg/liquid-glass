@@ -89,6 +89,9 @@ export class GlassContextImpl implements GlassContext {
         getDeviceScale: () => this.getDeviceScale(),
         getMaterials: () => this.materials.values(),
         getRenderer: () => this.renderer,
+        getThemeColorThresholds: () => (
+          this.optionsSnapshot.themeColorThresholds
+        ),
         isDomCaptureActive: () => this.domCapture.active,
         isFallbackMode: () => this.fallbackMode,
         onBackdropCaptured: (capture) => this.emitter.emit(
@@ -104,6 +107,18 @@ export class GlassContextImpl implements GlassContext {
           'materialsRendered',
           payload,
         ),
+        onThemeSampled: (
+          materialId,
+          themeColorMode,
+          averageLuminance,
+        ) => {
+          if (!this.materials.setTheme(materialId, themeColorMode)) return;
+          this.emitter.emit('materialFeedback', materialId, {
+            type: 'theme-changed',
+            themeColorMode,
+            averageLuminance,
+          });
+        },
       },
     );
     this.canvas = this.renderCoordinator.presentationCanvas;

@@ -166,12 +166,13 @@ export class MaterialPresentationController {
   public setTheme(
     materialId: string,
     themeColorMode: AutomaticBackgroundColorMode,
-  ): void {
+  ): boolean {
     const materialRuntime = this.registrations.get(materialId);
     if (!materialRuntime || !materialRuntime.interaction.setTheme(themeColorMode)) {
-      return;
+      return false;
     }
     materialRuntime.interaction.publish();
+    return true;
   }
 
   /** Release all engines, listeners, timers, and the shared animation frame. */

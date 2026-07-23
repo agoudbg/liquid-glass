@@ -1,7 +1,17 @@
 import { GlassError, type GlassErrorContext } from '../errors/GlassError';
 import type { WebGLRenderer } from '../renderer';
-import type { CanvasRenderPayload } from '../types/context';
+import type {
+  AutomaticBackgroundColorMode,
+  CanvasRenderPayload,
+  ThemeColorThresholds,
+} from '../types/context';
 import type { MaterialsRenderedPayload } from '../types/events';
+import {
+  type BackdropPixelData,
+  captureBackdropPixels,
+  resolveThemeColorThresholds,
+  sampleBackdropThemes,
+} from './backdrop-theme';
 import { type ContextBackdropCapture, ContextBackdropComposite } from './ContextBackdropComposite';
 import { ContextCanvasPipeline } from './ContextCanvasPipeline';
 import { resolveRendererMaterials } from './material-resolver';
@@ -17,6 +27,8 @@ export interface ContextRenderCoordinatorCallbacks {
   getDeviceScale(): number;
   /** Read the current material registrations in context-owned order. */
   getMaterials(): Iterable<MaterialRegistration>;
+  /** Read the current automatic-theme threshold snapshot. */
+  getThemeColorThresholds(): ThemeColorThresholds | undefined;
   /** Read the renderer after context construction has completed. */
   getRenderer(): WebGLRenderer | null;
   /** Report whether a DOM capture scheduler owns the current render failure. */
@@ -31,6 +43,12 @@ export interface ContextRenderCoordinatorCallbacks {
   onFullCanvasRendered(payload: CanvasRenderPayload): void;
   /** Emit the material-render completion payload. */
   onMaterialsRendered(payload: MaterialsRenderedPayload): void;
+  /** Publish one material's current backdrop-derived theme. */
+  onThemeSampled(
+    materialId: string,
+    themeColorMode: AutomaticBackgroundColorMode,
+    averageLuminance: number,
+  ): void;
 }
 
 /**
@@ -42,6 +60,7 @@ export interface ContextRenderCoordinatorCallbacks {
 export class ContextRenderCoordinator {
   private readonly canvases: ContextCanvasPipeline;
   private readonly backdropComposite: ContextBackdropComposite;
+  private backdropPixels: BackdropPixelData | null = null;
   private backdropTextureReady = false;
 
   /** Create the context-owned canvas pipeline and its backdrop drawing facade. */
@@ -83,6 +102,7 @@ export class ContextRenderCoordinator {
       renderer.resize(containerRect.width, containerRect.height);
       this.canvases.resizePresentationToRenderer();
       if (this.sources.size === 0) {
+        this.backdropPixels = null;
         this.backdropTextureReady = false;
         renderer.clear();
         this.canvases.presentRendererFrame();
@@ -97,6 +117,7 @@ export class ContextRenderCoordinator {
           this.callbacks.getDeviceScale(),
         );
         renderer.uploadBackdrop(this.canvases.compositeCanvas);
+        this.captureThemePixels();
         this.backdropTextureReady = true;
       }
       const materials = resolveRendererMaterials(
@@ -106,8 +127,13 @@ export class ContextRenderCoordinator {
         this.runtime,
       );
       renderer.render(materials);
+      const themeColors = this.sampleThemes(
+        materials,
+        containerRect.width,
+        containerRect.height,
+      );
       this.canvases.presentRendererFrame();
-      this.emitRenderedFrame();
+      this.emitRenderedFrame(themeColors);
     } catch (error) {
       const contextual = GlassError.fromUnknown(
         error,
@@ -124,6 +150,8 @@ export class ContextRenderCoordinator {
 
   /** Idempotently release every canvas bitmap owned by this coordinator. */
   public destroy(): void {
+    this.backdropPixels = null;
+    this.backdropTextureReady = false;
     this.canvases.destroy();
   }
 
@@ -145,9 +173,56 @@ export class ContextRenderCoordinator {
     this.emitRenderedFrame();
   }
 
-  private emitRenderedFrame(): void {
+  private sampleThemes(
+    materials: ReturnType<typeof resolveRendererMaterials>,
+    logicalWidth: number,
+    logicalHeight: number,
+  ): Readonly<Record<string, AutomaticBackgroundColorMode>> | undefined {
+    if (!this.backdropPixels) return undefined;
+    const samples = sampleBackdropThemes(
+      this.backdropPixels,
+      { width: logicalWidth, height: logicalHeight },
+      materials,
+      resolveThemeColorThresholds(
+        this.callbacks.getThemeColorThresholds(),
+      ),
+    );
+    const themeColors: Record<string, AutomaticBackgroundColorMode> = {};
+    for (const [materialId, sample] of Object.entries(samples)) {
+      themeColors[materialId] = sample.themeColorMode;
+      this.callbacks.onThemeSampled(
+        materialId,
+        sample.themeColorMode,
+        sample.averageLuminance,
+      );
+    }
+    return themeColors;
+  }
+
+  private captureThemePixels(): void {
+    try {
+      this.backdropPixels = captureBackdropPixels(
+        this.canvases.compositeCanvas,
+      );
+    } catch (error) {
+      this.backdropPixels = null;
+      const contextual = GlassError.fromUnknown(
+        error,
+        'CAPTURE_FAILED',
+        'Failed to read backdrop pixels for automatic theme sampling.',
+        { phase: 'capture' },
+      );
+      this.callbacks.onError(contextual.toContext());
+    }
+  }
+
+  private emitRenderedFrame(
+    themeColors?: Readonly<Record<string, AutomaticBackgroundColorMode>>,
+  ): void {
     const payload = { canvas: this.canvases.presentationCanvas };
-    this.callbacks.onMaterialsRendered(payload);
+    this.callbacks.onMaterialsRendered(themeColors === undefined
+      ? payload
+      : { ...payload, themeColors });
     this.callbacks.onFullCanvasRendered({
       ...payload,
       width: this.canvases.presentationCanvas.width,

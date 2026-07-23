@@ -213,7 +213,7 @@ describe('GlassContext material interaction lifecycle', () => {
       fallbackMode: false,
       interactionConfig: { preset: 'button', showHighlight: true },
       interactionOutput: { scaleX: 1, scaleY: 1 },
-      themeColorMode: 'light',
+      themeColorMode: 'ultra_dark',
     });
 
     const uploads = callsNamed(gl, 'texImage2D').length;

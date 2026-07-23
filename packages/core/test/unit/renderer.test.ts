@@ -89,6 +89,27 @@ describe('WebGLRenderer', () => {
     expect(renderer.readPixels()).toEqual(new Uint8Array(200 * 100 * 4).fill(7));
   });
 
+  it('keeps the legacy transformed-pixel guard after exact spring settling', () => {
+    const canvas = new FakeCanvas();
+    const renderer = new WebGLRenderer(
+      canvas as unknown as HTMLCanvasElement,
+      { devicePixelRatio: () => 2 },
+    );
+    const scaledMaterial: RendererMaterial = {
+      ...material,
+      matrix: [1.05, 0, 0, 1.05, 0, 0],
+      rect: { x: 254, y: 360, width: 270, height: 170 },
+    };
+
+    renderer.resize(1354, 814);
+    renderer.uploadBackdrop({ width: 2708, height: 1628 } as unknown as TexImageSource);
+    renderer.render([scaledMaterial]);
+
+    expect(callsNamed(canvas.gl, 'scissor').at(-1)?.args).toEqual([
+      492, 557, 572, 362,
+    ]);
+  });
+
   it('updates render scale immediately and rejects invalid scales', () => {
     const canvas = new FakeCanvas();
     const renderer = new WebGLRenderer(

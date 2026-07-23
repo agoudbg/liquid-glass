@@ -14,6 +14,7 @@ import {
   isInteractionAtRest,
   isInteractionMotionAtRest,
   resetInteractionTargets,
+  settleInteractionMotion,
 } from './state';
 import { updateActiveTargets, updateHoverTargets } from './targets';
 import type {
@@ -279,6 +280,13 @@ export class InteractionEngine {
 
     stepInteractionSprings(this.state, spring, deltaTime);
     stepInteractionHighlight(this.state, this.config, deltaTime);
+
+    if (
+      (this.state.isPointerDown || this.state.isHovering)
+      && isInteractionMotionAtRest(this.state, this.config)
+    ) {
+      settleInteractionMotion(this.state, this.config);
+    }
 
     if (
       this.state.phase !== 'idle'

@@ -325,6 +325,32 @@ describe('GlassContext material interaction lifecycle', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('publishes exact active targets before a held interaction sleeps', () => {
+    const { context, handle, harness, material } = mountMaterialHarness();
+    const presentations: MaterialPresentationState[] = [];
+    handle.onPresentation((presentation) => presentations.push(presentation));
+
+    handle.setInteractionState(pointerState(material, {
+      isActive: true,
+      isHovering: true,
+    }));
+    harness.flushUntilIdle();
+
+    expect(handle.getPresentation().interactionOutput).toMatchObject({
+      highlightX: 0.25,
+      highlightY: 0.25,
+      isActive: true,
+      scaleX: 1.05,
+      scaleY: 1.05,
+    });
+    expect(presentations.at(-1)?.interactionOutput).toMatchObject({
+      scaleX: 1.05,
+      scaleY: 1.05,
+    });
+    expect(harness.frames.size).toBe(0);
+    context.destroy();
+  });
+
   it('uses timer-backed frames when requestAnimationFrame is unavailable', () => {
     vi.useFakeTimers();
     vi.stubGlobal('requestAnimationFrame', undefined);

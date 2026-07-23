@@ -186,3 +186,37 @@ export function isInteractionMotionAtRest(
     );
   return springsAtRest && highlightAtRest;
 }
+
+/**
+ * Snap threshold-settled motion to its exact targets before a scheduler sleeps.
+ *
+ * @param state - Mutable engine state whose motion already satisfies the rest policy.
+ * @param config - Resolved interaction configuration controlling highlight motion.
+ */
+export function settleInteractionMotion(
+  state: InteractionEngineState,
+  config: InteractionConfig,
+): void {
+  state.scaleX = state.targetScaleX;
+  state.scaleY = state.targetScaleY;
+  state.translateX = state.targetTranslateX;
+  state.translateY = state.targetTranslateY;
+  state.originX = state.targetOriginX;
+  state.originY = state.targetOriginY;
+  state.opacity = state.targetOpacity;
+  state.velocityScaleX = 0;
+  state.velocityScaleY = 0;
+  state.velocityTranslateX = 0;
+  state.velocityTranslateY = 0;
+  state.velocityOriginX = 0;
+  state.velocityOriginY = 0;
+  state.velocityOpacity = 0;
+  if (
+    config.showHighlight
+    && state.highlightVisible
+    && config.highlightFollowSpeed > 0
+  ) {
+    state.highlightX = state.highlightTargetX;
+    state.highlightY = state.highlightTargetY;
+  }
+}

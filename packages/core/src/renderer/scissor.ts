@@ -1,6 +1,16 @@
 import type { ScissorRect } from '../types/context';
 import type { RendererMaterial } from './types';
 
+function ceilTransformedExtent(value: number, hasScaleTransform: boolean): number {
+  if (!hasScaleTransform) return Math.ceil(value);
+
+  // The reference loop continuously approached spring targets, leaving scaled
+  // AABBs fractionally above exact pixel boundaries. Preserve that clipping
+  // guard when the shared scheduler settles those transforms exactly.
+  const roundingGuard = Math.max(1, Math.abs(value)) * Number.EPSILON;
+  return Math.ceil(value + roundingGuard);
+}
+
 /**
  * Calculate the legacy transformed material AABB in WebGL scissor coordinates.
  *
@@ -47,11 +57,16 @@ export function calculateMaterialScissor(
   ) * scale;
   const left = centerX + minimumX;
   const bottom = physicalHeight - centerY - maximumY;
+  const hasScaleTransform = b === 0
+    && c === 0
+    && (a !== 1 || d !== 1);
+  const width = maximumX - minimumX + margin * 2;
+  const height = maximumY - minimumY + margin * 2;
 
   return {
     x: Math.floor(left - margin),
     y: Math.floor(bottom - margin),
-    width: Math.ceil(maximumX - minimumX + margin * 2),
-    height: Math.ceil(maximumY - minimumY + margin * 2),
+    width: ceilTransformedExtent(width, hasScaleTransform),
+    height: ceilTransformedExtent(height, hasScaleTransform),
   };
 }

@@ -8,12 +8,12 @@ import type {
   MaterialPresentationState,
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
-import { ContextFrameScheduler } from './ContextFrameScheduler';
 import { prepareMaterialUpdate } from './material-config';
 import {
   restoreMaterialFallbackMode,
   setMaterialFallbackMode,
 } from './material-fallback';
+import { MaterialFrameCoordinator } from './MaterialFrameCoordinator';
 import { MaterialInteractionRuntime } from './MaterialInteractionRuntime';
 import { MaterialObserverRegistry } from './MaterialObserverRegistry';
 import {
@@ -48,10 +48,8 @@ export interface MaterialPresentationControllerCallbacks {
 /** Owns material registrations, presentation snapshots, and one shared RAF loop. */
 export class MaterialPresentationController {
   private readonly registrations = new Map<string, MaterialRuntimeState>();
-  private readonly activeMaterials = new Set<string>();
-  private readonly frameScheduler: ContextFrameScheduler;
+  private readonly frames: MaterialFrameCoordinator;
   private readonly observers: MaterialObserverRegistry;
-  private renderRequested = false;
   private destroyed = false;
   private fallbackMode = false;
   private blurred = false;
@@ -62,7 +60,13 @@ export class MaterialPresentationController {
     runtime: GlassEngineRuntime,
     private readonly callbacks: MaterialPresentationControllerCallbacks,
   ) {
-    this.frameScheduler = new ContextFrameScheduler(runtime);
+    this.frames = new MaterialFrameCoordinator(runtime, {
+      getTarget: (materialId) => (
+        this.registrations.get(materialId)?.interaction ?? null
+      ),
+      isDestroyed: () => this.destroyed,
+      renderMaterials: () => this.callbacks.renderMaterials(),
+    });
     this.observers = new MaterialObserverRegistry(
       container,
       runtime,
@@ -90,7 +94,7 @@ export class MaterialPresentationController {
         fallbackMode: this.fallbackMode,
       },
       {
-        deactivate: () => this.activeMaterials.delete(registration.id),
+        deactivate: () => this.frames.deactivate(registration.id),
         shouldStopPublishing: () => this.destroyed || registration.destroyed,
         wake: () => this.wake(registration),
       },
@@ -169,15 +173,13 @@ export class MaterialPresentationController {
     if (this.destroyed) return;
     this.destroyed = true;
     this.observers.destroy();
-    this.cancelFrame();
+    this.frames.destroy();
     for (const materialRuntime of this.registrations.values()) {
       materialRuntime.interaction.destroy();
       restoreMaterialFallbackMode(materialRuntime.registration);
       materialRuntime.registration.destroyed = true;
     }
-    this.activeMaterials.clear();
     this.registrations.clear();
-    this.renderRequested = false;
   }
 
   private update(
@@ -259,7 +261,7 @@ export class MaterialPresentationController {
 
     materialRuntime.inViewport = inViewport;
     if (!inViewport) {
-      this.activeMaterials.delete(registration.id);
+      this.frames.deactivate(registration.id);
       this.requestRender();
       return;
     }
@@ -276,11 +278,11 @@ export class MaterialPresentationController {
     materialRuntime.interaction.destroy();
     restoreMaterialFallbackMode(materialRuntime.registration);
     materialRuntime.registration.destroyed = true;
-    this.activeMaterials.delete(materialRuntime.registration.id);
+    this.frames.deactivate(materialRuntime.registration.id);
     this.registrations.delete(materialRuntime.registration.id);
     this.callbacks.onRemoved(materialRuntime.registration);
     if (!this.destroyed) this.callbacks.renderImmediately();
-    this.cancelFrameWhenIdle();
+    this.frames.cancelWhenIdle();
   }
 
   private wake(registration: MaterialRegistration): void {
@@ -294,58 +296,11 @@ export class MaterialPresentationController {
     ) {
       return;
     }
-    if (!this.activeMaterials.has(registration.id)) {
-      materialRuntime.interaction.resetTimestamp();
-      this.activeMaterials.add(registration.id);
-    }
-    this.ensureFrame();
+    this.frames.wake(registration.id, materialRuntime.interaction);
   }
 
   private requestRender(): void {
-    this.renderRequested = true;
-    this.ensureFrame();
-  }
-
-  private ensureFrame(): void {
-    if (this.destroyed || this.frameScheduler.scheduled) return;
-    this.frameScheduler.request((timestamp) => this.runFrame(timestamp));
-  }
-
-  private runFrame(timestamp: number): void {
-    if (this.destroyed) return;
-    let presentationChanged = false;
-    let publishError: unknown;
-    let publishFailed = false;
-    for (const materialId of [...this.activeMaterials]) {
-      const materialRuntime = this.registrations.get(materialId);
-      if (!materialRuntime) {
-        this.activeMaterials.delete(materialId);
-        continue;
-      }
-      if (materialRuntime.interaction.step(timestamp)) {
-        try {
-          materialRuntime.interaction.publish();
-        } catch (error) {
-          if (!publishFailed) publishError = error;
-          publishFailed = true;
-        }
-        presentationChanged = true;
-      }
-      if (this.destroyed) break;
-      if (materialRuntime.interaction.isMotionAtRest()) {
-        this.activeMaterials.delete(materialId);
-      }
-    }
-
-    if (this.destroyed) {
-      if (publishFailed) throw publishError;
-      return;
-    }
-    const shouldRender = this.renderRequested || presentationChanged;
-    this.renderRequested = false;
-    if (shouldRender) this.callbacks.renderMaterials();
-    if (this.activeMaterials.size > 0 || this.renderRequested) this.ensureFrame();
-    if (publishFailed) throw publishError;
+    this.frames.requestRender();
   }
 
   private publishAll(materials: MaterialRuntimeState[]): void {
@@ -360,14 +315,6 @@ export class MaterialPresentationController {
       }
     }
     if (publishFailed) throw publishError;
-  }
-
-  private cancelFrameWhenIdle(): void {
-    if (this.activeMaterials.size === 0 && !this.renderRequested) this.cancelFrame();
-  }
-
-  private cancelFrame(): void {
-    this.frameScheduler.cancel();
   }
 
   private assertRegistration(materialRuntime: MaterialRuntimeState): void {

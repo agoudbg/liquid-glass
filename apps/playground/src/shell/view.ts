@@ -1,24 +1,8 @@
-import { isDomCaptureScene } from '../shared/scenes';
+import { getSceneDefinition } from '../shared/scene-catalog';
 import type {
   HostRuntimeReport,
   PlaygroundState,
-  SceneId,
 } from '../shared/types';
-
-interface SceneMeta {
-  kicker: string;
-  materialCount: string;
-  title: string;
-}
-
-const SCENE_META: Record<SceneId, SceneMeta> = {
-  S001: { kicker: 'SCENE 001', title: 'Single material', materialCount: '1' },
-  S002: { kicker: 'SCENE 002', title: 'Material overlap', materialCount: '3' },
-  S003: { kicker: 'SCENE 003', title: 'DOM capture', materialCount: '1' },
-  S005: { kicker: 'SCENE 005', title: 'Body scroll', materialCount: '1' },
-  S006: { kicker: 'SCENE 006', title: 'Internal scroll', materialCount: '1' },
-  S007: { kicker: 'SCENE 007', title: 'Fallback recovery', materialCount: '1' },
-};
 
 /** DOM facade for the framework-neutral playground shell. */
 export class PlaygroundShellView {
@@ -100,15 +84,15 @@ export class PlaygroundShellView {
     this.setText('#intensity-value', state.refractIntensity.toFixed(2));
     this.setText('#radius-value', `${String(state.radius)} px`);
     this.setText('#precision-value', `${state.renderPrecision.toFixed(1)}×`);
-    const sceneMeta = SCENE_META[state.scene];
-    this.setText('#scene-kicker', sceneMeta.kicker);
-    this.setText('#scene-title', sceneMeta.title);
-    this.setText('#material-count', sceneMeta.materialCount);
+    const sceneDefinition = getSceneDefinition(state.scene);
+    this.setText('#scene-kicker', `SCENE ${state.scene.slice(1)}`);
+    this.setText('#scene-title', sceneDefinition.title);
+    this.setText('#material-count', String(sceneDefinition.materialCount));
     this.setText(
       '#backdrop-type',
-      isDomCaptureScene(state.scene) ? 'Captured DOM' : 'Canvas 2D',
+      sceneDefinition.captureKind === 'canvas' ? 'Canvas 2D' : 'Captured DOM',
     );
-    this.setText('#stage-source', resolveStageSource(state.scene));
+    this.setText('#stage-source', sceneDefinition.stageSource);
     this.setText(
       '[data-action="mutate-dom"]',
       state.domVariant === 'source' ? 'Mutate DOM' : 'Restore source',
@@ -193,11 +177,4 @@ export class PlaygroundShellView {
 
 function capitalize(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
-}
-
-function resolveStageSource(scene: SceneId): string {
-  if (scene === 'S003') return '01 / DOM SOURCE';
-  if (scene === 'S005') return '05 / BODY SCROLL';
-  if (scene === 'S006') return '06 / VIEWPORT CAPTURE';
-  return '01 / CUSTOM CANVAS';
 }

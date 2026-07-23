@@ -4,24 +4,9 @@ import type {
 } from '@agou/liquid-glass-core';
 
 import type { FrameworkId } from '../app-meta';
+import type { SceneId } from './scene-catalog';
 
-/** Canonical visible scenes exposed by the optical workbench. */
-export const SCENE_IDS = [
-  'S001',
-  'S002',
-  'S003',
-  'S005',
-  'S006',
-  'S007',
-] as const;
-
-/** Canonical visible scene identifier. */
-export type SceneId = (typeof SCENE_IDS)[number];
-
-/** Narrow an unknown value to a supported scene identifier. */
-export function isSceneId(value: unknown): value is SceneId {
-  return typeof value === 'string' && SCENE_IDS.includes(value as SceneId);
-}
+export type { SceneId } from './scene-catalog';
 
 /** Complete URL-addressable state shared by all framework hosts. */
 export interface PlaygroundState {

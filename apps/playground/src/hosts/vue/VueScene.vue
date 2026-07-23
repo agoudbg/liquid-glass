@@ -13,10 +13,10 @@ import {
   getBackdropDraw,
   isDomCaptureScene,
   resolveDomCaptureContent,
-  resolveSceneMaterials,
   resolveViewportCapture,
   SCROLL_BANDS,
-} from '../../shared/scenes';
+} from '../../shared/scene-backdrops';
+import { resolveSceneMaterials } from '../../shared/scene-materials';
 import type { FrameworkHostProps } from '../../shared/types';
 
 const props = defineProps<FrameworkHostProps>();

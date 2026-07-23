@@ -1,4 +1,8 @@
 import { observeGlassContext } from '../shared/diagnostics';
+import {
+  getSceneDefinition,
+  isSceneId,
+} from '../shared/scene-catalog';
 import type {
   FrameworkHostCallbacks,
   FrameworkHostController,
@@ -6,7 +10,6 @@ import type {
   HostRuntimeReport,
   PlaygroundState,
 } from '../shared/types';
-import { isSceneId } from '../shared/types';
 import {
   createInitialState,
   replacePlaygroundUrl,
@@ -149,13 +152,14 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   listen(view.sceneSelect, 'change', () => {
     const scene = view.sceneSelect.value;
     if (!isSceneId(scene)) return;
+    const sceneDefinition = getSceneDefinition(scene);
     runtimeReport = createInitializingReport();
     updateState({
       domVariant: 'source',
-      fallbackEnabled: scene === 'S007',
+      fallbackEnabled: sceneDefinition.fallbackByDefault,
       scene,
-      scrollable: scene === 'S006',
-      viewportEnabled: scene === 'S006',
+      scrollable: sceneDefinition.scrollableByDefault,
+      viewportEnabled: sceneDefinition.viewportByDefault,
     });
   });
 

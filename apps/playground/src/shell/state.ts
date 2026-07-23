@@ -1,9 +1,10 @@
 import { isFrameworkId } from '../app-meta';
 import {
+  getSceneDefinition,
   isSceneId,
-  type PlaygroundState,
   type SceneId,
-} from '../shared/types';
+} from '../shared/scene-catalog';
+import type { PlaygroundState } from '../shared/types';
 
 const DEFAULT_STATE: PlaygroundState = {
   framework: 'vue',
@@ -30,16 +31,18 @@ export function createInitialState(url: URL): PlaygroundState {
   const fallback = url.searchParams.get('fallback');
   const scroll = url.searchParams.get('scroll');
   const viewport = url.searchParams.get('viewport');
+  const sceneDefinition = getSceneDefinition(scene);
   const oracleMode = url.searchParams.get('oracle') === '1'
-    && (scene === 'S001' || scene === 'S002');
+    && sceneDefinition.supportsOracle;
   const parsedState: PlaygroundState = {
     ...DEFAULT_STATE,
     framework: isFrameworkId(framework) ? framework : DEFAULT_STATE.framework,
     scene,
     glassEnabled: url.searchParams.get('glass') !== 'off',
-    fallbackEnabled: fallback === 'on' || (fallback !== 'off' && scene === 'S007'),
-    scrollable: scene === 'S006' && scroll !== 'off',
-    viewportEnabled: scene === 'S006' && viewport !== 'off',
+    fallbackEnabled: fallback === 'on'
+      || (fallback !== 'off' && sceneDefinition.fallbackByDefault),
+    scrollable: sceneDefinition.scrollableByDefault && scroll !== 'off',
+    viewportEnabled: sceneDefinition.viewportByDefault && viewport !== 'off',
     domVariant: url.searchParams.get('content') === 'mutated' ? 'mutated' : 'source',
     thickness: parseNumber(url.searchParams.get('thickness'), 4, 80, DEFAULT_STATE.thickness),
     refractIndex: parseNumber(url.searchParams.get('ior'), 1, 1.6, DEFAULT_STATE.refractIndex),

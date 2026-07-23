@@ -1,0 +1,119 @@
+#app[data-oracle-mode="true"] .playground-shell {
+  display: block;
+  min-height: 100%;
+  background: #101a26;
+}
+
+#app[data-oracle-mode="true"] .topbar,
+#app[data-oracle-mode="true"] .inspector,
+#app[data-oracle-mode="true"] .diagnostics,
+#app[data-oracle-mode="true"] .stage-coordinate {
+  display: none;
+}
+
+#app[data-oracle-mode="true"] .workspace,
+#app[data-oracle-mode="true"] .stage {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  min-height: 720px;
+}
+
+#app[data-oracle-mode="true"] .stage {
+  border: 0;
+  background: #101a26;
+}
+
+#app[data-oracle-mode="true"] .framework-host {
+  inset: 43px;
+  width: auto;
+  height: auto;
+}
+
+#app[data-oracle-mode="true"] .stage::after {
+  position: absolute;
+  z-index: 20030;
+  inset: 42px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  content: "";
+  pointer-events: none;
+}
+
+#app[data-oracle-mode="true"] .glass-context {
+  overflow: visible;
+  background: transparent;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+#app[data-oracle-mode="true"] .oracle-material {
+  z-index: 20 !important;
+  display: grid !important;
+  place-content: center;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+#app[data-oracle-mode="true"] .oracle-material .material-copy {
+  display: grid;
+  height: 100%;
+  place-content: center;
+  gap: 8px;
+  padding: 0;
+  color: #ffffff;
+}
+
+#app[data-oracle-mode="true"] .oracle-material .material-copy strong {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: normal;
+}
+
+#app[data-oracle-mode="true"] .oracle-material .material-copy span {
+  color: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+#app[data-oracle-mode="true"] .oracle-s001 {
+  top: 245px !important;
+  left: 470px !important;
+  width: 420px !important;
+  height: 220px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-multi {
+  width: 350px !important;
+  height: 210px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-multi-a {
+  top: 150px !important;
+  left: 210px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-multi-b {
+  top: 270px !important;
+  left: 530px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-multi-c {
+  top: 410px !important;
+  left: 850px !important;
+}
+
+#app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-material {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+#app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-material::before {
+  display: none !important;
+}
+
+#app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-background,
+#app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-highlight {
+  visibility: hidden !important;
+}

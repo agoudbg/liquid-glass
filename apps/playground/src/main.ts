@@ -2,6 +2,7 @@
 import { bootstrapPlaygroundShell } from './shell/controller';
 
 import './styles.css';
+import './styles/diagnostics.css';
 import './styles/scroll-scenes.css';
 import './styles/scene-controls.css';
 import './styles/responsive.css';

@@ -13,10 +13,10 @@ import {
   getBackdropDraw,
   isDomCaptureScene,
   resolveDomCaptureContent,
-  resolveSceneMaterials,
   resolveViewportCapture,
   SCROLL_BANDS,
-} from '../../shared/scenes';
+} from '../../shared/scene-backdrops';
+import { resolveSceneMaterials } from '../../shared/scene-materials';
 import type { FrameworkHostProps } from '../../shared/types';
 
 /** Render the canonical scene through the React public adapter. */

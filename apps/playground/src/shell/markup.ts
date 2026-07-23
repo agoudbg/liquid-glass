@@ -1,3 +1,9 @@
+import { SCENE_DEFINITIONS } from '../shared/scene-catalog';
+
+const SCENE_OPTIONS = SCENE_DEFINITIONS.map(
+  ({ id, title }) => `<option value="${id}">${id} &middot; ${title}</option>`,
+).join('');
+
 /** Static framework-neutral workbench chrome mounted around every adapter host. */
 export const PLAYGROUND_MARKUP = `
   <div class="playground-shell" data-testid="playground-shell">
@@ -13,12 +19,7 @@ export const PLAYGROUND_MARKUP = `
       <label class="scene-picker" for="scene-control">
         <span>Scene</span>
         <select id="scene-control" data-testid="scene-select">
-          <option value="S001">S001 &middot; Single material</option>
-          <option value="S002">S002 &middot; Material overlap</option>
-          <option value="S003">S003 &middot; DOM capture</option>
-          <option value="S005">S005 &middot; Body scroll</option>
-          <option value="S006">S006 &middot; Internal scroll</option>
-          <option value="S007">S007 &middot; Fallback recovery</option>
+          ${SCENE_OPTIONS}
         </select>
       </label>
 

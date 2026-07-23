@@ -1,4 +1,5 @@
 @import './styles/stage.css';
+@import './styles/oracle.css';
 
 :root {
   color: #1c2927;
@@ -356,78 +357,4 @@ select:focus-visible {
   color: #263632;
   font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
   font-weight: 650;
-}
-
-.diagnostics {
-  display: grid;
-  grid-template-columns: 176px minmax(0, 1fr);
-  min-width: 0;
-  border-top: 1px solid #cbd2ce;
-  background: #222e2c;
-  color: #edf2ef;
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
-  font-size: 9px;
-}
-
-.diagnostic-primary {
-  gap: 8px;
-  padding: 0 18px;
-  border-right: 1px solid rgba(237, 242, 239, 0.14);
-}
-
-.diagnostic-primary strong {
-  font-size: 9px;
-  font-weight: 700;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #72b3a4;
-  animation: status-breathe 2.4s ease-in-out infinite;
-}
-
-.diagnostics dl {
-  min-width: 0;
-  margin: 0;
-  overflow-x: auto;
-}
-
-.diagnostics dl div {
-  flex: 0 0 auto;
-  gap: 7px;
-  min-width: 118px;
-  height: 100%;
-  padding: 0 14px;
-  border-right: 1px solid rgba(237, 242, 239, 0.1);
-}
-
-.diagnostics dt {
-  color: rgba(237, 242, 239, 0.48);
-  text-transform: uppercase;
-}
-
-.diagnostics dd {
-  margin: 0;
-  color: rgba(237, 242, 239, 0.9);
-  white-space: nowrap;
-}
-
-#diagnostic-error {
-  max-width: 270px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.is-test-mode *,
-[data-test-mode="true"] * {
-  animation-duration: 0s !important;
-  transition-duration: 0s !important;
-}
-
-@keyframes status-breathe {
-  0%,
-  100% { opacity: 0.54; transform: scale(0.82); }
-  50% { opacity: 1; transform: scale(1); }
 }

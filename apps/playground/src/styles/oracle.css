@@ -25,22 +25,14 @@
 }
 
 #app[data-oracle-mode="true"] .framework-host {
-  inset: 43px;
+  inset: 42px;
   width: auto;
   height: auto;
 }
 
-#app[data-oracle-mode="true"] .stage::after {
-  position: absolute;
-  z-index: 20030;
-  inset: 42px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  content: "";
-  pointer-events: none;
-}
-
 #app[data-oracle-mode="true"] .glass-context {
   overflow: visible;
+  border: 1px solid rgba(255, 255, 255, 0.16);
   background: transparent;
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -49,7 +41,7 @@
   z-index: 20 !important;
   display: grid !important;
   place-content: center;
-  color: #ffffff;
+  color: var(--lg-foreground-color);
   font-size: 22px;
   font-weight: 700;
   text-align: center;
@@ -61,7 +53,7 @@
   place-content: center;
   gap: 8px;
   padding: 0;
-  color: #ffffff;
+  color: inherit;
 }
 
 #app[data-oracle-mode="true"] .oracle-material .material-copy strong {
@@ -75,7 +67,7 @@
 }
 
 #app[data-oracle-mode="true"] .oracle-material .material-copy span {
-  color: #ffffff;
+  color: inherit;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
   font-weight: 400;

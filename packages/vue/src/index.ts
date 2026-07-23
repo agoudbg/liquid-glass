@@ -20,6 +20,7 @@ export {
   useLiquidGlassContext,
 } from './composables/liquidGlassContext';
 export type {
+  LegacyInteractionConfig,
   LgBackdropCanvasProps,
   LgBackdropConverterExposed,
   LgBackdropConverterProps,

@@ -390,7 +390,7 @@ describe('Vue adapter behavior', () => {
     wrapper.unmount();
   });
 
-  it('updates moveable behavior without replacing the material registration', async () => {
+  it('updates legacy and moveable behavior without replacing the material registration', async () => {
     const materialHandle = createMaterialHandle();
     const harness = createContextHarness(materialHandle);
     const wrapper = mount(LiquidGlassMaterial, {
@@ -401,18 +401,20 @@ describe('Vue adapter behavior', () => {
           },
         },
       },
-      props: { isMoveable: true },
+      props: { interaction: { baseScale: 0.93 }, isMoveable: true },
     });
     await nextTick();
 
     expect(harness.addMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      interactionConfig: expect.objectContaining({ baseScale: 0.93 }),
       isMoveable: true,
     }));
 
-    await wrapper.setProps({ isMoveable: false });
+    await wrapper.setProps({ interaction: { baseScale: 0.96 }, isMoveable: false });
     await nextTick();
 
     expect(materialHandle.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      interactionConfig: expect.objectContaining({ baseScale: 0.96 }),
       isMoveable: false,
     }));
     expect(harness.addMaterial).toHaveBeenCalledTimes(1);

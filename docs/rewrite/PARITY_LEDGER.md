@@ -41,7 +41,7 @@ mark the rewrite acceptance rows complete.
 | INT-004 | `context-menu` preset | `CONTEXT_MENU_PRESET` and trace fixture | Preserve | No hover response, active stretch, origin shift, and partial idle-return policy remain. |
 | INT-005 | `slider` preset | `SLIDER_PRESET` and trace fixture | Preserve | Velocity stretch, fixed origin, transparent active background, and jelly release match. |
 | INT-006 | Custom preset overrides | Constructor merge and custom trace | Preserve | A typed partial config can override every supported preset value. |
-| INT-007 | Deprecated legacy `interaction` object | `LiquidGlassMaterial.vue` conversion | Fix | Vue compatibility mapping remains for one migration window and is documented as deprecated; new adapters use the typed preset/config API. |
+| INT-007 | Deprecated legacy `interaction` object | `packages/vue/src/legacy-interaction.ts` and its tests | Fix | Vue retains the exact supported mapping for one migration window; the three legacy-only rebound fields remain no-ops, and new adapters use the typed preset/config API. |
 | INT-008 | `disableInteractions`, `onlyClickInteractions`, and interactive descendants | Material pointer handlers | Preserve | Mouse and touch tests cover disabled, click-only, and nested button/input behavior. |
 | INT-009 | `isMoveable` suppresses material-owned translation | Material config merge | Preserve intent | External drag can drive the material without double-applying pointer translation. |
 

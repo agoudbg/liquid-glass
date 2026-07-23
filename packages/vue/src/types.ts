@@ -49,10 +49,45 @@ export interface LiquidGlassExposed {
   getProxyTarget(): ProxyTargetInterface | null;
 }
 
+/** Deprecated Vue interaction options retained for one migration window. */
+export interface LegacyInteractionConfig {
+  /** Resting material scale. */
+  baseScale: number;
+  /** Scale targeted while the pointer is pressed. */
+  activeScale: number;
+  /** Pointer translation multiplier. */
+  translateFactor: number;
+  /** Pointer stretch multiplier. */
+  stretchFactor: number;
+  /** Maximum stretch applied to either axis. */
+  stretchLimit: number;
+  /** Legacy active damping converted into an active spring. */
+  damping: number;
+  /** Compatibility-only field that was not mapped by the legacy implementation. */
+  reboundDamping: number;
+  /** Legacy release damping converted into a release spring. */
+  releaseDamping: number;
+  /** Compatibility-only field that was not mapped by the legacy implementation. */
+  releaseReboundDamping: number;
+  /** Compatibility-only field that was not mapped by the legacy implementation. */
+  reboundThreshold: number;
+  /** Highlight diameter in CSS pixels. */
+  highlightSize: number;
+  /** Highlight opacity multiplier. */
+  highlightOpacity: number;
+  /** Highlight high-dynamic-range multiplier. */
+  highlightHDRFactor: number;
+  /** Highlight tracking speed. */
+  followLag: number;
+}
+
 /** Props accepted by a Vue glass material. */
 export interface LiquidGlassMaterialProps
   extends Omit<MaterialConfig, 'element'>,
-  MaterialAppearanceOptions {}
+  MaterialAppearanceOptions {
+  /** @deprecated Use `interactionPreset` and `interactionConfig` instead. */
+  interaction?: Partial<LegacyInteractionConfig>;
+}
 
 /** Minimal imperative surface exposed by a Vue material. */
 export interface LiquidGlassMaterialExposed {

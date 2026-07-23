@@ -12,6 +12,7 @@ import {
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useLiquidGlassContext } from '../composables/liquidGlassContext';
+import { mergeVueInteractionConfig } from '../legacy-interaction';
 import type {
   LiquidGlassMaterialExposed,
   LiquidGlassMaterialProps,
@@ -40,6 +41,11 @@ const updating = ref(false);
 let pointerController: MaterialPointerController | null = null;
 let presentationController: MaterialDomPresentationController | null = null;
 
+const resolvedInteractionConfig = computed(() => mergeVueInteractionConfig(
+  props.interaction,
+  props.interactionConfig,
+));
+
 const materialChanges = computed<MaterialChanges>(() => ({
   radius: props.radius,
   radiusTR: props.radiusTR,
@@ -55,7 +61,7 @@ const materialChanges = computed<MaterialChanges>(() => ({
   onlyClickInteractions: props.onlyClickInteractions,
   isMoveable: props.isMoveable,
   interactionPreset: props.interactionPreset,
-  interactionConfig: props.interactionConfig,
+  interactionConfig: resolvedInteractionConfig.value,
   renderMode: props.renderMode,
   renderOrder: props.renderOrder,
   proxyTarget: props.proxyTarget,

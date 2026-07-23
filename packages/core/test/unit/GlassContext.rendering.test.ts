@@ -4,8 +4,8 @@ import {
   GlassEngine,
   type GlassEngineRuntime,
 } from '../../src/engine';
-import type { RectLike } from '../../src/types';
-import { FakeCanvas } from '../fixtures/fake-webgl2';
+import type { CanvasLike, RectLike } from '../../src/types';
+import { callsNamed, FakeCanvas } from '../fixtures/fake-webgl2';
 
 function domRect(rect: RectLike): DOMRectReadOnly {
   return {
@@ -89,6 +89,14 @@ class MissingWebGlCanvas extends FakeCanvas {
   }
 }
 
+class Missing2DCanvas extends FakeCanvas {
+  public override getContext(
+    contextId: string,
+  ): ReturnType<FakeCanvas['getContext']> {
+    return contextId === '2d' ? null : super.getContext(contextId);
+  }
+}
+
 interface RuntimeHarness {
   readonly canvases: FakeCanvas[];
   readonly frames: Map<number, FrameRequestCallback>;
@@ -136,6 +144,69 @@ function createRuntimeHarness(devicePixelRatio = 1): RuntimeHarness {
 }
 
 describe('GlassContext render ownership', () => {
+  it('copies cleared WebGL frames into the sole visible canvas before events', () => {
+    const harness = createRuntimeHarness(1.5);
+    const container = new FakeElement({ x: 10, y: 20, width: 201, height: 99 });
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const rendererCanvas = harness.canvases[0];
+    const compositeCanvas = harness.canvases[1];
+    const presentationCanvas = harness.canvases[2];
+    if (!rendererCanvas || !compositeCanvas || !presentationCanvas) {
+      throw new Error('Missing context-owned canvas.');
+    }
+
+    expect(harness.canvases).toHaveLength(3);
+    expect(context.canvas).toBe(presentationCanvas);
+    expect(container.children).toEqual([presentationCanvas]);
+    expect(rendererCanvas.parentNode).toBeNull();
+    expect(compositeCanvas.parentNode).toBeNull();
+
+    const eventCanvases: CanvasLike[] = [];
+    const copyCountsAtEvent: number[] = [];
+    context.on('materialsRendered', ({ canvas }) => {
+      eventCanvases.push(canvas);
+      copyCountsAtEvent.push(presentationCanvas.context2d.calls.length);
+    });
+    context.on('fullCanvasRendered', ({ canvas }) => {
+      eventCanvases.push(canvas);
+      copyCountsAtEvent.push(presentationCanvas.context2d.calls.length);
+    });
+
+    context.refresh();
+
+    expect(rendererCanvas).toMatchObject({ width: 302, height: 149 });
+    expect(presentationCanvas).toMatchObject({ width: 302, height: 149 });
+    expect(callsNamed(rendererCanvas.gl, 'clear')).toHaveLength(1);
+    expect(presentationCanvas.context2d.calls).toEqual([
+      { name: 'clearRect', args: [0, 0, 302, 149] },
+      {
+        name: 'drawImage',
+        args: [rendererCanvas, 0, 0, 302, 149],
+      },
+    ]);
+    expect(eventCanvases).toEqual([context.canvas, context.canvas]);
+    expect(copyCountsAtEvent).toEqual([2, 2]);
+
+    context.destroy();
+    context.destroy();
+
+    expect(container.children).toHaveLength(0);
+    expect(harness.canvases).toEqual([
+      expect.objectContaining({ width: 0, height: 0 }),
+      expect.objectContaining({ width: 0, height: 0 }),
+      expect.objectContaining({ width: 0, height: 0 }),
+    ]);
+    expect(context.canvas).toMatchObject({ width: 0, height: 0 });
+    expect(callsNamed(rendererCanvas.gl, 'deleteProgram')).toHaveLength(1);
+    const preventDefault = vi.fn();
+    rendererCanvas.dispatch('webglcontextlost', {
+      preventDefault,
+    } as unknown as Event);
+    expect(preventDefault).not.toHaveBeenCalled();
+  });
+
   it('emits composite and rendered events in pipeline order with physical dimensions', () => {
     const harness = createRuntimeHarness(1.5);
     const container = new FakeElement({ x: 10, y: 20, width: 201, height: 99 });
@@ -144,12 +215,23 @@ describe('GlassContext render ownership', () => {
     const context = new GlassEngine(harness.runtime).createContext(
       container as unknown as HTMLElement,
     );
+    const rendererCanvas = harness.canvases[0];
+    const presentationCanvas = harness.canvases[2];
+    if (!rendererCanvas || !presentationCanvas) {
+      throw new Error('Missing context-owned canvas.');
+    }
     const eventOrder: string[] = [];
     const fullCanvasRendered = vi.fn();
     context.on('compositeRequested', () => eventOrder.push('compositeRequested'));
     context.on('backdropCaptured', () => eventOrder.push('backdropCaptured'));
-    context.on('materialsRendered', () => eventOrder.push('materialsRendered'));
+    context.on('materialsRendered', ({ canvas }) => {
+      expect(canvas).toBe(context.canvas);
+      expect(presentationCanvas.context2d.calls).toHaveLength(2);
+      eventOrder.push('materialsRendered');
+    });
     context.on('fullCanvasRendered', (payload) => {
+      expect(payload.canvas).toBe(context.canvas);
+      expect(presentationCanvas.context2d.calls).toHaveLength(2);
       eventOrder.push('fullCanvasRendered');
       fullCanvasRendered(payload);
     });
@@ -171,6 +253,46 @@ describe('GlassContext render ownership', () => {
       width: 302,
       height: 149,
     });
+    expect(presentationCanvas.context2d.calls).toEqual([
+      { name: 'clearRect', args: [0, 0, 302, 149] },
+      {
+        name: 'drawImage',
+        args: [rendererCanvas, 0, 0, 302, 149],
+      },
+    ]);
+    context.destroy();
+  });
+
+  it('emits and rethrows a missing presentation 2D context error', () => {
+    const canvases: FakeCanvas[] = [];
+    const runtime: GlassEngineRuntime = {
+      createCanvas: () => {
+        const canvas = canvases.length === 2
+          ? new Missing2DCanvas()
+          : new FakeCanvas();
+        canvases.push(canvas);
+        return canvas as unknown as HTMLCanvasElement;
+      },
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+    };
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const errors = vi.fn();
+    context.on('error', errors);
+
+    expect(() => context.refresh()).toThrowError(expect.objectContaining({
+      code: 'RENDER_FAILED',
+      phase: 'render',
+    }));
+    expect(errors).toHaveBeenCalledOnce();
+    expect(errors).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'RENDER_FAILED',
+      message: 'Failed to acquire the liquid-glass presentation 2D context.',
+      phase: 'render',
+    }));
     context.destroy();
   });
 
@@ -194,9 +316,9 @@ describe('GlassContext render ownership', () => {
       element: backdrop as unknown as HTMLElement,
       kind: 'dom',
     });
-    const presentationCanvas = harness.canvases[0];
-    if (!presentationCanvas) throw new Error('Missing presentation canvas.');
-    presentationCanvas.gl.errorCode = 0x0502;
+    const rendererCanvas = harness.canvases[0];
+    if (!rendererCanvas) throw new Error('Missing renderer canvas.');
+    rendererCanvas.gl.errorCode = 0x0502;
 
     harness.flushFrame();
 

@@ -268,4 +268,47 @@ describe('GlassContext fallback lifecycle', () => {
     expect(context.fallbackMode).toBe(false);
     context.destroy();
   });
+
+  it('handles WebGL context loss only on the internal renderer canvas', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const publicPreventDefault = vi.fn();
+
+    (context.canvas as unknown as FakeCanvas).dispatch('webglcontextlost', {
+      preventDefault: publicPreventDefault,
+    } as unknown as Event);
+
+    expect(publicPreventDefault).not.toHaveBeenCalled();
+    expect(context.fallbackMode).toBe(false);
+
+    const internalPreventDefault = vi.fn();
+    const presentationCanvas = context.canvas as unknown as FakeCanvas;
+    const copiesBeforeFallbackChange: number[] = [];
+    context.on('fallbackModeChanged', (enabled) => {
+      if (!enabled) {
+        copiesBeforeFallbackChange.push(
+          presentationCanvas.context2d.calls.filter(
+            ({ name }) => name === 'drawImage',
+          ).length,
+        );
+      }
+    });
+    runtime.canvases[0].dispatch('webglcontextlost', {
+      preventDefault: internalPreventDefault,
+    } as unknown as Event);
+
+    expect(internalPreventDefault).toHaveBeenCalledOnce();
+    expect(context.fallbackMode).toBe(true);
+    presentationCanvas.context2d.calls.splice(0);
+    runtime.canvases[0].dispatch('webglcontextrestored', {} as Event);
+    expect(context.fallbackMode).toBe(false);
+    expect(copiesBeforeFallbackChange).toEqual([1]);
+    expect(presentationCanvas.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    )).toHaveLength(2);
+    context.destroy();
+  });
 });

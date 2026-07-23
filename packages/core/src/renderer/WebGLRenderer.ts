@@ -85,7 +85,7 @@ export class WebGLRenderer {
   /**
    * Create a renderer and allocate the shader program and fullscreen geometry.
    *
-   * @param canvas - Core-owned presentation canvas.
+   * @param canvas - Core-owned internal WebGL render canvas.
    * @param options - Quality, deterministic DPR, and context lifecycle hooks.
    */
   public constructor(
@@ -234,7 +234,7 @@ export class WebGLRenderer {
   }
 
   /**
-   * Draw all visible materials into the current presentation canvas.
+   * Draw all visible materials into the internal WebGL render canvas.
    *
    * @param materials - Resolved material draw data in render order.
    * @returns Draw-call count and final WebGL error code.
@@ -313,7 +313,7 @@ export class WebGLRenderer {
     return { drawCalls, glError };
   }
 
-  /** Clear the presentation canvas when no backdrop can be sampled. */
+  /** Clear the internal WebGL render canvas when no backdrop can be sampled. */
   public clear(): void {
     this.assertUsable();
     if (this.isContextLost) {

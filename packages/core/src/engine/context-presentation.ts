@@ -45,7 +45,7 @@ export class ContextPresentation {
       : '';
   }
 
-  /** Switch between the WebGL canvas and the CSS material fallback. */
+  /** Switch between the rendered presentation canvas and CSS material fallback. */
   public setFallbackMode(enabled: boolean): void {
     this.container.setAttribute('data-lg-fallback', String(enabled));
     this.canvas.style.opacity = enabled ? '0' : '1';

@@ -20,24 +20,28 @@ export interface PixelDifference {
   meanChannelDelta: number;
 }
 
-/** Read non-transparent coverage and the current WebGL error code. */
+/** Read dimensions and non-transparent coverage from the visible 2D canvas. */
 export async function readCanvasMetrics(canvas: Locator): Promise<{
+  width: number;
+  height: number;
   nonTransparentPixels: number;
-  glError: number;
 }> {
   return canvas.evaluate((element) => {
     if (!(element instanceof HTMLCanvasElement)) {
       throw new Error('Expected the core-owned presentation canvas.');
     }
-    const gl = element.getContext('webgl2');
-    if (!gl) throw new Error('Expected a WebGL2 rendering context.');
-    const pixels = new Uint8Array(element.width * element.height * 4);
-    gl.readPixels(0, 0, element.width, element.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    const context = element.getContext('2d');
+    if (!context) throw new Error('Expected a 2D presentation context.');
+    const pixels = context.getImageData(0, 0, element.width, element.height).data;
     let nonTransparentPixels = 0;
     for (let index = 3; index < pixels.length; index += 4) {
       if (pixels[index] !== 0) nonTransparentPixels += 1;
     }
-    return { nonTransparentPixels, glError: gl.getError() };
+    return {
+      width: element.width,
+      height: element.height,
+      nonTransparentPixels,
+    };
   });
 }
 

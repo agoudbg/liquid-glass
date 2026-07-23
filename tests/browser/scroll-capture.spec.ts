@@ -69,7 +69,6 @@ test('keeps body-scroll glass fixed without recapturing the full DOM source', as
 
     const canvasMetrics = await readCanvasMetrics(canvas);
     expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
-    expect(canvasMetrics.glError).toBe(0);
     await page.evaluate(() => window.scrollTo(0, 0));
   }
 
@@ -176,7 +175,6 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
 
     const canvasMetrics = await readCanvasMetrics(canvas);
     expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
-    expect(canvasMetrics.glError).toBe(0);
   }
 
   expect(runtimeErrors).toEqual([]);

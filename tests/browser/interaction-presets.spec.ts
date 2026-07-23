@@ -149,7 +149,6 @@ test('exercises built-in presets and custom overrides through each public adapte
       page.locator('.liquid-glass-canvas'),
     );
     expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
-    expect(canvasMetrics.glError).toBe(0);
   }
 
   expect(runtimeErrors).toEqual([]);
@@ -230,7 +229,6 @@ test('matches the legacy S004 oracle before and during button press', async ({
       page.locator('.liquid-glass-canvas'),
     );
     expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
-    expect(canvasMetrics.glError).toBe(0);
   }
 
   expect(runtimeErrors).toEqual([]);

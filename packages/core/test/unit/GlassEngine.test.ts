@@ -175,8 +175,8 @@ describe('GlassEngine', () => {
     });
 
     expect(draw).toHaveBeenLastCalledWith(expect.anything(), 320, 180);
-    expect(runtime.canvases[2]).toMatchObject({ width: 640, height: 360 });
-    expect(runtime.canvases[2].context2d.calls).toContainEqual({
+    expect(runtime.canvases[3]).toMatchObject({ width: 640, height: 360 });
+    expect(runtime.canvases[3].context2d.calls).toContainEqual({
       name: 'setTransform',
       args: [2, 0, 0, 2, 0, 0],
     });
@@ -224,7 +224,7 @@ describe('GlassEngine', () => {
       element: backdrop as unknown as HTMLCanvasElement,
       draw,
     });
-    const ownedSource = runtime.canvases[2];
+    const ownedSource = runtime.canvases[3];
 
     expect(draw).toHaveBeenCalledOnce();
     expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 200, 100);
@@ -441,8 +441,9 @@ describe('GlassEngine', () => {
     expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
     expect(context.canvas.style.zIndex).toBe('24');
     expect(context.canvas).toMatchObject({ width: 200, height: 100 });
+    expect(runtime.canvases[0]).toMatchObject({ width: 200, height: 100 });
     expect(runtime.canvases[1]).toMatchObject({ width: 200, height: 100 });
-    expect(runtime.canvases[2]).toMatchObject({ width: 200, height: 100 });
+    expect(runtime.canvases[3]).toMatchObject({ width: 200, height: 100 });
     expect(backdrop).toMatchObject({ width: 200, height: 100 });
     expect(draw).toHaveBeenCalledTimes(drawCount + 1);
     expect(draw).toHaveBeenLastCalledWith(expect.anything(), 200, 100);
@@ -450,7 +451,8 @@ describe('GlassEngine', () => {
     context.updateOptions({});
     expect(context.canvas.style.zIndex).toBe('9999');
     expect(context.canvas).toMatchObject({ width: 400, height: 200 });
-    expect(runtime.canvases[2]).toMatchObject({ width: 400, height: 200 });
+    expect(runtime.canvases[0]).toMatchObject({ width: 400, height: 200 });
+    expect(runtime.canvases[3]).toMatchObject({ width: 400, height: 200 });
     expect(source).toMatchObject({ id: sourceId, destroyed: false });
     expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
   });

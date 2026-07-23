@@ -84,6 +84,7 @@ describe('GlassContext inactive-page presentation', () => {
       hasFocus: () => documentFocused,
     } as Document;
     const listeners: ListenerRecord[] = [];
+    const canvases: FakeCanvas[] = [];
     const runtime: GlassEngineRuntime = {
       addEventListener: (target, type, listener) => {
         const record = { active: true, listener, target, type };
@@ -92,7 +93,11 @@ describe('GlassContext inactive-page presentation', () => {
           record.active = false;
         };
       },
-      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
+      createCanvas: () => {
+        const canvas = new FakeCanvas();
+        canvases.push(canvas);
+        return canvas as unknown as HTMLCanvasElement;
+      },
       createResizeObserver: () => null,
       devicePixelRatio: () => 1,
       getComputedStyle: () => ({
@@ -156,7 +161,9 @@ describe('GlassContext inactive-page presentation', () => {
     context.on('fullCanvasRendered', onFullCanvasRendered);
     firstHandle.onPresentation(({ blurred }) => firstPresentations.push(blurred));
     secondHandle.onPresentation(({ blurred }) => secondPresentations.push(blurred));
-    const gl = (context.canvas as unknown as FakeCanvas).gl;
+    const rendererCanvas = canvases[0];
+    if (!rendererCanvas) throw new Error('Missing renderer canvas.');
+    const { gl } = rendererCanvas;
     const draws = callsNamed(gl, 'drawArrays').length;
     expect(draws).toBeGreaterThan(0);
 

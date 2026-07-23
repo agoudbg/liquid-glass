@@ -81,12 +81,8 @@ export class GlassContextImpl implements GlassContext {
     this.optionsSnapshot = snapshotContextOptions(options);
     this.precision = resolveContextPrecision(this.optionsSnapshot);
     this.fallback = new FallbackController(this.optionsSnapshot);
-    this.canvas = runtime.createCanvas();
-    const compositeCanvas = runtime.createCanvas();
     this.renderCoordinator = new ContextRenderCoordinator(
       container,
-      this.canvas,
-      compositeCanvas,
       this.sources,
       runtime,
       {
@@ -110,6 +106,7 @@ export class GlassContextImpl implements GlassContext {
         ),
       },
     );
+    this.canvas = this.renderCoordinator.presentationCanvas;
     this.presentation = new ContextPresentation(
       container,
       this.canvas,
@@ -165,7 +162,7 @@ export class GlassContextImpl implements GlassContext {
     let renderer: WebGLRenderer | null = null;
     try {
       renderer = createContextRenderer(
-        this.canvas,
+        this.renderCoordinator.rendererCanvas,
         this.precision,
         runtime,
         this.optionsSnapshot,
@@ -202,6 +199,7 @@ export class GlassContextImpl implements GlassContext {
       this.materials.destroy();
       this.domCapture.destroy();
       this.presentation.destroy();
+      this.renderCoordinator.destroy();
       if (this.canvas.parentNode === container) {
         container.removeChild(this.canvas);
       }
@@ -332,6 +330,7 @@ export class GlassContextImpl implements GlassContext {
     }
     this.sources.clear();
     this.renderer?.destroy();
+    this.renderCoordinator.destroy();
     if (this.canvas.parentNode === this.container) {
       this.container.removeChild(this.canvas);
     }

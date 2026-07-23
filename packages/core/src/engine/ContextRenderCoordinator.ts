@@ -3,6 +3,7 @@ import type { WebGLRenderer } from '../renderer';
 import type { CanvasRenderPayload } from '../types/context';
 import type { MaterialsRenderedPayload } from '../types/events';
 import { type ContextBackdropCapture, ContextBackdropComposite } from './ContextBackdropComposite';
+import { ContextCanvasPipeline } from './ContextCanvasPipeline';
 import { resolveRendererMaterials } from './material-resolver';
 import type {
   BackdropRegistration,
@@ -39,24 +40,34 @@ export interface ContextRenderCoordinatorCallbacks {
  * `GlassContextImpl`; this coordinator only executes an already-requested frame.
  */
 export class ContextRenderCoordinator {
+  private readonly canvases: ContextCanvasPipeline;
   private readonly backdropComposite: ContextBackdropComposite;
   private backdropTextureReady = false;
 
-  /** Bind the context-owned composite canvas to its drawing facade. */
+  /** Create the context-owned canvas pipeline and its backdrop drawing facade. */
   public constructor(
     private readonly container: HTMLElement,
-    private readonly presentationCanvas: HTMLCanvasElement,
-    private readonly compositeCanvas: HTMLCanvasElement,
     private readonly sources: Map<string, BackdropRegistration>,
     private readonly runtime: GlassEngineRuntime,
     private readonly callbacks: ContextRenderCoordinatorCallbacks,
   ) {
+    this.canvases = new ContextCanvasPipeline(runtime);
     this.backdropComposite = new ContextBackdropComposite(
-      compositeCanvas,
-      presentationCanvas,
+      this.canvases.compositeCanvas,
+      this.canvases.presentationCanvas,
       sources,
       callbacks.onBackdropCaptured,
     );
+  }
+
+  /** Internal canvas that owns the WebGL renderer and context events. */
+  public get rendererCanvas(): HTMLCanvasElement {
+    return this.canvases.rendererCanvas;
+  }
+
+  /** Visible 2D canvas appended to the context container. */
+  public get presentationCanvas(): HTMLCanvasElement {
+    return this.canvases.presentationCanvas;
   }
 
   /** Render one frame, optionally reusing the last uploaded backdrop texture. */
@@ -70,9 +81,11 @@ export class ContextRenderCoordinator {
       }
 
       renderer.resize(containerRect.width, containerRect.height);
+      this.canvases.resizePresentationToRenderer();
       if (this.sources.size === 0) {
         this.backdropTextureReady = false;
         renderer.clear();
+        this.canvases.presentRendererFrame();
         this.emitRenderedFrame();
         return;
       }
@@ -83,7 +96,7 @@ export class ContextRenderCoordinator {
           containerRect,
           this.callbacks.getDeviceScale(),
         );
-        renderer.uploadBackdrop(this.compositeCanvas);
+        renderer.uploadBackdrop(this.canvases.compositeCanvas);
         this.backdropTextureReady = true;
       }
       const materials = resolveRendererMaterials(
@@ -93,6 +106,7 @@ export class ContextRenderCoordinator {
         this.runtime,
       );
       renderer.render(materials);
+      this.canvases.presentRendererFrame();
       this.emitRenderedFrame();
     } catch (error) {
       const contextual = GlassError.fromUnknown(
@@ -108,6 +122,11 @@ export class ContextRenderCoordinator {
     }
   }
 
+  /** Idempotently release every canvas bitmap owned by this coordinator. */
+  public destroy(): void {
+    this.canvases.destroy();
+  }
+
   private renderFallbackFrame(
     containerRect: DOMRectReadOnly,
     refreshBackdrop: boolean,
@@ -115,14 +134,7 @@ export class ContextRenderCoordinator {
     const scale = this.callbacks.getDeviceScale();
     const width = Math.max(1, Math.round(containerRect.width * scale));
     const height = Math.max(1, Math.round(containerRect.height * scale));
-    const resized = this.presentationCanvas.width !== width
-      || this.presentationCanvas.height !== height;
-    if (this.presentationCanvas.width !== width) {
-      this.presentationCanvas.width = width;
-    }
-    if (this.presentationCanvas.height !== height) {
-      this.presentationCanvas.height = height;
-    }
+    const resized = this.canvases.resizePresentation(width, height);
     if (this.sources.size > 0 && (refreshBackdrop || resized)) {
       // Preserve the independent scale read used by the original composite path.
       this.backdropComposite.draw(
@@ -134,12 +146,12 @@ export class ContextRenderCoordinator {
   }
 
   private emitRenderedFrame(): void {
-    const payload = { canvas: this.presentationCanvas };
+    const payload = { canvas: this.canvases.presentationCanvas };
     this.callbacks.onMaterialsRendered(payload);
     this.callbacks.onFullCanvasRendered({
       ...payload,
-      width: this.presentationCanvas.width,
-      height: this.presentationCanvas.height,
+      width: this.canvases.presentationCanvas.width,
+      height: this.canvases.presentationCanvas.height,
     });
   }
 }

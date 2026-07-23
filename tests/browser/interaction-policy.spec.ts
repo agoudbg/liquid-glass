@@ -125,7 +125,6 @@ test('preserves native mouse controls across disabled and click-only policies', 
       page.locator('.liquid-glass-canvas'),
     );
     expect(canvasMetrics.nonTransparentPixels).toBeGreaterThan(1_000);
-    expect(canvasMetrics.glError).toBe(0);
   }
 
   expect(runtimeErrors).toEqual([]);

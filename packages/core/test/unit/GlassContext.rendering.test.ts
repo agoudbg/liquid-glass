@@ -20,6 +20,8 @@ function domRect(rect: RectLike): DOMRectReadOnly {
 
 class FakeElement {
   public readonly children: FakeCanvas[] = [];
+  public readonly clientHeight: number;
+  public readonly clientWidth: number;
   public readonly firstElementChild: Element | null = null;
   public readonly offsetHeight: number;
   public readonly offsetWidth: number;
@@ -31,7 +33,12 @@ class FakeElement {
   private readonly attributes = new Map<string, string>();
   private readonly listeners = new Map<string, Set<EventListener>>();
 
-  public constructor(private readonly rect: RectLike) {
+  public constructor(
+    private readonly rect: RectLike,
+    clientSize: Pick<RectLike, 'height' | 'width'> = rect,
+  ) {
+    this.clientHeight = clientSize.height;
+    this.clientWidth = clientSize.width;
     this.offsetHeight = rect.height;
     this.offsetWidth = rect.width;
     this.scrollHeight = rect.height;
@@ -104,7 +111,10 @@ interface RuntimeHarness {
   flushFrame(): void;
 }
 
-function createRuntimeHarness(devicePixelRatio = 1): RuntimeHarness {
+function createRuntimeHarness(
+  devicePixelRatio = 1,
+  containerTransform = 'none',
+): RuntimeHarness {
   const canvases: FakeCanvas[] = [];
   const frames = new Map<number, FrameRequestCallback>();
   let frameId = 0;
@@ -121,7 +131,7 @@ function createRuntimeHarness(devicePixelRatio = 1): RuntimeHarness {
     getComputedStyle: () => ({
       display: 'block',
       opacity: '1',
-      transform: 'none',
+      transform: containerTransform,
       visibility: 'visible',
     } as CSSStyleDeclaration),
     getViewportRect: () => ({ x: 0, y: 0, width: 400, height: 240 }),
@@ -262,6 +272,68 @@ describe('GlassContext render ownership', () => {
     ]);
     context.destroy();
   });
+
+  it('sizes the canvas from the client box while retaining border-box origins', () => {
+    const harness = createRuntimeHarness(1.5);
+    const container = new FakeElement(
+      { x: 10, y: 20, width: 201, height: 99 },
+      { width: 199, height: 97 },
+    );
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 11, y: 21, width: 199, height: 97 }));
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+
+    context.addBackdropSource({
+      draw: () => undefined,
+      element: backdrop as unknown as HTMLCanvasElement,
+      kind: 'canvas',
+    });
+
+    expect(context.canvas).toMatchObject({ width: 299, height: 146 });
+    expect(harness.canvases[1]?.context2d.calls).toContainEqual({
+      name: 'drawImage',
+      args: [harness.canvases[3], 1.5, 1.5, 298.5, 145.5],
+    });
+    context.destroy();
+  });
+
+  it('retains transformed bounding dimensions for viewport-coordinate rendering', () => {
+    const harness = createRuntimeHarness(1.5, 'matrix(2, 0, 0, 2, 0, 0)');
+    const container = new FakeElement(
+      { x: 10, y: 20, width: 402, height: 198 },
+      { width: 199, height: 97 },
+    );
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+
+    context.refresh();
+
+    expect(context.canvas).toMatchObject({ width: 603, height: 297 });
+    context.destroy();
+  });
+
+  it.each([false, true])(
+    'clamps a zero-sized client box consistently (fallback: %s)',
+    (fallback) => {
+      const harness = createRuntimeHarness(2);
+      const container = new FakeElement(
+        { x: 10, y: 20, width: 2, height: 2 },
+        { width: 0, height: 0 },
+      );
+      const context = new GlassEngine(harness.runtime).createContext(
+        container as unknown as HTMLElement,
+      );
+
+      if (fallback) context.setFallbackMode(true);
+      context.refresh();
+
+      expect(context.canvas).toMatchObject({ width: 2, height: 2 });
+      context.destroy();
+    },
+  );
 
   it('emits and rethrows a missing presentation 2D context error', () => {
     const canvases: FakeCanvas[] = [];

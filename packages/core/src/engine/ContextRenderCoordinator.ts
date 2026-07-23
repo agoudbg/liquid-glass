@@ -6,6 +6,7 @@ import type {
   ThemeColorThresholds,
 } from '../types/context';
 import type { MaterialsRenderedPayload } from '../types/events';
+import { parseCSSTransformMatrix } from '../utils/transforms';
 import {
   type BackdropPixelData,
   captureBackdropPixels,
@@ -93,13 +94,35 @@ export class ContextRenderCoordinator {
   public renderFrame(refreshBackdrop: boolean = true): void {
     try {
       const containerRect = this.container.getBoundingClientRect();
+      const containerMatrix = parseCSSTransformMatrix(
+        this.runtime.getComputedStyle(this.container).transform,
+      );
+      const hasLinearTransform = containerMatrix[0] !== 1
+        || containerMatrix[1] !== 0
+        || containerMatrix[2] !== 0
+        || containerMatrix[3] !== 1;
+      const logicalWidth = this.resolveLogicalDimension(
+        this.container.clientWidth,
+        containerRect.width,
+        hasLinearTransform,
+      );
+      const logicalHeight = this.resolveLogicalDimension(
+        this.container.clientHeight,
+        containerRect.height,
+        hasLinearTransform,
+      );
       const renderer = this.callbacks.getRenderer();
       if (this.callbacks.isFallbackMode() || !renderer) {
-        this.renderFallbackFrame(containerRect, refreshBackdrop);
+        this.renderFallbackFrame(
+          containerRect,
+          logicalWidth,
+          logicalHeight,
+          refreshBackdrop,
+        );
         return;
       }
 
-      renderer.resize(containerRect.width, containerRect.height);
+      renderer.resize(logicalWidth, logicalHeight);
       this.canvases.resizePresentationToRenderer();
       if (this.sources.size === 0) {
         this.backdropPixels = null;
@@ -129,8 +152,8 @@ export class ContextRenderCoordinator {
       renderer.render(materials);
       const themeColors = this.sampleThemes(
         materials,
-        containerRect.width,
-        containerRect.height,
+        logicalWidth,
+        logicalHeight,
       );
       this.canvases.presentRendererFrame();
       this.emitRenderedFrame(themeColors);
@@ -157,11 +180,13 @@ export class ContextRenderCoordinator {
 
   private renderFallbackFrame(
     containerRect: DOMRectReadOnly,
+    logicalWidth: number,
+    logicalHeight: number,
     refreshBackdrop: boolean,
   ): void {
     const scale = this.callbacks.getDeviceScale();
-    const width = Math.max(1, Math.round(containerRect.width * scale));
-    const height = Math.max(1, Math.round(containerRect.height * scale));
+    const width = Math.max(1, Math.round(Math.max(1, logicalWidth) * scale));
+    const height = Math.max(1, Math.round(Math.max(1, logicalHeight) * scale));
     const resized = this.canvases.resizePresentation(width, height);
     if (this.sources.size > 0 && (refreshBackdrop || resized)) {
       // Preserve the independent scale read used by the original composite path.
@@ -171,6 +196,18 @@ export class ContextRenderCoordinator {
       );
     }
     this.emitRenderedFrame();
+  }
+
+  private resolveLogicalDimension(
+    clientDimension: number,
+    boundingDimension: number,
+    useBoundingDimension: boolean,
+  ): number {
+    return !useBoundingDimension
+      && Number.isFinite(clientDimension)
+      && clientDimension >= 0
+      ? clientDimension
+      : boundingDimension;
   }
 
   private sampleThemes(

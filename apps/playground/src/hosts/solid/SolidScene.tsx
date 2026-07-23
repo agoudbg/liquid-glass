@@ -17,6 +17,7 @@ import {
   SCROLL_BANDS,
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
+import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import { InteractionFixtureControl } from './InteractionFixtureControl';
 
@@ -25,7 +26,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
   const contextOptions = (): GlassContextOptions => ({
     canvasZIndex: props.state.oracleMode ? 10 : undefined,
     renderMode: props.state.renderMode,
-    renderPrecision: props.state.renderPrecision,
+    renderPrecision: resolveSceneRenderPrecision(props.state),
     scrollable: props.state.scrollable,
   });
   const publishBackdropHandle = (handle: BackdropConverterHandle | null): void => {

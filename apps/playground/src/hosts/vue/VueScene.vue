@@ -17,6 +17,7 @@ import {
   SCROLL_BANDS,
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
+import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import InteractionFixtureControl from './InteractionFixtureControl.vue';
 
@@ -24,7 +25,7 @@ const props = defineProps<FrameworkHostProps>();
 const contextOptions = computed<GlassContextOptions>(() => ({
   canvasZIndex: props.state.oracleMode ? 10 : undefined,
   renderMode: props.state.renderMode,
-  renderPrecision: props.state.renderPrecision,
+  renderPrecision: resolveSceneRenderPrecision(props.state),
   scrollable: props.state.scrollable,
 }));
 const materials = computed(() => resolveSceneMaterials(props.state));

@@ -1,4 +1,8 @@
 import { getSceneDefinition } from '../shared/scene-catalog';
+import {
+  isLabSceneEditable,
+  resolveSceneControlValues,
+} from '../shared/scene-render-options';
 import type {
   HostRuntimeReport,
   PlaygroundState,
@@ -74,16 +78,31 @@ export class PlaygroundShellView {
     }
 
     this.glassToggle.checked = state.glassEnabled;
-    this.setInputValue('thickness', state.thickness);
-    this.setInputValue('refractIndex', state.refractIndex);
-    this.setInputValue('refractIntensity', state.refractIntensity);
-    this.setInputValue('radius', state.radius);
-    this.setInputValue('renderPrecision', state.renderPrecision);
-    this.setText('#thickness-value', `${String(state.thickness)} px`);
-    this.setText('#ior-value', state.refractIndex.toFixed(2));
-    this.setText('#intensity-value', state.refractIntensity.toFixed(2));
-    this.setText('#radius-value', `${String(state.radius)} px`);
-    this.setText('#precision-value', `${state.renderPrecision.toFixed(1)}×`);
+    const labEditable = isLabSceneEditable(state);
+    for (const input of this.queryElements<HTMLInputElement>('[data-control]')) {
+      input.setAttribute('aria-disabled', String(!labEditable));
+      input.tabIndex = labEditable ? 0 : -1;
+    }
+    const controlValues = resolveSceneControlValues(state);
+    this.setInputValue('thickness', controlValues.thickness);
+    this.setInputValue('refractIndex', controlValues.refractIndex);
+    this.setInputValue('refractIntensity', controlValues.refractIntensity);
+    this.setInputValue('radius', controlValues.radius);
+    this.setInputValue('renderPrecision', controlValues.renderPrecision);
+    this.setText(
+      '#thickness-value',
+      `${String(controlValues.thickness)} px`,
+    );
+    this.setText('#ior-value', controlValues.refractIndex.toFixed(2));
+    this.setText(
+      '#intensity-value',
+      controlValues.refractIntensity.toFixed(2),
+    );
+    this.setText('#radius-value', `${String(controlValues.radius)} px`);
+    this.setText(
+      '#precision-value',
+      `${controlValues.renderPrecision.toFixed(1)}×`,
+    );
     const sceneDefinition = getSceneDefinition(state.scene);
     this.setText('#scene-kicker', `SCENE ${state.scene.slice(1)}`);
     this.setText('#scene-title', sceneDefinition.title);

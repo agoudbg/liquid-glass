@@ -1,9 +1,10 @@
 import { observeGlassContext } from '../shared/diagnostics';
 import {
-  getSceneDefinition,
-  isSceneId,
-} from '../shared/scene-catalog';
-import { normalizeTestFixtureState } from '../shared/test-fixtures';
+  isLabNumericControl,
+  updateLabNumericControl,
+} from '../shared/lab-state';
+import { isSceneId } from '../shared/scene-catalog';
+import { isLabSceneEditable } from '../shared/scene-render-options';
 import type {
   FrameworkHostCallbacks,
   FrameworkHostController,
@@ -12,8 +13,12 @@ import type {
   PlaygroundState,
 } from '../shared/types';
 import {
+  clonePlaygroundState,
   createInitialState,
+  type PlaygroundStateChanges,
   replacePlaygroundUrl,
+  transitionPlaygroundScene,
+  transitionPlaygroundState,
 } from './state';
 import { PlaygroundShellView } from './view';
 
@@ -103,7 +108,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   };
 
   const updateState = (
-    changes: Partial<PlaygroundState>,
+    changes: PlaygroundStateChanges,
     options: { remount?: boolean } = {},
   ): void => {
     const fallbackChanged = changes.fallbackEnabled !== undefined
@@ -113,10 +118,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     const hostStateChanged = Object.keys(changes).some(
       (key) => key !== 'fallbackEnabled',
     );
-    currentState = normalizeTestFixtureState({
-      ...currentState,
-      ...changes,
-    });
+    currentState = transitionPlaygroundState(currentState, changes);
     if (options.remount) {
       mountFramework();
     } else {
@@ -156,15 +158,8 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   listen(view.sceneSelect, 'change', () => {
     const scene = view.sceneSelect.value;
     if (!isSceneId(scene)) return;
-    const sceneDefinition = getSceneDefinition(scene);
     runtimeReport = createInitializingReport();
-    updateState({
-      domVariant: 'source',
-      fallbackEnabled: sceneDefinition.fallbackByDefault,
-      scene,
-      scrollable: sceneDefinition.scrollableByDefault,
-      viewportEnabled: sceneDefinition.viewportByDefault,
-    });
+    updateState(transitionPlaygroundScene(currentState, scene));
   });
 
   listen(
@@ -197,8 +192,16 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     listen(input, 'input', () => {
       const value = Number(input.value);
       const control = input.dataset.control;
-      if (!Number.isFinite(value) || !control) return;
-      updateNumericControl(control, value, updateState);
+      if (!Number.isFinite(value) || !control || !isLabNumericControl(control)) {
+        return;
+      }
+      if (!isLabSceneEditable(currentState)) {
+        renderState();
+        return;
+      }
+      updateState({
+        lab: updateLabNumericControl(currentState.lab, control, value),
+      });
     });
   }
   listen(view.glassToggle, 'change', () => {
@@ -212,7 +215,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
 
   return {
     get state(): PlaygroundState {
-      return { ...currentState };
+      return clonePlaygroundState(currentState);
     },
     destroy: () => {
       if (destroyed) return;
@@ -247,16 +250,4 @@ function formatError(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
   return 'Unknown renderer error';
-}
-
-function updateNumericControl(
-  control: string,
-  value: number,
-  updateState: (changes: Partial<PlaygroundState>) => void,
-): void {
-  if (control === 'thickness') updateState({ thickness: value });
-  if (control === 'refractIndex') updateState({ refractIndex: value });
-  if (control === 'refractIntensity') updateState({ refractIntensity: value });
-  if (control === 'radius') updateState({ radius: value });
-  if (control === 'renderPrecision') updateState({ renderPrecision: value });
 }

@@ -17,6 +17,7 @@ import {
   SCROLL_BANDS,
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
+import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import { InteractionFixtureControl } from './InteractionFixtureControl';
 
@@ -28,7 +29,7 @@ export function ReactScene({
   const contextOptions: GlassContextOptions = {
     canvasZIndex: state.oracleMode ? 10 : undefined,
     renderMode: state.renderMode,
-    renderPrecision: state.renderPrecision,
+    renderPrecision: resolveSceneRenderPrecision(state),
     scrollable: state.scrollable,
   };
   const materials = resolveSceneMaterials(state);

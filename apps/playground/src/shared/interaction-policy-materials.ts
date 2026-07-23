@@ -2,20 +2,17 @@ import type {
   SceneMaterial,
   SceneMaterialOptions,
 } from './scene-material-types';
-import type { PlaygroundState } from './types';
+
+const OPTICAL_OPTIONS = {
+  radius: 28,
+  thickness: 30,
+  refractIndex: 1.1,
+  refractIntensity: 0.5,
+  dispersion: 0.01,
+} satisfies SceneMaterialOptions;
 
 /** Build the isolated S004 material set used by pointer-policy browser tests. */
-export function resolveInteractionPolicyMaterials(
-  state: PlaygroundState,
-): readonly SceneMaterial[] {
-  const opticalOptions = {
-    radius: state.radius,
-    thickness: state.thickness,
-    refractIndex: state.refractIndex,
-    refractIntensity: state.refractIntensity,
-    dispersion: 0.01,
-  } satisfies SceneMaterialOptions;
-
+export function resolveInteractionPolicyMaterials(): readonly SceneMaterial[] {
   return [
     {
       id: 'disabled-button',
@@ -28,7 +25,7 @@ export function resolveInteractionPolicyMaterials(
         testId: 'disabled-button-control',
       },
       options: {
-        ...opticalOptions,
+        ...OPTICAL_OPTIONS,
         disableInteractions: true,
         interactionPreset: 'button',
         renderOrder: 10,
@@ -46,7 +43,7 @@ export function resolveInteractionPolicyMaterials(
         testId: 'disabled-range-control',
       },
       options: {
-        ...opticalOptions,
+        ...OPTICAL_OPTIONS,
         disableInteractions: true,
         interactionPreset: 'slider',
         renderOrder: 20,
@@ -63,7 +60,7 @@ export function resolveInteractionPolicyMaterials(
         testId: 'click-only-button-control',
       },
       options: {
-        ...opticalOptions,
+        ...OPTICAL_OPTIONS,
         interactionPreset: 'button',
         onlyClickInteractions: true,
         renderOrder: 30,
@@ -81,7 +78,7 @@ export function resolveInteractionPolicyMaterials(
         testId: 'click-only-range-control',
       },
       options: {
-        ...opticalOptions,
+        ...OPTICAL_OPTIONS,
         interactionPreset: 'slider',
         onlyClickInteractions: true,
         renderOrder: 40,

@@ -33,21 +33,29 @@ describe('playground URL state', () => {
       'https://example.test/?scene=S004&oracle=1',
     ))).toMatchObject({
       oracleMode: true,
-      radius: 40,
-      refractIndex: 1.1,
-      refractIntensity: 0.5,
       scene: 'S004',
-      thickness: 10,
+      lab: {
+        optics: {
+          thickness: 36,
+          refractIndex: 1.21,
+          refractIntensity: 0.72,
+        },
+        shape: { radius: 34 },
+      },
     });
     expect(createInitialState(new URL(
       'https://example.test/?scene=S004',
     ))).toMatchObject({
       oracleMode: false,
-      radius: 28,
-      refractIndex: 1.1,
-      refractIntensity: 0.5,
       scene: 'S004',
-      thickness: 30,
+      lab: {
+        optics: {
+          thickness: 36,
+          refractIndex: 1.21,
+          refractIntensity: 0.72,
+        },
+        shape: { radius: 34 },
+      },
     });
     expect(createInitialState(new URL(
       'https://example.test/?scene=S005&oracle=1',

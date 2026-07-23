@@ -324,6 +324,11 @@ select:focus-visible {
   cursor: pointer;
 }
 
+.range-control input[aria-disabled="true"] {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .scene-facts {
   display: grid;
   gap: 0;

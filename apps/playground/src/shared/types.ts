@@ -1,5 +1,7 @@
 import type {
   GlassContext,
+  InteractionPreset,
+  PartialInteractionConfig,
   ViewportCaptureRect,
 } from '@agou/liquid-glass-core';
 
@@ -10,6 +12,92 @@ export type { SceneId } from './scene-catalog';
 
 /** Test-only fixture identifiers accepted by the playground URL. */
 export type PlaygroundTestFixture = 'interaction-policy';
+
+/** Optical values owned only by the editable Lab scene. */
+export interface LabOpticsState {
+  /** Material thickness in CSS pixels. */
+  thickness: number;
+  /** Material index of refraction. */
+  refractIndex: number;
+  /** Material refraction displacement multiplier. */
+  refractIntensity: number;
+  /** Frosted-glass blur amount. */
+  blur: number;
+  /** Chromatic dispersion strength. */
+  dispersion: number;
+}
+
+/** Corner geometry owned only by the editable Lab scene. */
+export interface LabShapeState {
+  /** Shared radius used by the compact inspector control. */
+  radius: number;
+  /** Top-left radius in CSS pixels. */
+  radiusTL: number;
+  /** Top-right radius in CSS pixels. */
+  radiusTR: number;
+  /** Bottom-right radius in CSS pixels. */
+  radiusBR: number;
+  /** Bottom-left radius in CSS pixels. */
+  radiusBL: number;
+}
+
+/** CSS appearance values owned only by the editable Lab scene. */
+export interface LabAppearanceState {
+  /** Whether the material uses an explicit tint. */
+  useCustomColor: boolean;
+  /** Explicit tint used when custom color is enabled. */
+  backgroundColor: string;
+  /** Rim-light direction in degrees. */
+  illuminationAngle: number;
+  /** Rim-light opacity multiplier. */
+  illuminationIntensity: number;
+}
+
+/** Pointer policy and preset values owned only by the editable Lab scene. */
+export interface LabInteractionState {
+  /** Whether pointer-driven material presentation is disabled. */
+  disableInteractions: boolean;
+  /** Whether hover-only pointer input is ignored. */
+  onlyClickInteractions: boolean;
+  /** Whether translation and hover-follow are suppressed for a moveable host. */
+  isMoveable: boolean;
+  /** Public interaction preset selected for the focused material. */
+  preset: InteractionPreset;
+  /** Typed overrides applied on top of the selected preset. */
+  config: PartialInteractionConfig;
+}
+
+/** Renderer values owned only by the editable Lab scene. */
+export interface LabRenderState {
+  /** Backing-canvas render scale. */
+  precision: number;
+  /** Explicit focused-material render order. */
+  order: number;
+}
+
+/** Backdrop source values reserved for the editable Lab scene. */
+export interface LabSourceState {
+  /** Focused backdrop implementation. */
+  kind: 'canvas' | 'dom';
+  /** Fill used behind the focused backdrop source. */
+  backgroundColor: string;
+}
+
+/** Complete editable state for the focused Lab scene. */
+export interface LabState {
+  /** Shader-facing optical controls. */
+  optics: LabOpticsState;
+  /** Material corner geometry. */
+  shape: LabShapeState;
+  /** Framework adapter CSS appearance. */
+  appearance: LabAppearanceState;
+  /** Pointer interaction policy and preset. */
+  interaction: LabInteractionState;
+  /** Context and material render controls. */
+  render: LabRenderState;
+  /** Backdrop source selection. */
+  source: LabSourceState;
+}
 
 /** Complete URL-addressable state shared by all framework hosts. */
 export interface PlaygroundState {
@@ -29,16 +117,8 @@ export interface PlaygroundState {
   viewportEnabled: boolean;
   /** Current deterministic DOM content variant in capture scenes. */
   domVariant: 'source' | 'mutated';
-  /** Material thickness in CSS pixels. */
-  thickness: number;
-  /** Material index of refraction. */
-  refractIndex: number;
-  /** Material refraction displacement multiplier. */
-  refractIntensity: number;
-  /** Primary material corner radius in CSS pixels. */
-  radius: number;
-  /** Backing-canvas render scale. */
-  renderPrecision: number;
+  /** Editable controls isolated from fixed canonical and oracle scenes. */
+  lab: LabState;
   /** Whether deterministic browser-test presentation is active. */
   testMode: boolean;
   /** Optional browser-test fixture gated by scene and test mode. */

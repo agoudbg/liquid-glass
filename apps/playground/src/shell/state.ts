@@ -1,32 +1,46 @@
 import { isFrameworkId } from '../app-meta';
 import {
+  cloneLabState,
+  createDefaultLabState,
+  DEFAULT_LAB_URL_VALUES,
+} from '../shared/lab-state';
+import {
   getSceneDefinition,
   isSceneId,
   type SceneId,
 } from '../shared/scene-catalog';
-import type { PlaygroundState } from '../shared/types';
+import { normalizeTestFixtureState } from '../shared/test-fixtures';
+import type {
+  LabState,
+  PlaygroundState,
+} from '../shared/types';
 
-const DEFAULT_STATE: PlaygroundState = {
-  framework: 'vue',
-  scene: 'S001',
-  renderMode: 'uniform',
-  glassEnabled: true,
-  fallbackEnabled: false,
-  scrollable: false,
-  viewportEnabled: false,
-  domVariant: 'source',
-  thickness: 36,
-  refractIndex: 1.21,
-  refractIntensity: 0.72,
-  radius: 34,
-  renderPrecision: 1,
-  testMode: false,
-  testFixture: null,
-  oracleMode: false,
-};
+/** State changes accepted by the immutable playground transition helper. */
+export type PlaygroundStateChanges =
+  Partial<Omit<PlaygroundState, 'lab'>>
+  & { lab?: LabState };
+
+/** Create an independent default state for the focused Lab scene. */
+export function createDefaultPlaygroundState(): PlaygroundState {
+  return {
+    framework: 'vue',
+    scene: 'S001',
+    renderMode: 'uniform',
+    glassEnabled: true,
+    fallbackEnabled: false,
+    scrollable: false,
+    viewportEnabled: false,
+    domVariant: 'source',
+    lab: createDefaultLabState(),
+    testMode: false,
+    testFixture: null,
+    oracleMode: false,
+  };
+}
 
 /** Parse and validate a reproducible playground state from a URL. */
 export function createInitialState(url: URL): PlaygroundState {
+  const defaults = createDefaultPlaygroundState();
   const framework = url.searchParams.get('framework');
   const scene = parseScene(url.searchParams.get('scene'));
   const fallback = url.searchParams.get('fallback');
@@ -36,9 +50,41 @@ export function createInitialState(url: URL): PlaygroundState {
   const testMode = url.searchParams.get('test') === '1';
   const oracleMode = url.searchParams.get('oracle') === '1'
     && sceneDefinition.supportsOracle;
+  const lab = createDefaultLabState({
+    thickness: parseNumber(
+      url.searchParams.get('thickness'),
+      4,
+      80,
+      DEFAULT_LAB_URL_VALUES.thickness,
+    ),
+    refractIndex: parseNumber(
+      url.searchParams.get('ior'),
+      1,
+      1.6,
+      DEFAULT_LAB_URL_VALUES.refractIndex,
+    ),
+    refractIntensity: parseNumber(
+      url.searchParams.get('intensity'),
+      0,
+      1.4,
+      DEFAULT_LAB_URL_VALUES.refractIntensity,
+    ),
+    radius: parseNumber(
+      url.searchParams.get('radius'),
+      0,
+      64,
+      DEFAULT_LAB_URL_VALUES.radius,
+    ),
+    renderPrecision: parseNumber(
+      url.searchParams.get('precision'),
+      0.5,
+      1.5,
+      DEFAULT_LAB_URL_VALUES.renderPrecision,
+    ),
+  });
   const parsedState: PlaygroundState = {
-    ...DEFAULT_STATE,
-    framework: isFrameworkId(framework) ? framework : DEFAULT_STATE.framework,
+    ...defaults,
+    framework: isFrameworkId(framework) ? framework : defaults.framework,
     scene,
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on'
@@ -46,37 +92,7 @@ export function createInitialState(url: URL): PlaygroundState {
     scrollable: sceneDefinition.scrollableByDefault && scroll !== 'off',
     viewportEnabled: sceneDefinition.viewportByDefault && viewport !== 'off',
     domVariant: url.searchParams.get('content') === 'mutated' ? 'mutated' : 'source',
-    thickness: parseNumber(
-      url.searchParams.get('thickness'),
-      4,
-      80,
-      sceneDefinition.opticalDefaults?.thickness ?? DEFAULT_STATE.thickness,
-    ),
-    refractIndex: parseNumber(
-      url.searchParams.get('ior'),
-      1,
-      1.6,
-      sceneDefinition.opticalDefaults?.refractIndex ?? DEFAULT_STATE.refractIndex,
-    ),
-    refractIntensity: parseNumber(
-      url.searchParams.get('intensity'),
-      0,
-      1.4,
-      sceneDefinition.opticalDefaults?.refractIntensity
-        ?? DEFAULT_STATE.refractIntensity,
-    ),
-    radius: parseNumber(
-      url.searchParams.get('radius'),
-      0,
-      64,
-      sceneDefinition.opticalDefaults?.radius ?? DEFAULT_STATE.radius,
-    ),
-    renderPrecision: parseNumber(
-      url.searchParams.get('precision'),
-      0.5,
-      1.5,
-      DEFAULT_STATE.renderPrecision,
-    ),
+    lab,
     testMode,
     testFixture: testMode
       && scene === 'S004'
@@ -86,25 +102,42 @@ export function createInitialState(url: URL): PlaygroundState {
       : null,
     oracleMode,
   };
-  if (!oracleMode) return parsedState;
-  if (scene === 'S004') {
-    return {
-      ...parsedState,
-      thickness: 10,
-      refractIndex: 1.1,
-      refractIntensity: 0.5,
-      radius: 40,
-      renderPrecision: 1,
-    };
-  }
+  return normalizePlaygroundState(parsedState);
+}
 
+/** Apply a state patch while enforcing oracle and test-fixture reachability. */
+export function transitionPlaygroundState(
+  current: PlaygroundState,
+  changes: PlaygroundStateChanges,
+): PlaygroundState {
+  return normalizePlaygroundState({
+    ...current,
+    ...changes,
+    lab: changes.lab ?? current.lab,
+  });
+}
+
+/** Enter a canonical scene using its default shell policies while retaining Lab edits. */
+export function transitionPlaygroundScene(
+  current: PlaygroundState,
+  scene: SceneId,
+): PlaygroundState {
+  const definition = getSceneDefinition(scene);
+  return transitionPlaygroundState(current, {
+    domVariant: 'source',
+    fallbackEnabled: definition.fallbackByDefault,
+    oracleMode: current.oracleMode && definition.supportsOracle,
+    scene,
+    scrollable: definition.scrollableByDefault,
+    viewportEnabled: definition.viewportByDefault,
+  });
+}
+
+/** Clone state returned across the shell boundary without sharing editable Lab objects. */
+export function clonePlaygroundState(state: PlaygroundState): PlaygroundState {
   return {
-    ...parsedState,
-    thickness: scene === 'S002' ? 16 : 18,
-    refractIndex: scene === 'S002' ? 1.12 : 1.18,
-    refractIntensity: scene === 'S002' ? 0.64 : 0.72,
-    radius: scene === 'S002' ? 44 : 52,
-    renderPrecision: 1,
+    ...state,
+    lab: cloneLabState(state.lab),
   };
 }
 
@@ -119,11 +152,14 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('scroll', state.scrollable ? 'on' : 'off');
   url.searchParams.set('viewport', state.viewportEnabled ? 'on' : 'off');
   url.searchParams.set('content', state.domVariant);
-  url.searchParams.set('thickness', String(state.thickness));
-  url.searchParams.set('ior', state.refractIndex.toFixed(2));
-  url.searchParams.set('intensity', state.refractIntensity.toFixed(2));
-  url.searchParams.set('radius', String(state.radius));
-  url.searchParams.set('precision', state.renderPrecision.toFixed(1));
+  url.searchParams.set('thickness', String(state.lab.optics.thickness));
+  url.searchParams.set('ior', state.lab.optics.refractIndex.toFixed(2));
+  url.searchParams.set(
+    'intensity',
+    state.lab.optics.refractIntensity.toFixed(2),
+  );
+  url.searchParams.set('radius', String(state.lab.shape.radius));
+  url.searchParams.set('precision', state.lab.render.precision.toFixed(1));
   if (state.testMode) {
     url.searchParams.set('test', '1');
   } else {
@@ -145,6 +181,14 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
     url.searchParams.delete('oracle');
   }
   window.history.replaceState(null, '', url);
+}
+
+function normalizePlaygroundState(state: PlaygroundState): PlaygroundState {
+  const oracleMode = state.oracleMode
+    && getSceneDefinition(state.scene).supportsOracle;
+  return normalizeTestFixtureState(
+    oracleMode === state.oracleMode ? state : { ...state, oracleMode },
+  );
 }
 
 function parseScene(value: string | null): SceneId {

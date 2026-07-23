@@ -247,7 +247,17 @@ export type BackdropSourceChanges<Config extends BackdropSourceConfig> =
 
 /** Handle returned for a registered material. */
 export interface MaterialHandle extends RegistrationHandle {
-  /** Apply validated material changes without replacing the DOM element. */
+  /**
+   * Validate and commit material changes without replacing the DOM element.
+   *
+   * Config and presentation changes are synchronous, including presentation
+   * listener errors. The corresponding `materialUpdated` event and draw are
+   * coalesced by animation frame; true no-ops schedule neither. A reentrant
+   * update may be included in the current live-config draw, then emit during
+   * the next frame without drawing again. Frame listener errors propagate only
+   * after executable peer events, animation publication, rendering, and rearm
+   * work have completed.
+   */
   update(changes: MaterialChanges): void;
   /** Read an isolated snapshot of the current framework-facing presentation. */
   getPresentation(): MaterialPresentationState;

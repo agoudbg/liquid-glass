@@ -5,6 +5,7 @@ import {
   type MaterialFrameTarget,
 } from '../../src/engine/MaterialFrameCoordinator';
 import type { GlassEngineRuntime } from '../../src/engine/runtime';
+import type { MaterialChanges } from '../../src/types';
 
 interface FrameRuntimeHarness {
   readonly cancelled: number[];
@@ -17,6 +18,7 @@ interface FrameRuntimeHarness {
 interface CoordinatorHarness {
   readonly coordinator: MaterialFrameCoordinator;
   readonly frames: FrameRuntimeHarness;
+  readonly publishUpdate: ReturnType<typeof vi.fn>;
   readonly renderMaterials: ReturnType<typeof vi.fn>;
   readonly targets: Map<string, MaterialFrameTarget>;
   setDestroyed(destroyed: boolean): void;
@@ -78,20 +80,27 @@ function createTarget(overrides: TargetOverrides = {}): MaterialFrameTarget {
 
 function createHarness(
   renderMaterials: () => void = () => undefined,
+  publishUpdate: (
+    materialId: string,
+    changes: MaterialChanges,
+  ) => void = () => undefined,
 ): CoordinatorHarness {
   const frames = createFrameRuntime();
   const targets = new Map<string, MaterialFrameTarget>();
   const render = vi.fn(renderMaterials);
+  const publish = vi.fn(publishUpdate);
   let destroyed = false;
   const coordinator = new MaterialFrameCoordinator(frames.runtime, {
     getTarget: (materialId) => targets.get(materialId) ?? null,
     isDestroyed: () => destroyed,
+    publishUpdate: publish,
     renderMaterials: render,
   });
 
   return {
     coordinator,
     frames,
+    publishUpdate: publish,
     renderMaterials: render,
     targets,
     setDestroyed: (next) => {
@@ -234,7 +243,7 @@ describe('MaterialFrameCoordinator', () => {
     expect(harness.frames.frames.size).toBe(0);
   });
 
-  it('preserves render failure priority and the existing unscheduled active state', () => {
+  it('preserves first-error priority and rearms after later render failure', () => {
     const renderError = new Error('render failed');
     const harness = createHarness(() => {
       throw renderError;
@@ -250,10 +259,7 @@ describe('MaterialFrameCoordinator', () => {
     harness.targets.set('material', target);
     harness.coordinator.wake('material', target);
 
-    expect(() => harness.frames.flushNext()).toThrow(renderError);
-    expect(harness.frames.frames.size).toBe(0);
-
-    harness.coordinator.requestRender();
+    expect(() => harness.frames.flushNext()).toThrow(publishError);
     expect(harness.frames.frames.size).toBe(1);
   });
 

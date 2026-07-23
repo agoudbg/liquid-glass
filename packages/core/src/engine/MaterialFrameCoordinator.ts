@@ -1,5 +1,31 @@
+import type { MaterialChanges } from '../types/context';
 import { ContextFrameScheduler } from './ContextFrameScheduler';
 import type { GlassEngineRuntime } from './runtime';
+
+interface PendingMaterialUpdate {
+  changes: MaterialChanges;
+  fieldRevisions: Map<string, number>;
+  firstRevision: number;
+  maxRevision: number;
+}
+
+type MaterialUpdateBatch = Array<readonly [string, PendingMaterialUpdate]>;
+
+function mergePendingUpdate(
+  pending: PendingMaterialUpdate,
+  changes: MaterialChanges,
+  revision: number,
+): void {
+  const source = changes as unknown as Record<string, unknown>;
+  const target = pending.changes as unknown as Record<string, unknown>;
+  for (const field of Object.keys(changes)) {
+    if (revision < (pending.fieldRevisions.get(field) ?? 0)) continue;
+    target[field] = source[field];
+    pending.fieldRevisions.set(field, revision);
+  }
+  pending.firstRevision = Math.min(pending.firstRevision, revision);
+  pending.maxRevision = Math.max(pending.maxRevision, revision);
+}
 
 /** Minimal interaction surface advanced by the shared material frame. */
 export interface MaterialFrameTarget {
@@ -19,6 +45,8 @@ export interface MaterialFrameCoordinatorCallbacks {
   getTarget(materialId: string): MaterialFrameTarget | null;
   /** Report whether the owning material controller has been destroyed. */
   isDestroyed(): boolean;
+  /** Publish one coalesced material update event. */
+  publishUpdate(materialId: string, changes: MaterialChanges): void;
   /** Draw all renderable materials for one coalesced frame. */
   renderMaterials(): void;
 }
@@ -32,6 +60,10 @@ export interface MaterialFrameCoordinatorCallbacks {
 export class MaterialFrameCoordinator {
   private readonly activeMaterialIds = new Set<string>();
   private readonly frameScheduler: ContextFrameScheduler;
+  private pendingUpdates = new Map<string, PendingMaterialUpdate>();
+  private currentRetiredMaterialIds: Set<string> | null = null;
+  private latestCommittedRevision = 0;
+  private renderedThroughRevision = 0;
   private renderRequested = false;
   private destroyed = false;
 
@@ -48,6 +80,58 @@ export class MaterialFrameCoordinator {
     if (this.isStopped()) return;
     this.renderRequested = true;
     this.ensureFrame();
+  }
+
+  /** Merge one committed update into its material's pending frame event. */
+  public queueUpdate(
+    materialId: string,
+    changes: MaterialChanges,
+    revision: number,
+  ): void {
+    if (this.isStopped()) return;
+    let pending = this.pendingUpdates.get(materialId);
+    if (!pending) {
+      pending = {
+        changes: {},
+        fieldRevisions: new Map<string, number>(),
+        firstRevision: revision,
+        maxRevision: revision,
+      };
+      this.pendingUpdates.set(materialId, pending);
+    }
+    mergePendingUpdate(pending, changes, revision);
+    this.noteCommitted(revision);
+    this.ensureFrame();
+  }
+
+  /** Record the order of a config commit before presentation can reenter. */
+  public noteCommitted(revision: number): void {
+    this.latestCommittedRevision = Math.max(
+      this.latestCommittedRevision,
+      revision,
+    );
+  }
+
+  /** Record a successful external draw that included committed revisions. */
+  public markRenderedThrough(revision: number): void {
+    this.renderedThroughRevision = Math.max(
+      this.renderedThroughRevision,
+      revision,
+    );
+  }
+
+  /** Execute a structural draw while consuming only pre-existing dirtiness. */
+  public renderImmediately(revision: number, render: () => void): void {
+    if (this.isStopped()) return;
+    const renderWasRequested = this.renderRequested;
+    this.renderRequested = false;
+    try {
+      render();
+      this.markRenderedThrough(revision);
+    } catch (error) {
+      this.renderRequested = renderWasRequested || this.renderRequested;
+      throw error;
+    }
   }
 
   /** Join a current material target to the shared motion frame. */
@@ -67,9 +151,20 @@ export class MaterialFrameCoordinator {
     this.activeMaterialIds.delete(materialId);
   }
 
+  /** Remove every kind of queued work owned by a retired material. */
+  public retire(materialId: string): void {
+    this.activeMaterialIds.delete(materialId);
+    this.pendingUpdates.delete(materialId);
+    this.currentRetiredMaterialIds?.add(materialId);
+  }
+
   /** Cancel a pending frame when neither motion nor rendering needs it. */
   public cancelWhenIdle(): void {
-    if (this.activeMaterialIds.size === 0 && !this.renderRequested) {
+    if (
+      this.activeMaterialIds.size === 0
+      && this.pendingUpdates.size === 0
+      && !this.renderRequested
+    ) {
       this.frameScheduler.cancel();
     }
   }
@@ -80,6 +175,7 @@ export class MaterialFrameCoordinator {
     this.destroyed = true;
     this.frameScheduler.cancel();
     this.activeMaterialIds.clear();
+    this.pendingUpdates.clear();
     this.renderRequested = false;
   }
 
@@ -90,9 +186,47 @@ export class MaterialFrameCoordinator {
 
   private runFrame(timestamp: number): void {
     if (this.isStopped()) return;
+    const updateBatch: MaterialUpdateBatch = [...this.pendingUpdates.entries()]
+      .sort((left, right) => left[1].firstRevision - right[1].firstRevision);
+    this.pendingUpdates = new Map<string, PendingMaterialUpdate>();
+    const retiredMaterialIds = new Set<string>();
+    this.currentRetiredMaterialIds = retiredMaterialIds;
+    try {
+      this.runDetachedFrame(timestamp, updateBatch, retiredMaterialIds);
+    } finally {
+      if (this.currentRetiredMaterialIds === retiredMaterialIds) {
+        this.currentRetiredMaterialIds = null;
+      }
+    }
+  }
+
+  private runDetachedFrame(
+    timestamp: number,
+    updateBatch: MaterialUpdateBatch,
+    retiredMaterialIds: Set<string>,
+  ): void {
     let presentationChanged = false;
-    let publishError: unknown;
-    let publishFailed = false;
+    let firstError: unknown;
+    let failed = false;
+    const dispatchedUpdateIds = new Set<string>();
+
+    // Detaching the batch keeps reentrant updates ordered for the next frame.
+    for (const [materialId, pending] of updateBatch) {
+      if (retiredMaterialIds.has(materialId)) continue;
+      dispatchedUpdateIds.add(materialId);
+      try {
+        this.callbacks.publishUpdate(materialId, pending.changes);
+      } catch (error) {
+        if (!failed) firstError = error;
+        failed = true;
+      }
+      if (this.isStopped()) break;
+    }
+
+    if (this.isStopped()) {
+      if (failed) throw firstError;
+      return;
+    }
 
     // A stable snapshot defers targets woken during this run to the next frame.
     for (const materialId of [...this.activeMaterialIds]) {
@@ -105,8 +239,8 @@ export class MaterialFrameCoordinator {
         try {
           target.publish();
         } catch (error) {
-          if (!publishFailed) publishError = error;
-          publishFailed = true;
+          if (!failed) firstError = error;
+          failed = true;
         }
         presentationChanged = true;
       }
@@ -115,16 +249,47 @@ export class MaterialFrameCoordinator {
     }
 
     if (this.isStopped()) {
-      if (publishFailed) throw publishError;
+      if (failed) throw firstError;
       return;
     }
-    const shouldRender = this.renderRequested || presentationChanged;
+    const hasUncoveredUpdate = updateBatch.some(([materialId, pending]) => (
+      dispatchedUpdateIds.has(materialId)
+      && !retiredMaterialIds.has(materialId)
+      && pending.maxRevision > this.renderedThroughRevision
+    ));
+    const hasUncoveredPendingUpdate = [...this.pendingUpdates.values()]
+      .some((pending) => pending.maxRevision > this.renderedThroughRevision);
+    const shouldRender = hasUncoveredUpdate
+      || hasUncoveredPendingUpdate
+      || this.renderRequested
+      || presentationChanged;
     this.renderRequested = false;
-    if (shouldRender) this.callbacks.renderMaterials();
-    if (this.activeMaterialIds.size > 0 || this.renderRequested) {
-      this.ensureFrame();
+    if (shouldRender) {
+      const coverageRevision = this.latestCommittedRevision;
+      try {
+        this.callbacks.renderMaterials();
+        this.markRenderedThrough(coverageRevision);
+      } catch (error) {
+        if (!failed) firstError = error;
+        failed = true;
+      }
     }
-    if (publishFailed) throw publishError;
+    if (
+      !this.isStopped()
+      && (
+        this.activeMaterialIds.size > 0
+        || this.pendingUpdates.size > 0
+        || this.renderRequested
+      )
+    ) {
+      try {
+        this.ensureFrame();
+      } catch (error) {
+        if (!failed) firstError = error;
+        failed = true;
+      }
+    }
+    if (failed) throw firstError;
   }
 
   private isStopped(): boolean {

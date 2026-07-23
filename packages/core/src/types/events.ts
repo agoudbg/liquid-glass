@@ -32,7 +32,10 @@ export interface MaterialsRenderedPayload {
 }
 
 /**
- * Strongly typed synchronous events emitted by one glass context.
+ * Strongly typed events emitted by one glass context.
+ *
+ * Lifecycle and render events are synchronous with their owning operation.
+ * Material update events are the exception described on `materialUpdated`.
  */
 export interface GlassEventMap {
   /** A source capture completed. */
@@ -45,7 +48,14 @@ export interface GlassEventMap {
   materialAdded: (id: string, config: MaterialConfig) => void;
   /** A material left the context. */
   materialRemoved: (id: string) => void;
-  /** A material configuration changed. */
+  /**
+   * Material configuration commits coalesced during one animation frame.
+   *
+   * Config and presentation state are committed synchronously by `update()`;
+   * this event is deferred, merges fields last-write-wins by true commit order,
+   * and runs before that frame's material-only draw. Listener failures drain
+   * executable update, animation, render, and rearm work before propagating.
+   */
   materialUpdated: (id: string, changes: MaterialChanges) => void;
   /** CSS fallback presentation changed. */
   fallbackModeChanged: (enabled: boolean) => void;

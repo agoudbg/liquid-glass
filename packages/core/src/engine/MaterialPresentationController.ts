@@ -50,6 +50,7 @@ export class MaterialPresentationController {
   private readonly registrations = new Map<string, MaterialRuntimeState>();
   private readonly frames: MaterialFrameCoordinator;
   private readonly observers: MaterialObserverRegistry;
+  private latestCommittedRevision = 0;
   private destroyed = false;
   private fallbackMode = false;
   private blurred = false;
@@ -65,6 +66,11 @@ export class MaterialPresentationController {
         this.registrations.get(materialId)?.interaction ?? null
       ),
       isDestroyed: () => this.destroyed,
+      publishUpdate: (materialId, changes) => {
+        const materialRuntime = this.registrations.get(materialId);
+        if (!materialRuntime || materialRuntime.registration.destroyed) return;
+        this.callbacks.onUpdated(materialRuntime.registration, changes);
+      },
       renderMaterials: () => this.callbacks.renderMaterials(),
     });
     this.observers = new MaterialObserverRegistry(
@@ -120,7 +126,7 @@ export class MaterialPresentationController {
       this.observers.track(registration);
       announced = true;
       this.callbacks.onAdded(registration);
-      this.callbacks.renderImmediately();
+      this.renderImmediately();
       return handle;
     } catch (error) {
       this.observers.untrack(registration);
@@ -193,6 +199,9 @@ export class MaterialPresentationController {
     );
     if (!prepared) return;
     const interactionUpdate = materialRuntime.interaction.prepareUpdate(prepared.next);
+    const revision = this.latestCommittedRevision + 1;
+    this.latestCommittedRevision = revision;
+    this.frames.noteCommitted(revision);
     let firstError: unknown;
     let failed = false;
 
@@ -202,17 +211,17 @@ export class MaterialPresentationController {
       firstError = error;
       failed = true;
     }
-    try {
-      this.callbacks.onUpdated(materialRuntime.registration, prepared.changes);
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
-    }
-    try {
-      this.requestRender();
-    } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
+    if (!this.destroyed && !materialRuntime.registration.destroyed) {
+      try {
+        this.frames.queueUpdate(
+          materialRuntime.registration.id,
+          prepared.changes,
+          revision,
+        );
+      } catch (error) {
+        if (!failed) firstError = error;
+        failed = true;
+      }
     }
     if (failed) throw firstError;
   }
@@ -275,14 +284,50 @@ export class MaterialPresentationController {
   private remove(materialRuntime: MaterialRuntimeState): void {
     if (materialRuntime.registration.destroyed) return;
     this.observers.untrack(materialRuntime.registration);
+    this.frames.retire(materialRuntime.registration.id);
     materialRuntime.interaction.destroy();
     restoreMaterialFallbackMode(materialRuntime.registration);
     materialRuntime.registration.destroyed = true;
-    this.frames.deactivate(materialRuntime.registration.id);
     this.registrations.delete(materialRuntime.registration.id);
-    this.callbacks.onRemoved(materialRuntime.registration);
-    if (!this.destroyed) this.callbacks.renderImmediately();
-    this.frames.cancelWhenIdle();
+    let firstError: unknown;
+    let failed = false;
+    try {
+      this.callbacks.onRemoved(materialRuntime.registration);
+    } catch (error) {
+      firstError = error;
+      failed = true;
+    }
+    if (!this.destroyed) {
+      try {
+        this.renderImmediately();
+      } catch (error) {
+        if (!failed) firstError = error;
+        failed = true;
+      }
+    }
+    if (failed) throw firstError;
+  }
+
+  private renderImmediately(): void {
+    const coverageRevision = this.latestCommittedRevision;
+    let firstError: unknown;
+    let failed = false;
+    try {
+      this.frames.renderImmediately(
+        coverageRevision,
+        () => this.callbacks.renderImmediately(),
+      );
+    } catch (error) {
+      firstError = error;
+      failed = true;
+    }
+    try {
+      this.frames.cancelWhenIdle();
+    } catch (error) {
+      if (!failed) firstError = error;
+      failed = true;
+    }
+    if (failed) throw firstError;
   }
 
   private wake(registration: MaterialRegistration): void {

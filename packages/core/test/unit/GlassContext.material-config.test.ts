@@ -193,11 +193,12 @@ describe('GlassContext material config transactions', () => {
     expect(updated).not.toHaveBeenCalled();
     expect(harness.frames.size).toBe(0);
     handle.update({ blur: 1 });
-    expect(updated).toHaveBeenCalledOnce();
+    expect(updated).not.toHaveBeenCalled();
     expect(handle.getPresentation().interactionConfig.activeSpring.stiffness).toBe(180);
     expect(presentations).toHaveLength(1);
     expect(harness.frames.size).toBe(1);
     harness.flushFrame();
+    expect(updated).toHaveBeenCalledOnce();
     context.destroy();
   });
 
@@ -258,7 +259,7 @@ describe('GlassContext material config transactions', () => {
     expect(updated).not.toHaveBeenCalled();
     expect(harness.frames.size).toBe(0);
     handle.update({ blur: 1 });
-    expect(updated).toHaveBeenCalledOnce();
+    expect(updated).not.toHaveBeenCalled();
     expect(harness.frames.size).toBe(1);
     context.destroy();
   });
@@ -284,11 +285,12 @@ describe('GlassContext material config transactions', () => {
       caught = error;
     }
     expect(caught).toBe(presentationError);
-    expect(updated).toHaveBeenCalledOnce();
+    expect(updated).not.toHaveBeenCalled();
     expect(handle.getPresentation().interactionConfig.preset).toBe('slider');
     expect(harness.frames.size).toBe(1);
+    expect(() => harness.flushFrame()).toThrow(eventError);
+    expect(updated).toHaveBeenCalledOnce();
     unsubscribe();
-    harness.flushFrame();
 
     expect(() => handle.update({ blur: 1 })).not.toThrow();
     expect(harness.frames.size).toBe(1);
@@ -303,13 +305,13 @@ describe('GlassContext material config transactions', () => {
     });
     const unsubscribe = context.on('materialUpdated', listener);
 
-    expect(() => handle.update({ radius: 13 })).toThrow(eventError);
+    expect(() => handle.update({ radius: 13 })).not.toThrow();
     expect(harness.frames.size).toBe(1);
-    harness.flushFrame();
-    expect(() => handle.update({ radius: 14 })).toThrow(eventError);
+    expect(() => harness.flushFrame()).toThrow(eventError);
+    expect(() => handle.update({ radius: 14 })).not.toThrow();
+    expect(harness.frames.size).toBe(1);
+    expect(() => harness.flushFrame()).toThrow(eventError);
     expect(listener).toHaveBeenCalledTimes(2);
-    expect(harness.frames.size).toBe(1);
-    harness.flushFrame();
 
     unsubscribe();
     handle.update({ radius: 14 });

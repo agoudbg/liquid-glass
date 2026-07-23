@@ -85,6 +85,11 @@
   height: 210px !important;
 }
 
+#app[data-oracle-mode="true"][data-scene="S002"]
+  .oracle-multi .liquid-glass-content {
+  z-index: -1;
+}
+
 #app[data-oracle-mode="true"] .oracle-multi-a {
   top: 150px !important;
   left: 210px !important;

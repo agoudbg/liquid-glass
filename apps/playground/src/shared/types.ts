@@ -69,8 +69,6 @@ export interface LabInteractionState {
 
 /** Renderer values owned only by the editable Lab scene. */
 export interface LabRenderState {
-  /** Backing-canvas render scale. */
-  precision: number;
   /** Explicit focused-material render order. */
   order: number;
 }
@@ -107,6 +105,8 @@ export interface PlaygroundState {
   scene: SceneId;
   /** Current core rendering strategy. */
   renderMode: 'uniform';
+  /** Global backing-canvas scale shared by every scene and framework host. */
+  renderPrecision: number;
   /** Whether the core-owned presentation canvas is visible. */
   glassEnabled: boolean;
   /** Whether the shell requests forced CSS fallback from the core context. */

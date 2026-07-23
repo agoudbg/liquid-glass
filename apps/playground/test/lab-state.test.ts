@@ -49,7 +49,7 @@ describe('isolated Lab state', () => {
     expect(firstState.lab).not.toBe(secondState.lab);
   });
 
-  it('round-trips the five existing URL controls through nested Lab groups', () => {
+  it('round-trips Lab controls and global precision through the URL', () => {
     const parsed = createInitialState(new URL(
       'https://example.test/?scene=S004&thickness=63&ior=1.47'
       + '&intensity=1.18&radius=51&precision=1.4',
@@ -67,8 +67,8 @@ describe('isolated Lab state', () => {
         radiusBR: 51,
         radiusBL: 63,
       },
-      render: { precision: 1.4 },
     });
+    expect(parsed.renderPrecision).toBe(1.4);
 
     window.history.replaceState(null, '', '/?stale=1');
     replacePlaygroundUrl(parsed);
@@ -79,7 +79,9 @@ describe('isolated Lab state', () => {
     expect(serialized.searchParams.get('radius')).toBe('51');
     expect(serialized.searchParams.get('precision')).toBe('1.4');
 
-    expect(createInitialState(serialized).lab).toEqual(parsed.lab);
+    const reparsed = createInitialState(serialized);
+    expect(reparsed.lab).toEqual(parsed.lab);
+    expect(reparsed.renderPrecision).toBe(parsed.renderPrecision);
   });
 
   it('round-trips complete Lab controls through a reproducible URL', () => {
@@ -158,15 +160,13 @@ describe('isolated Lab state', () => {
           preset: 'custom',
           config: { activeScale: 1.08 },
         },
-        render: {
-          precision: 1.35,
-          order: 27,
-        },
+        render: { order: 27 },
         source: {
           kind: 'dom',
           backgroundColor: '#101820',
         },
       },
+      renderPrecision: 1.35,
     });
 
     expect(resolveSceneMaterials(edited)[0]?.options).toMatchObject({
@@ -287,7 +287,6 @@ describe('isolated Lab state', () => {
       refractIndex: 1.1,
       refractIntensity: 0.5,
       radius: 28,
-      renderPrecision: 1,
     });
   });
 
@@ -316,7 +315,6 @@ describe('isolated Lab state', () => {
       refractIndex: 1.18,
       refractIntensity: 0.72,
       radius: 52,
-      renderPrecision: 1,
     });
     expect(resolveSceneControlValues(createInitialState(new URL(
       'https://example.test/?scene=S002&oracle=1',
@@ -325,7 +323,6 @@ describe('isolated Lab state', () => {
       refractIndex: 1.12,
       refractIntensity: 0.64,
       radius: 44,
-      renderPrecision: 1,
     });
     expect(resolveSceneControlValues(createInitialState(new URL(
       'https://example.test/?scene=S004&oracle=1',
@@ -334,18 +331,16 @@ describe('isolated Lab state', () => {
       refractIndex: 1.1,
       refractIntensity: 0.5,
       radius: 40,
-      renderPrecision: 1,
     });
   });
 
   it('preserves Lab edits across canonical scene transitions', () => {
     const initial = createInitialState(new URL('https://example.test/?scene=S001'));
-    const editedLab = updateLabNumericControl(
-      updateLabNumericControl(initial.lab, 'thickness', 67),
-      'renderPrecision',
-      1.4,
-    );
-    const edited = transitionPlaygroundState(initial, { lab: editedLab });
+    const editedLab = updateLabNumericControl(initial.lab, 'thickness', 67);
+    const edited = transitionPlaygroundState(initial, {
+      lab: editedLab,
+      renderPrecision: 1.4,
+    });
     const interaction = transitionPlaygroundScene(edited, 'S004');
     const restored = transitionPlaygroundScene(interaction, 'S001');
 

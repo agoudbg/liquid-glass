@@ -97,6 +97,8 @@ body[data-playground-scene="S005"] {
 
 #app[data-scene="S005"] .playground-shell {
   grid-template-rows: 64px auto 38px;
+  height: auto;
+  min-height: 100dvh;
 }
 
 #app[data-scene="S005"] .topbar {

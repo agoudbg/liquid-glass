@@ -200,6 +200,7 @@
 @media (max-width: 820px) {
   .lab-panel,
   .fixed-scene-panel,
+  .global-render-precision,
   .shared-renderer-control {
     grid-column: 1 / -1;
   }

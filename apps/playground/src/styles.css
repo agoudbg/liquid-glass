@@ -53,7 +53,8 @@ select:focus-visible {
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 64px minmax(0, 1fr) 38px;
   width: 100%;
-  min-height: 100dvh;
+  height: 100dvh;
+  min-height: 0;
   background: #f3f5f2;
 }
 
@@ -266,7 +267,10 @@ select:focus-visible {
 
 .inspector {
   min-width: 0;
-  overflow: auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   background: #f7f9f6;
 }
 

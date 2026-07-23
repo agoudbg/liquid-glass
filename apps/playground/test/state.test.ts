@@ -7,6 +7,18 @@ import {
 } from '../src/shell/state';
 
 describe('playground URL state', () => {
+  it('parses and clamps the global render precision', () => {
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S004&precision=1.65',
+    )).renderPrecision).toBe(1.65);
+    expect(createInitialState(new URL(
+      'https://example.test/?precision=99',
+    )).renderPrecision).toBe(2.5);
+    expect(createInitialState(new URL(
+      'https://example.test/?precision=invalid',
+    )).renderPrecision).toBe(1);
+  });
+
   it('defaults S007 to forced fallback while preserving explicit overrides', () => {
     expect(createInitialState(new URL('https://example.test/?scene=S007')))
       .toMatchObject({ scene: 'S007', fallbackEnabled: true });

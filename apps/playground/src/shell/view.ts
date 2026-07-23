@@ -20,6 +20,9 @@ export class PlaygroundShellView {
   public readonly glassToggle: HTMLInputElement;
   /** Static canonical scene selector. */
   public readonly sceneSelect: HTMLSelectElement;
+  /** Static global control for the backing-canvas render scale. */
+  public readonly renderPrecisionInput: HTMLInputElement;
+  private readonly renderPrecisionOutput: HTMLOutputElement;
   private readonly refreshBackdropButtons: HTMLButtonElement[];
 
   /** Resolve the required static shell elements within one app root. */
@@ -30,6 +33,12 @@ export class PlaygroundShellView {
     );
     this.sceneSelect = this.requireElement<HTMLSelectElement>(
       '[data-testid="scene-select"]',
+    );
+    this.renderPrecisionInput = this.requireElement<HTMLInputElement>(
+      '[data-render-precision-control]',
+    );
+    this.renderPrecisionOutput = this.requireElement<HTMLOutputElement>(
+      '[data-render-precision-output]',
     );
     this.refreshBackdropButtons = this.queryElements<HTMLButtonElement>(
       '[data-action="refresh-backdrop"], [data-action="refresh-lab-backdrop"]',
@@ -97,6 +106,8 @@ export class PlaygroundShellView {
     }
 
     this.glassToggle.checked = state.glassEnabled;
+    this.renderPrecisionInput.value = String(state.renderPrecision);
+    this.renderPrecisionOutput.value = `${state.renderPrecision.toFixed(2)}x`;
     renderLabWorkbench(this.app, state);
     const sceneDefinition = getSceneDefinition(state.scene);
     this.setText('#scene-kicker', `SCENE ${state.scene.slice(1)}`);
@@ -116,6 +127,7 @@ export class PlaygroundShellView {
     this.app.dataset.framework = state.framework;
     this.app.dataset.scene = state.scene;
     this.app.dataset.renderMode = state.renderMode;
+    this.app.dataset.renderPrecision = String(state.renderPrecision);
     this.app.dataset.glass = state.glassEnabled ? 'on' : 'off';
     this.app.dataset.fallbackRequest = state.fallbackEnabled ? 'on' : 'off';
     this.app.dataset.viewportRequest = state.viewportEnabled ? 'on' : 'off';

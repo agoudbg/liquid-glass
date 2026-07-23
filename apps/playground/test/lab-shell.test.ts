@@ -56,7 +56,15 @@ describe('Lab shell controls', () => {
       .toBe('workbench-tab-lab');
     expect(requireElement<HTMLElement>(root, '[data-lab-panel]').hidden).toBe(false);
     expect(requireElement<HTMLElement>(root, '[data-fixed-panel]').hidden).toBe(true);
-    expect(root.querySelectorAll('[data-lab-number]')).toHaveLength(18);
+    expect(root.querySelectorAll('[data-lab-number]')).toHaveLength(17);
+    expect(requireElement<HTMLInputElement>(
+      root,
+      '[data-render-precision-control]',
+    ).value).toBe('1');
+    expect(requireElement<HTMLOutputElement>(
+      root,
+      '[data-render-precision-output]',
+    ).value).toBe('1.00x');
     expect(root.querySelectorAll('[data-lab-boolean]')).toHaveLength(4);
     expect(root.querySelectorAll('[data-lab-color]')).toHaveLength(4);
     expect(root.querySelectorAll(

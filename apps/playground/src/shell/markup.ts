@@ -1,3 +1,9 @@
+import {
+  DEFAULT_RENDER_PRECISION,
+  MAXIMUM_RENDER_PRECISION,
+  MINIMUM_RENDER_PRECISION,
+  RENDER_PRECISION_STEP,
+} from '../shared/render-precision';
 import { SCENE_DEFINITIONS } from '../shared/scene-catalog';
 import { WORKBENCH_TABS } from '../shared/workbench-tabs';
 import { LAB_INSPECTOR_MARKUP } from './lab-markup';
@@ -91,6 +97,23 @@ export const PLAYGROUND_MARKUP = `
               </div>
             </div>
           </div>
+
+          <label class="range-control global-render-precision">
+            <span>Render precision</span>
+            <output
+              for="render-precision-control"
+              data-render-precision-output
+            >${DEFAULT_RENDER_PRECISION.toFixed(2)}x</output>
+            <input
+              id="render-precision-control"
+              type="range"
+              min="${MINIMUM_RENDER_PRECISION}"
+              max="${MAXIMUM_RENDER_PRECISION}"
+              step="${RENDER_PRECISION_STEP}"
+              value="${DEFAULT_RENDER_PRECISION}"
+              data-render-precision-control
+            />
+          </label>
 
           <div class="mode-control shared-renderer-control">
             <span>Renderer</span>

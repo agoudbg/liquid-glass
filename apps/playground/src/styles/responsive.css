@@ -28,6 +28,8 @@
 
   .playground-shell {
     grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: 100dvh;
   }
 
   .topbar {

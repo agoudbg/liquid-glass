@@ -22,8 +22,6 @@ export interface LabUrlValues {
   refractIntensity: number;
   /** Shared corner radius in CSS pixels. */
   radius: number;
-  /** Backing-canvas render scale. */
-  renderPrecision: number;
 }
 
 /** Numeric controls currently rendered by the compact inspector. */
@@ -56,7 +54,6 @@ export const DEFAULT_LAB_URL_VALUES: Readonly<LabUrlValues> = {
   refractIndex: 1.21,
   refractIntensity: 0.72,
   radius: 34,
-  renderPrecision: 1,
 };
 
 /** Create independent corner values that preserve the existing asymmetric lens. */
@@ -102,7 +99,6 @@ export function createDefaultLabState(
       },
     },
     render: {
-      precision: values.renderPrecision,
       order: 10,
     },
     source: {
@@ -186,12 +182,6 @@ export function updateLabNumericControl(
       shape: { ...state.shape, [control]: value },
     };
   }
-  if (control === 'renderPrecision') {
-    return {
-      ...state,
-      render: { ...state.render, precision: value },
-    };
-  }
   if (control === 'renderOrder') {
     return {
       ...state,
@@ -228,7 +218,6 @@ export function isLabNumericControl(value: string): value is LabNumericControl {
     || value === 'radiusTR'
     || value === 'radiusBR'
     || value === 'radiusBL'
-    || value === 'renderPrecision'
     || value === 'renderOrder'
     || value === 'illuminationAngle'
     || value === 'illuminationIntensity'

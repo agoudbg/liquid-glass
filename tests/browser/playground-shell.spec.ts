@@ -72,6 +72,79 @@ test('renders S001 and S002 through every public framework adapter', async ({ pa
   expect(runtimeErrors).toEqual([]);
 });
 
+test('scrolls the inspector and applies global render precision everywhere', async ({
+  page,
+}) => {
+  await page.goto('/?test=1&framework=vue&scene=S001&precision=1', {
+    waitUntil: 'domcontentloaded',
+  });
+  const shell = page.locator('#app');
+  const inspector = page.locator('.inspector');
+  const canvas = page.locator('.liquid-glass-canvas');
+  await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+
+  const layout = await inspector.evaluate((element) => {
+    const workbench = document.querySelector('.playground-shell');
+    if (!workbench) throw new Error('Missing playground shell.');
+    element.scrollTop = element.scrollHeight;
+    return {
+      bodyScrollHeight: document.body.scrollHeight,
+      clientHeight: element.clientHeight,
+      innerHeight: window.innerHeight,
+      scrollHeight: element.scrollHeight,
+      scrollTop: element.scrollTop,
+      workbenchHeight: workbench.getBoundingClientRect().height,
+    };
+  });
+  expect(layout.workbenchHeight).toBe(layout.innerHeight);
+  expect(layout.bodyScrollHeight).toBe(layout.innerHeight);
+  expect(layout.scrollHeight).toBeGreaterThan(layout.clientHeight);
+  expect(layout.scrollTop).toBe(layout.scrollHeight - layout.clientHeight);
+
+  const precision = page.locator('[data-render-precision-control]');
+  await precision.evaluate((element) => {
+    if (!(element instanceof HTMLInputElement)) {
+      throw new Error('Render precision control is not an input.');
+    }
+    element.value = '1.5';
+    element.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await expect(shell).toHaveAttribute('data-render-precision', '1.5');
+  await expect(page).toHaveURL(/precision=1\.5/);
+  await expect(page.locator('[data-render-precision-output]')).toHaveText('1.50x');
+
+  const expectPrecision = async (): Promise<void> => {
+    await expect.poll(() => canvas.evaluate((element) => (
+      element.width === Math.round(element.getBoundingClientRect().width * 1.5)
+      && element.height === Math.round(element.getBoundingClientRect().height * 1.5)
+    ))).toBe(true);
+    const dimensions = await canvas.evaluate((element) => ({
+      actualHeight: element.height,
+      actualWidth: element.width,
+      expectedHeight: Math.round(element.getBoundingClientRect().height * 1.5),
+      expectedWidth: Math.round(element.getBoundingClientRect().width * 1.5),
+    }));
+    expect(dimensions.actualWidth).toBe(dimensions.expectedWidth);
+    expect(dimensions.actualHeight).toBe(dimensions.expectedHeight);
+  };
+  await expectPrecision();
+
+  await page.getByTestId('scene-select').selectOption('S002');
+  await expect(shell).toHaveAttribute('data-scene', 'S002');
+  await expectPrecision();
+
+  for (const framework of ['react', 'solid'] as const) {
+    await page.getByRole('button', {
+      exact: true,
+      name: framework === 'react' ? 'React' : 'Solid',
+    }).click();
+    await expect(shell).toHaveAttribute('data-framework', framework);
+    await expect(shell).toHaveAttribute('data-ready', 'true');
+    await expect(shell).toHaveAttribute('data-render-precision', '1.5');
+    await expectPrecision();
+  }
+});
+
 test('captures, mutates, and manually refreshes DOM through every adapter', async ({
   page,
 }) => {

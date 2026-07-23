@@ -65,7 +65,6 @@ export const LAB_RANGE_GROUPS: readonly LabRangeGroup[] = [
     id: 'render',
     label: 'Render',
     controls: [
-      range('renderPrecision', 'Precision', 0.5, 2.5, 0.05, 2, 'x'),
       range('renderOrder', 'Order', -100, 100, 1, 0),
     ],
   },
@@ -96,7 +95,6 @@ export function readLabNumericControl(
   if (control === 'radiusTR') return state.shape.radiusTR;
   if (control === 'radiusBR') return state.shape.radiusBR;
   if (control === 'radiusBL') return state.shape.radiusBL;
-  if (control === 'renderPrecision') return state.render.precision;
   if (control === 'renderOrder') return state.render.order;
   if (control === 'illuminationAngle') return state.appearance.illuminationAngle;
   if (control === 'illuminationIntensity') {

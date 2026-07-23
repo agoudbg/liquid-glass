@@ -32,12 +32,6 @@ export function parseLabUrlState(params: URLSearchParams): LabState {
       200,
       DEFAULT_LAB_URL_VALUES.radius,
     ),
-    renderPrecision: parseNumber(
-      params.get('precision'),
-      0.5,
-      2.5,
-      DEFAULT_LAB_URL_VALUES.renderPrecision,
-    ),
   });
   const preset = params.get('interaction');
   const source = params.get('source');
@@ -119,7 +113,6 @@ export function parseLabUrlState(params: URLSearchParams): LabState {
       },
     },
     render: {
-      precision: lab.render.precision,
       order: parseNumber(params.get('renderOrder'), -100, 100, lab.render.order),
     },
     source: {
@@ -144,7 +137,6 @@ export function writeLabUrlState(
   params.set('radiusTR', String(lab.shape.radiusTR));
   params.set('radiusBR', String(lab.shape.radiusBR));
   params.set('radiusBL', String(lab.shape.radiusBL));
-  params.set('precision', String(lab.render.precision));
   params.set('renderOrder', String(lab.render.order));
   params.set('customColor', lab.appearance.useCustomColor ? 'on' : 'off');
   params.set('color', lab.appearance.backgroundColor);

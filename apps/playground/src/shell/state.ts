@@ -8,6 +8,11 @@ import {
   writeLabUrlState,
 } from '../shared/lab-url-state';
 import {
+  DEFAULT_RENDER_PRECISION,
+  normalizeRenderPrecision,
+  parseRenderPrecision,
+} from '../shared/render-precision';
+import {
   getSceneDefinition,
   isSceneId,
   type SceneId,
@@ -29,6 +34,7 @@ export function createDefaultPlaygroundState(): PlaygroundState {
     framework: 'vue',
     scene: 'S001',
     renderMode: 'uniform',
+    renderPrecision: DEFAULT_RENDER_PRECISION,
     glassEnabled: true,
     fallbackEnabled: false,
     scrollable: false,
@@ -58,6 +64,7 @@ export function createInitialState(url: URL): PlaygroundState {
     ...defaults,
     framework: isFrameworkId(framework) ? framework : defaults.framework,
     scene,
+    renderPrecision: parseRenderPrecision(url.searchParams.get('precision')),
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on'
       || (fallback !== 'off' && sceneDefinition.fallbackByDefault),
@@ -125,6 +132,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('viewport', state.viewportEnabled ? 'on' : 'off');
   url.searchParams.set('content', state.domVariant);
   writeLabUrlState(url.searchParams, state.lab);
+  url.searchParams.set('precision', String(state.renderPrecision));
   if (state.testMode) {
     url.searchParams.set('test', '1');
   } else {
@@ -151,8 +159,13 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
 function normalizePlaygroundState(state: PlaygroundState): PlaygroundState {
   const oracleMode = state.oracleMode
     && getSceneDefinition(state.scene).supportsOracle;
+  const normalizedState = {
+    ...state,
+    oracleMode,
+    renderPrecision: normalizeRenderPrecision(state.renderPrecision),
+  };
   return normalizeTestFixtureState(
-    oracleMode === state.oracleMode ? state : { ...state, oracleMode },
+    normalizedState,
   );
 }
 

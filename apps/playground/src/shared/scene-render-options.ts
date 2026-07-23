@@ -10,21 +10,18 @@ const ORACLE_CONTROL_VALUES = {
     refractIndex: 1.18,
     refractIntensity: 0.72,
     radius: 52,
-    renderPrecision: 1,
   },
   S002: {
     thickness: 16,
     refractIndex: 1.12,
     refractIntensity: 0.64,
     radius: 44,
-    renderPrecision: 1,
   },
   S004: {
     thickness: 10,
     refractIndex: 1.1,
     refractIntensity: 0.5,
     radius: 40,
-    renderPrecision: 1,
   },
 } as const satisfies Readonly<Record<'S001' | 'S002' | 'S004', LabUrlValues>>;
 
@@ -33,7 +30,6 @@ const INTERACTION_CONTROL_VALUES: Readonly<LabUrlValues> = {
   refractIndex: 1.1,
   refractIntensity: 0.5,
   radius: 28,
-  renderPrecision: 1,
 };
 
 /** Return whether the current scene may mutate the isolated Lab controls. */
@@ -54,14 +50,13 @@ export function resolveSceneControlValues(state: PlaygroundState): LabUrlValues 
       refractIndex: state.lab.optics.refractIndex,
       refractIntensity: state.lab.optics.refractIntensity,
       radius: state.lab.shape.radius,
-      renderPrecision: state.lab.render.precision,
     };
   }
   if (state.scene === 'S004') return { ...INTERACTION_CONTROL_VALUES };
   return { ...DEFAULT_LAB_URL_VALUES };
 }
 
-/** Resolve render precision without leaking Lab edits into canonical scenes. */
+/** Resolve the global render precision shared by every playground scene. */
 export function resolveSceneRenderPrecision(state: PlaygroundState): number {
-  return resolveSceneControlValues(state).renderPrecision;
+  return state.renderPrecision;
 }

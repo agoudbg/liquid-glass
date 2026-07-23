@@ -1,39 +1,21 @@
-import type {
-  MaterialAppearanceOptions,
-  MaterialConfig,
-} from '@agou/liquid-glass-core';
-
+import { resolveInteractionPolicyMaterials } from './interaction-policy-materials';
 import { isScrollCaptureScene } from './scene-backdrops';
 import type { SceneId } from './scene-catalog';
+import type {
+  SceneMaterial,
+  SceneMaterialOptions,
+} from './scene-material-types';
+import { isInteractionPolicyFixture } from './test-fixtures';
 import type { PlaygroundState } from './types';
-
-/** Material options accepted consistently by all three public adapters. */
-export interface SceneMaterialOptions
-  extends Omit<MaterialConfig, 'element'>,
-  MaterialAppearanceOptions {}
-
-/** Framework-neutral material definition rendered by every host. */
-export interface SceneMaterial {
-  /** Stable reconciliation and diagnostic identifier. */
-  id: string;
-  /** CSS placement class shared across hosts. */
-  className: string;
-  /** Compact material label rendered above the optical values. */
-  label: string;
-  /** Secondary material label. */
-  name: string;
-  /** Optional compact detail used by the exact legacy oracle. */
-  detail?: string;
-  /** Optional stable browser-test identifier for a primary interaction target. */
-  testId?: string;
-  /** Public adapter options for this material. */
-  options: SceneMaterialOptions;
-}
 
 /** Resolve the canonical material set from the current optical controls. */
 export function resolveSceneMaterials(state: PlaygroundState): readonly SceneMaterial[] {
   if (state.oracleMode) return resolveOracleMaterials(state.scene);
-  if (state.scene === 'S004') return resolveInteractionMaterials(state);
+  if (state.scene === 'S004') {
+    return isInteractionPolicyFixture(state)
+      ? resolveInteractionPolicyMaterials(state)
+      : resolveInteractionMaterials(state);
+  }
   const multiple = state.scene === 'S002';
 
   const primary: SceneMaterial = {

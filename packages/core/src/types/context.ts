@@ -183,7 +183,7 @@ export interface MaterialConfig {
   dispersion?: number;
   /** Whether pointer-driven transforms are disabled. */
   disableInteractions?: boolean;
-  /** Whether press events are accepted while drag behavior is ignored. */
+  /** Whether hover-only input is ignored while press and held movement remain active. */
   onlyClickInteractions?: boolean;
   /** Whether material translation and hover-follow are suppressed for a moveable host. */
   isMoveable?: boolean;

@@ -18,6 +18,7 @@ import {
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import type { FrameworkHostProps } from '../../shared/types';
+import { InteractionFixtureControl } from './InteractionFixtureControl';
 
 /** Render the canonical scene through the React public adapter. */
 export function ReactScene({
@@ -127,23 +128,27 @@ export function ReactScene({
           data-oracle-material={state.oracleMode ? material.id : undefined}
           data-testid={material.testId ?? (index === 0 ? 'primary-material' : undefined)}
         >
-          <div className="material-copy">
-            {state.oracleMode ? (
-              <>
-                <strong>{material.name}</strong>
-                {material.detail ? <span>{material.detail}</span> : null}
-              </>
-            ) : (
-              <>
-                <span>{material.label}</span>
-                <strong>{material.name}</strong>
-                <small>
-                  {material.options.thickness} px ·{' '}
-                  {material.options.refractIndex?.toFixed(2)} IOR
-                </small>
-              </>
-            )}
-          </div>
+          {material.control ? (
+            <InteractionFixtureControl control={material.control} />
+          ) : (
+            <div className="material-copy">
+              {state.oracleMode ? (
+                <>
+                  <strong>{material.name}</strong>
+                  {material.detail ? <span>{material.detail}</span> : null}
+                </>
+              ) : (
+                <>
+                  <span>{material.label}</span>
+                  <strong>{material.name}</strong>
+                  <small>
+                    {material.options.thickness} px ·{' '}
+                    {material.options.refractIndex?.toFixed(2)} IOR
+                  </small>
+                </>
+              )}
+            </div>
+          )}
         </LiquidGlassMaterial>
       ))}
     </LiquidGlass>

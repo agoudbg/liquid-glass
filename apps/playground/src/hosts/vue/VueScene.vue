@@ -18,6 +18,7 @@ import {
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import type { FrameworkHostProps } from '../../shared/types';
+import InteractionFixtureControl from './InteractionFixtureControl.vue';
 
 const props = defineProps<FrameworkHostProps>();
 const contextOptions = computed<GlassContextOptions>(() => ({
@@ -142,7 +143,14 @@ function handleError(error: unknown): void {
       :data-oracle-material="state.oracleMode ? material.id : undefined"
       :data-testid="material.testId ?? (index === 0 ? 'primary-material' : undefined)"
     >
-      <div class="material-copy">
+      <InteractionFixtureControl
+        v-if="material.control"
+        :control="material.control"
+      />
+      <div
+        v-else
+        class="material-copy"
+      >
         <template v-if="state.oracleMode">
           <strong>{{ material.name }}</strong>
           <span v-if="material.detail">{{ material.detail }}</span>

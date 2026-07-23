@@ -107,6 +107,11 @@ export class PlaygroundShellView {
     this.app.dataset.viewportRequest = state.viewportEnabled ? 'on' : 'off';
     this.app.dataset.domVariant = state.domVariant;
     this.app.dataset.testMode = String(state.testMode);
+    if (state.testFixture) {
+      this.app.dataset.testFixture = state.testFixture;
+    } else {
+      delete this.app.dataset.testFixture;
+    }
     this.app.dataset.oracleMode = String(state.oracleMode);
     this.frameworkHost.dataset.framework = state.framework;
     this.frameworkHost.dataset.scene = state.scene;

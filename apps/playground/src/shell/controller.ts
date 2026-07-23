@@ -3,6 +3,7 @@ import {
   getSceneDefinition,
   isSceneId,
 } from '../shared/scene-catalog';
+import { normalizeTestFixtureState } from '../shared/test-fixtures';
 import type {
   FrameworkHostCallbacks,
   FrameworkHostController,
@@ -112,7 +113,10 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     const hostStateChanged = Object.keys(changes).some(
       (key) => key !== 'fallbackEnabled',
     );
-    currentState = { ...currentState, ...changes };
+    currentState = normalizeTestFixtureState({
+      ...currentState,
+      ...changes,
+    });
     if (options.remount) {
       mountFramework();
     } else {

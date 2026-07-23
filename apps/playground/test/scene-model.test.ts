@@ -159,4 +159,79 @@ describe('playground scene model', () => {
       SCENE_DEFINITIONS.find(({ id }) => id === 'S006'),
     );
   });
+
+  it('resolves the gated interaction-policy fixture without changing S004', () => {
+    const fixtureState = createInitialState(new URL(
+      'https://example.test/?scene=S004&test=1&fixture=interaction-policy',
+    ));
+    const materials = resolveSceneMaterials(fixtureState);
+    expect(materials.map(({ id }) => id)).toEqual([
+      'disabled-button',
+      'disabled-range',
+      'click-only-button',
+      'click-only-range',
+    ]);
+    expect(materials).toEqual([
+      expect.objectContaining({
+        className: expect.stringContaining('interaction-button'),
+        control: {
+          kind: 'button',
+          label: 'Run disabled action',
+          testId: 'disabled-button-control',
+        },
+        options: expect.objectContaining({
+          disableInteractions: true,
+          interactionPreset: 'button',
+        }),
+      }),
+      expect.objectContaining({
+        className: expect.stringContaining('interaction-context'),
+        control: {
+          initialValue: 32,
+          kind: 'range',
+          label: 'Disabled policy value',
+          testId: 'disabled-range-control',
+        },
+        options: expect.objectContaining({
+          disableInteractions: true,
+          interactionPreset: 'slider',
+        }),
+      }),
+      expect.objectContaining({
+        className: expect.stringContaining('interaction-slider'),
+        control: expect.objectContaining({ kind: 'button' }),
+        options: expect.objectContaining({
+          interactionPreset: 'button',
+          onlyClickInteractions: true,
+        }),
+      }),
+      expect.objectContaining({
+        className: expect.stringContaining('interaction-custom'),
+        control: expect.objectContaining({
+          initialValue: 68,
+          kind: 'range',
+        }),
+        options: expect.objectContaining({
+          interactionPreset: 'slider',
+          onlyClickInteractions: true,
+        }),
+      }),
+    ]);
+
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S004&fixture=interaction-policy',
+    ))).map(({ id }) => id)).toEqual([
+      's004-button',
+      's004-context',
+      's004-slider',
+      's004-custom',
+    ]);
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S004&test=1&fixture=interaction-policy&oracle=1',
+    ))).map(({ id }) => id)).toEqual([
+      's004-button',
+      's004-context',
+      's004-slider',
+    ]);
+  });
 });

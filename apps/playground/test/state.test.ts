@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { normalizeTestFixtureState } from '../src/shared/test-fixtures';
 import {
   createInitialState,
   replacePlaygroundUrl,
@@ -53,8 +54,39 @@ describe('playground URL state', () => {
     ))).toMatchObject({ oracleMode: false, scene: 'S005' });
   });
 
+  it('gates the interaction-policy fixture behind test-only non-oracle S004', () => {
+    const fixtureUrl =
+      'https://example.test/?scene=S004&test=1&fixture=interaction-policy';
+    expect(createInitialState(new URL(fixtureUrl)))
+      .toMatchObject({
+        oracleMode: false,
+        scene: 'S004',
+        testFixture: 'interaction-policy',
+        testMode: true,
+      });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S004&fixture=interaction-policy',
+    )).testFixture).toBeNull();
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S001&test=1&fixture=interaction-policy',
+    )).testFixture).toBeNull();
+    expect(createInitialState(new URL(
+      `${fixtureUrl}&oracle=1`,
+    ))).toMatchObject({
+      oracleMode: true,
+      testFixture: null,
+    });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S004&test=1&fixture=unknown',
+    )).testFixture).toBeNull();
+  });
+
   it('removes inactive test-only flags when serializing state', () => {
-    window.history.replaceState(null, '', '/?scene=S005&oracle=1&test=1');
+    window.history.replaceState(
+      null,
+      '',
+      '/?scene=S005&oracle=1&test=1&fixture=interaction-policy',
+    );
     const state = createInitialState(new URL(window.location.href));
 
     replacePlaygroundUrl({ ...state, oracleMode: false, testMode: false });
@@ -62,6 +94,57 @@ describe('playground URL state', () => {
     const serializedUrl = new URL(window.location.href);
     expect(serializedUrl.searchParams.has('oracle')).toBe(false);
     expect(serializedUrl.searchParams.has('test')).toBe(false);
+    expect(serializedUrl.searchParams.has('fixture')).toBe(false);
+  });
+
+  it('serializes only a currently reachable test fixture', () => {
+    window.history.replaceState(null, '', '/?scene=S004');
+    const state = createInitialState(new URL(
+      'https://example.test/?scene=S004&test=1&fixture=interaction-policy',
+    ));
+
+    replacePlaygroundUrl(state);
+    expect(new URL(window.location.href).searchParams.get('fixture'))
+      .toBe('interaction-policy');
+
+    replacePlaygroundUrl({ ...state, oracleMode: true });
+    expect(new URL(window.location.href).searchParams.has('fixture')).toBe(false);
+  });
+
+  it('clears an invalidated fixture before later transitions can reactivate it', () => {
+    const fixtureState = createInitialState(new URL(
+      'https://example.test/?scene=S004&test=1&fixture=interaction-policy',
+    ));
+
+    const leftFixtureScene = normalizeTestFixtureState({
+      ...fixtureState,
+      scene: 'S001',
+    });
+    expect(leftFixtureScene.testFixture).toBeNull();
+    expect(normalizeTestFixtureState({
+      ...leftFixtureScene,
+      scene: 'S004',
+    }).testFixture).toBeNull();
+
+    const testModeDisabled = normalizeTestFixtureState({
+      ...fixtureState,
+      testMode: false,
+    });
+    expect(testModeDisabled.testFixture).toBeNull();
+    expect(normalizeTestFixtureState({
+      ...testModeDisabled,
+      testMode: true,
+    }).testFixture).toBeNull();
+
+    const oracleEnabled = normalizeTestFixtureState({
+      ...fixtureState,
+      oracleMode: true,
+    });
+    expect(oracleEnabled.testFixture).toBeNull();
+    expect(normalizeTestFixtureState({
+      ...oracleEnabled,
+      oracleMode: false,
+    }).testFixture).toBeNull();
   });
 
   it('defaults S006 to bounded internal scrolling while preserving overrides', () => {

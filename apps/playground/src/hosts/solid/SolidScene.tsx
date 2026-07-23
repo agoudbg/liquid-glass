@@ -18,6 +18,7 @@ import {
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import type { FrameworkHostProps } from '../../shared/types';
+import { InteractionFixtureControl } from './InteractionFixtureControl';
 
 /** Render the canonical scene through the Solid public adapter. */
 export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.Element {
@@ -125,26 +126,33 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
               index() === 0 ? 'primary-material' : undefined
             )}
           >
-            <div class="material-copy">
-              <Show
-                when={props.state.oracleMode}
-                fallback={(
-                  <>
-                    <span>{material.label}</span>
+            <Show
+              when={material.control}
+              fallback={(
+                <div class="material-copy">
+                  <Show
+                    when={props.state.oracleMode}
+                    fallback={(
+                      <>
+                        <span>{material.label}</span>
+                        <strong>{material.name}</strong>
+                        <small>
+                          {material.options.thickness} px ·{' '}
+                          {material.options.refractIndex?.toFixed(2)} IOR
+                        </small>
+                      </>
+                    )}
+                  >
                     <strong>{material.name}</strong>
-                    <small>
-                      {material.options.thickness} px ·{' '}
-                      {material.options.refractIndex?.toFixed(2)} IOR
-                    </small>
-                  </>
-                )}
-              >
-                <strong>{material.name}</strong>
-                <Show when={material.detail}>
-                  {(detail) => <span>{detail()}</span>}
-                </Show>
-              </Show>
-            </div>
+                    <Show when={material.detail}>
+                      {(detail) => <span>{detail()}</span>}
+                    </Show>
+                  </Show>
+                </div>
+              )}
+            >
+              {(control) => <InteractionFixtureControl control={control()} />}
+            </Show>
           </LiquidGlassMaterial>
         )}
       </For>

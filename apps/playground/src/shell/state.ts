@@ -21,6 +21,7 @@ const DEFAULT_STATE: PlaygroundState = {
   radius: 34,
   renderPrecision: 1,
   testMode: false,
+  testFixture: null,
   oracleMode: false,
 };
 
@@ -32,6 +33,7 @@ export function createInitialState(url: URL): PlaygroundState {
   const scroll = url.searchParams.get('scroll');
   const viewport = url.searchParams.get('viewport');
   const sceneDefinition = getSceneDefinition(scene);
+  const testMode = url.searchParams.get('test') === '1';
   const oracleMode = url.searchParams.get('oracle') === '1'
     && sceneDefinition.supportsOracle;
   const parsedState: PlaygroundState = {
@@ -75,7 +77,13 @@ export function createInitialState(url: URL): PlaygroundState {
       1.5,
       DEFAULT_STATE.renderPrecision,
     ),
-    testMode: url.searchParams.get('test') === '1',
+    testMode,
+    testFixture: testMode
+      && scene === 'S004'
+      && !oracleMode
+      && url.searchParams.get('fixture') === 'interaction-policy'
+      ? 'interaction-policy'
+      : null,
     oracleMode,
   };
   if (!oracleMode) return parsedState;
@@ -120,6 +128,16 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
     url.searchParams.set('test', '1');
   } else {
     url.searchParams.delete('test');
+  }
+  if (
+    state.testMode
+    && state.scene === 'S004'
+    && !state.oracleMode
+    && state.testFixture === 'interaction-policy'
+  ) {
+    url.searchParams.set('fixture', state.testFixture);
+  } else {
+    url.searchParams.delete('fixture');
   }
   if (state.oracleMode) {
     url.searchParams.set('oracle', '1');

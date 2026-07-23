@@ -8,6 +8,9 @@ import type { SceneId } from './scene-catalog';
 
 export type { SceneId } from './scene-catalog';
 
+/** Test-only fixture identifiers accepted by the playground URL. */
+export type PlaygroundTestFixture = 'interaction-policy';
+
 /** Complete URL-addressable state shared by all framework hosts. */
 export interface PlaygroundState {
   /** Active public framework adapter. */
@@ -38,6 +41,8 @@ export interface PlaygroundState {
   renderPrecision: number;
   /** Whether deterministic browser-test presentation is active. */
   testMode: boolean;
+  /** Optional browser-test fixture gated by scene and test mode. */
+  testFixture: PlaygroundTestFixture | null;
   /** Whether the exact legacy S001/S002 capture geometry is active. */
   oracleMode: boolean;
 }

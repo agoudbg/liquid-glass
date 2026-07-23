@@ -47,7 +47,7 @@ const ORACLE_MATERIALS = [
   },
 ] as const;
 
-test('exercises every interaction preset through each public adapter', async ({
+test('exercises built-in presets and custom overrides through each public adapter', async ({
   page,
 }) => {
   test.setTimeout(GPU_TEST_TIMEOUT);
@@ -323,5 +323,6 @@ async function expectSceneReady(
   await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
   await expect(shell).toHaveAttribute('data-framework', framework);
   await expect(shell).toHaveAttribute('data-gl-error', 'NO_ERROR');
+  expect(await shell.getAttribute('data-test-fixture')).toBeNull();
   await expect(page.getByTestId('gl-status')).toHaveText('WebGL2 ready');
 }

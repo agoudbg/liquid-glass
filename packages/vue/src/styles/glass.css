@@ -80,16 +80,12 @@
   border-radius: var(--lg-border-radius);
   background-color: transparent;
   color: var(--lg-foreground-color);
-  box-shadow:
-    inset 0 0 var(--lg-inset-shadow-size) var(--lg-inset-shadow-color),
-    0 0 var(--lg-outer-shadow-size) var(--lg-outer-shadow-color);
   opacity: var(--lg-material-opacity);
   transform-origin: var(--lg-origin-x) var(--lg-origin-y);
   transform: translate3d(var(--lg-translate-x), var(--lg-translate-y), 0)
     scale(var(--lg-scale-x), var(--lg-scale-y));
   transition:
     color 0.2s ease,
-    box-shadow 0.2s ease,
     border 0.2s ease,
     backdrop-filter 0.2s ease,
     -webkit-backdrop-filter 0.2s ease;
@@ -130,7 +126,6 @@
 .liquid-glass-material[allowing-color-transition='true'] {
   transition:
     color 0.5s ease,
-    box-shadow 0.5s ease,
     border 0.5s ease,
     backdrop-filter 0.5s ease,
     -webkit-backdrop-filter 0.5s ease;

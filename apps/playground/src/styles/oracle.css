@@ -70,6 +70,10 @@
   line-height: normal;
 }
 
+#app[data-oracle-mode="true"] .oracle-s001 .material-copy strong {
+  font-weight: bolder;
+}
+
 #app[data-oracle-mode="true"] .oracle-material .material-copy span {
   color: #ffffff;
   font-family: Arial, Helvetica, sans-serif;

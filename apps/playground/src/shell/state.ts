@@ -44,15 +44,31 @@ export function createInitialState(url: URL): PlaygroundState {
     scrollable: sceneDefinition.scrollableByDefault && scroll !== 'off',
     viewportEnabled: sceneDefinition.viewportByDefault && viewport !== 'off',
     domVariant: url.searchParams.get('content') === 'mutated' ? 'mutated' : 'source',
-    thickness: parseNumber(url.searchParams.get('thickness'), 4, 80, DEFAULT_STATE.thickness),
-    refractIndex: parseNumber(url.searchParams.get('ior'), 1, 1.6, DEFAULT_STATE.refractIndex),
+    thickness: parseNumber(
+      url.searchParams.get('thickness'),
+      4,
+      80,
+      sceneDefinition.opticalDefaults?.thickness ?? DEFAULT_STATE.thickness,
+    ),
+    refractIndex: parseNumber(
+      url.searchParams.get('ior'),
+      1,
+      1.6,
+      sceneDefinition.opticalDefaults?.refractIndex ?? DEFAULT_STATE.refractIndex,
+    ),
     refractIntensity: parseNumber(
       url.searchParams.get('intensity'),
       0,
       1.4,
-      DEFAULT_STATE.refractIntensity,
+      sceneDefinition.opticalDefaults?.refractIntensity
+        ?? DEFAULT_STATE.refractIntensity,
     ),
-    radius: parseNumber(url.searchParams.get('radius'), 0, 64, DEFAULT_STATE.radius),
+    radius: parseNumber(
+      url.searchParams.get('radius'),
+      0,
+      64,
+      sceneDefinition.opticalDefaults?.radius ?? DEFAULT_STATE.radius,
+    ),
     renderPrecision: parseNumber(
       url.searchParams.get('precision'),
       0.5,
@@ -63,6 +79,16 @@ export function createInitialState(url: URL): PlaygroundState {
     oracleMode,
   };
   if (!oracleMode) return parsedState;
+  if (scene === 'S004') {
+    return {
+      ...parsedState,
+      thickness: 10,
+      refractIndex: 1.1,
+      refractIntensity: 0.5,
+      radius: 40,
+      renderPrecision: 1,
+    };
+  }
 
   return {
     ...parsedState,
@@ -90,8 +116,16 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('intensity', state.refractIntensity.toFixed(2));
   url.searchParams.set('radius', String(state.radius));
   url.searchParams.set('precision', state.renderPrecision.toFixed(1));
-  if (state.testMode) url.searchParams.set('test', '1');
-  if (state.oracleMode) url.searchParams.set('oracle', '1');
+  if (state.testMode) {
+    url.searchParams.set('test', '1');
+  } else {
+    url.searchParams.delete('test');
+  }
+  if (state.oracleMode) {
+    url.searchParams.set('oracle', '1');
+  } else {
+    url.searchParams.delete('oracle');
+  }
   window.history.replaceState(null, '', url);
 }
 

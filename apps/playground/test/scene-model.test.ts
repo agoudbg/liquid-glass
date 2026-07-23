@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  getSceneDefinition,
-  SCENE_DEFINITIONS,
-  SCENE_IDS,
-} from '../src/shared/scene-catalog';
-import {
   getBackdropDraw,
   isDomCaptureScene,
   isScrollCaptureScene,
   resolveViewportCapture,
 } from '../src/shared/scene-backdrops';
+import {
+  getSceneDefinition,
+  SCENE_DEFINITIONS,
+  SCENE_IDS,
+} from '../src/shared/scene-catalog';
 import { resolveSceneMaterials } from '../src/shared/scene-materials';
 import { createInitialState } from '../src/shell/state';
 
@@ -37,6 +37,19 @@ describe('playground scene model', () => {
         title: 'DOM capture',
         captureKind: 'dom',
         stageSource: '01 / DOM SOURCE',
+      }),
+      expect.objectContaining({
+        id: 'S004',
+        title: 'Interaction presets',
+        materialCount: 4,
+        captureKind: 'canvas',
+        opticalDefaults: {
+          radius: 28,
+          thickness: 30,
+          refractIndex: 1.1,
+          refractIntensity: 0.5,
+        },
+        supportsOracle: true,
       }),
       expect.objectContaining({
         id: 'S005',
@@ -91,12 +104,59 @@ describe('playground scene model', () => {
       ...singleState,
       scene: 'S002',
     }).map(({ id }) => id)).toEqual(['primary', 'secondary', 'tertiary']);
+    const interactionState = createInitialState(new URL(
+      'https://example.test/?scene=S004',
+    ));
+    const interactionMaterials = resolveSceneMaterials(interactionState);
+    expect(interactionMaterials.map(({ id }) => id)).toEqual([
+      's004-button',
+      's004-context',
+      's004-slider',
+      's004-custom',
+    ]);
+    expect(interactionMaterials[0]).toMatchObject({
+      testId: 'interaction-button',
+      options: {
+        interactionPreset: 'button',
+        radius: 28,
+        refractIndex: 1.1,
+        refractIntensity: 0.5,
+        dispersion: 0.01,
+        thickness: 30,
+      },
+    });
+    expect(interactionMaterials[2]).toMatchObject({
+      options: {
+        backgroundColor: '#ff000033',
+        interactionPreset: 'slider',
+      },
+    });
+    expect(interactionMaterials[3]).toMatchObject({
+      options: {
+        interactionConfig: {
+          activeScale: 1.12,
+          hoverScale: 1.05,
+          releaseSpring: { stiffness: 250, damping: 8, mass: 1 },
+          stretchFactor: 0.002,
+        },
+        interactionPreset: 'button',
+      },
+    });
     expect(resolveSceneMaterials(createInitialState(new URL(
       'https://example.test/?scene=S002&oracle=1',
     ))).map(({ id }) => id)).toEqual(['s002-a', 's002-b', 's002-c']);
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S004&oracle=1',
+    ))).map(({ id }) => id)).toEqual([
+      's004-button',
+      's004-context',
+      's004-slider',
+    ]);
   });
 
   it('returns shared read-only scene definitions', () => {
-    expect(getSceneDefinition('S006')).toBe(SCENE_DEFINITIONS[4]);
+    expect(getSceneDefinition('S006')).toBe(
+      SCENE_DEFINITIONS.find(({ id }) => id === 'S006'),
+    );
   });
 });

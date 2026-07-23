@@ -104,6 +104,25 @@
   left: 850px !important;
 }
 
+#app[data-oracle-mode="true"] .oracle-s004 {
+  top: 322px !important;
+  width: 270px !important;
+  height: 170px !important;
+  touch-action: none;
+}
+
+#app[data-oracle-mode="true"] .oracle-s004-button {
+  left: 218px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-s004-context {
+  left: 542px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-s004-slider {
+  left: 866px !important;
+}
+
 #app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-material {
   background-color: transparent !important;
   box-shadow: none !important;

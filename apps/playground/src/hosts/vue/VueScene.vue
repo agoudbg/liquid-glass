@@ -137,8 +137,10 @@ function handleError(error: unknown): void {
       :key="material.id"
       v-bind="material.options"
       :class="material.className"
+      :data-interaction-preset="material.options.interactionPreset"
       :data-material-id="material.id"
-      :data-testid="index === 0 ? 'primary-material' : undefined"
+      :data-oracle-material="state.oracleMode ? material.id : undefined"
+      :data-testid="material.testId ?? (index === 0 ? 'primary-material' : undefined)"
     >
       <div class="material-copy">
         <template v-if="state.oracleMode">

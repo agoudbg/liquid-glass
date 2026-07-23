@@ -3,6 +3,7 @@ export const SCENE_IDS = [
   'S001',
   'S002',
   'S003',
+  'S004',
   'S005',
   'S006',
   'S007',
@@ -13,6 +14,18 @@ export type SceneId = (typeof SCENE_IDS)[number];
 
 /** Backdrop behavior required by one canonical scene. */
 export type SceneCaptureKind = 'body-scroll' | 'canvas' | 'dom' | 'internal-scroll';
+
+/** Scene-specific optical defaults used when URL controls are absent. */
+export interface SceneOpticalDefaults {
+  /** Default material radius in CSS pixels. */
+  readonly radius: number;
+  /** Default material thickness in CSS pixels. */
+  readonly thickness: number;
+  /** Default refractive index inherited from the source scene. */
+  readonly refractIndex: number;
+  /** Default refraction intensity inherited from the source scene. */
+  readonly refractIntensity: number;
+}
 
 /** Framework-neutral metadata and default policies for one playground scene. */
 export interface SceneDefinition {
@@ -34,6 +47,8 @@ export interface SceneDefinition {
   readonly viewportByDefault: boolean;
   /** Whether deterministic legacy oracle geometry is available. */
   readonly supportsOracle: boolean;
+  /** Optional initial optical values inherited from the legacy scene. */
+  readonly opticalDefaults?: SceneOpticalDefaults;
 }
 
 const SCENE_DEFINITIONS_BY_ID = {
@@ -69,6 +84,23 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: false,
+  },
+  S004: {
+    id: 'S004',
+    title: 'Interaction presets',
+    materialCount: 4,
+    captureKind: 'canvas',
+    stageSource: '04 / INTERACTION FIELD',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: true,
+    opticalDefaults: {
+      radius: 28,
+      thickness: 30,
+      refractIndex: 1.1,
+      refractIntensity: 0.5,
+    },
   },
   S005: {
     id: 'S005',

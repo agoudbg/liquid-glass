@@ -122,8 +122,10 @@ export function ReactScene({
           {...material.options}
           key={material.id}
           className={material.className}
+          data-interaction-preset={material.options.interactionPreset}
           data-material-id={material.id}
-          data-testid={index === 0 ? 'primary-material' : undefined}
+          data-oracle-material={state.oracleMode ? material.id : undefined}
+          data-testid={material.testId ?? (index === 0 ? 'primary-material' : undefined)}
         >
           <div className="material-copy">
             {state.oracleMode ? (

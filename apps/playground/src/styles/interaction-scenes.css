@@ -1,0 +1,114 @@
+#app[data-scene="S004"] .interaction-scene-material {
+  touch-action: none;
+}
+
+#app[data-scene="S004"] .interaction-scene-material .material-copy {
+  gap: 6px;
+  padding: 20px 22px;
+}
+
+#app[data-scene="S004"] .interaction-scene-material .material-copy strong {
+  max-width: 12ch;
+}
+
+.interaction-button {
+  top: 15%;
+  left: 9%;
+  width: min(300px, calc(50% - 54px));
+  height: 176px;
+}
+
+.interaction-context {
+  top: 11%;
+  right: 8%;
+  width: min(280px, calc(50% - 54px));
+  height: 196px;
+}
+
+.interaction-slider {
+  bottom: 12%;
+  left: 13%;
+  width: min(300px, calc(50% - 54px));
+  height: 164px;
+}
+
+.interaction-custom {
+  right: 10%;
+  bottom: 9%;
+  width: min(286px, calc(50% - 54px));
+  height: 188px;
+}
+
+@media (max-width: 700px) {
+  .interaction-button,
+  .interaction-context,
+  .interaction-slider,
+  .interaction-custom {
+    width: calc(50% - 40px);
+    height: 168px;
+  }
+
+  .interaction-button,
+  .interaction-slider {
+    left: 24px;
+  }
+
+  .interaction-context,
+  .interaction-custom {
+    right: 24px;
+  }
+
+  .interaction-button,
+  .interaction-context {
+    top: 15%;
+  }
+
+  .interaction-slider,
+  .interaction-custom {
+    top: auto;
+    bottom: 12%;
+  }
+}
+
+@media (max-width: 560px) {
+  #app[data-scene="S004"] .interaction-scene-material .material-copy {
+    gap: 4px;
+    padding: 15px;
+  }
+
+  #app[data-scene="S004"] .interaction-scene-material .material-copy strong {
+    font-size: 16px;
+  }
+
+  #app[data-scene="S004"] .interaction-scene-material .material-copy small {
+    font-size: 8px;
+  }
+
+  .interaction-button,
+  .interaction-context,
+  .interaction-slider,
+  .interaction-custom {
+    width: calc(50% - 36px);
+    height: 154px;
+  }
+
+  .interaction-button,
+  .interaction-slider {
+    left: 24px;
+  }
+
+  .interaction-context,
+  .interaction-custom {
+    right: 24px;
+  }
+
+  .interaction-button,
+  .interaction-context {
+    top: 17%;
+  }
+
+  .interaction-slider,
+  .interaction-custom {
+    bottom: 13%;
+  }
+}

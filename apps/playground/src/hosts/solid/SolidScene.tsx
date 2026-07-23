@@ -118,8 +118,12 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
           <LiquidGlassMaterial
             {...material.options}
             class={material.className}
+            data-interaction-preset={material.options.interactionPreset}
             data-material-id={material.id}
-            data-testid={index() === 0 ? 'primary-material' : undefined}
+            data-oracle-material={props.state.oracleMode ? material.id : undefined}
+            data-testid={material.testId ?? (
+              index() === 0 ? 'primary-material' : undefined
+            )}
           >
             <div class="material-copy">
               <Show

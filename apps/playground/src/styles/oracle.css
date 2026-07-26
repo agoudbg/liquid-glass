@@ -2,6 +2,7 @@
   display: block;
   min-height: 100%;
   background: #101a26;
+  color-scheme: light;
 }
 
 #app[data-oracle-mode="true"] .topbar,
@@ -41,32 +42,14 @@
   z-index: 20 !important;
   display: grid !important;
   place-content: center;
-  color: var(--lg-foreground-color);
+  gap: 8px;
+  color: #fff;
   font-size: 22px;
   font-weight: 700;
   text-align: center;
 }
 
-#app[data-oracle-mode="true"] .oracle-material .material-copy {
-  display: grid;
-  height: 100%;
-  place-content: center;
-  gap: 8px;
-  padding: 0;
-  color: inherit;
-}
-
-#app[data-oracle-mode="true"] .oracle-material .material-copy strong {
-  font-size: 22px;
-  font-weight: 700;
-  line-height: normal;
-}
-
-#app[data-oracle-mode="true"] .oracle-s001 .material-copy strong {
-  font-weight: bolder;
-}
-
-#app[data-oracle-mode="true"] .oracle-material .material-copy span {
+#app[data-oracle-mode="true"] .oracle-material > span {
   color: inherit;
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
@@ -83,11 +66,6 @@
 #app[data-oracle-mode="true"] .oracle-multi {
   width: 350px !important;
   height: 210px !important;
-}
-
-#app[data-oracle-mode="true"][data-scene="S002"]
-  .oracle-multi .liquid-glass-content {
-  z-index: -1;
 }
 
 #app[data-oracle-mode="true"] .oracle-multi-a {
@@ -123,6 +101,124 @@
 
 #app[data-oracle-mode="true"] .oracle-s004-slider {
   left: 866px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-backdrop-converter {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+#app[data-oracle-mode="true"] .oracle-dom-backdrop {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  background: #edf2f4;
+}
+
+#app[data-oracle-mode="true"] .oracle-dom-stripe {
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+#app[data-oracle-mode="true"] .oracle-stripe-one {
+  background: #fca311;
+  color: #14213d;
+}
+
+#app[data-oracle-mode="true"] .oracle-stripe-two {
+  background: #2a9d8f;
+  color: #f7fff7;
+}
+
+#app[data-oracle-mode="true"] .oracle-stripe-three {
+  background: #d1495b;
+  color: #fff;
+}
+
+#app[data-oracle-mode="true"] .oracle-dom-backdrop button {
+  position: absolute;
+  right: 36px;
+  bottom: 32px;
+  color: revert;
+  font: revert;
+}
+
+#app[data-oracle-mode="true"] .oracle-s003 {
+  top: 250px !important;
+  left: 475px !important;
+  width: 420px !important;
+  height: 220px !important;
+}
+
+#app[data-oracle-mode="true"] .oracle-long-backdrop {
+  width: 100%;
+  min-height: 1680px;
+}
+
+#app[data-oracle-mode="true"] .oracle-scroll-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 140px;
+  padding: 0 110px;
+  background: #1d7874;
+  color: #fff;
+  font-size: 24px;
+}
+
+#app[data-oracle-mode="true"] .oracle-scroll-band:nth-child(even) {
+  background: #d1495b;
+}
+
+#app[data-oracle-mode="true"] .oracle-scroll-band:nth-child(3n) {
+  background: #4f5d75;
+}
+
+#app[data-oracle-mode="true"][data-scene="S005"] .workspace,
+#app[data-oracle-mode="true"][data-scene="S005"] .stage {
+  height: 1900px;
+  min-height: 1900px;
+}
+
+#app[data-oracle-mode="true"][data-scene="S005"] .framework-host {
+  inset: 32px 42px auto;
+  height: 1800px;
+}
+
+#app[data-oracle-mode="true"][data-scene="S005"] .glass-context {
+  height: 1800px;
+}
+
+#app[data-oracle-mode="true"] .oracle-s005-sticky {
+  position: fixed !important;
+  top: 270px !important;
+  right: 180px !important;
+  width: 340px !important;
+  height: 190px !important;
+}
+
+#app[data-oracle-mode="true"][data-scene="S006"] .framework-host {
+  bottom: auto;
+  height: 760px;
+}
+
+#app[data-oracle-mode="true"] .oracle-internal-backdrop {
+  margin-top: -280px;
+}
+
+#app[data-oracle-mode="true"] .oracle-s006-sticky {
+  position: sticky !important;
+  top: 100px !important;
+  width: 350px !important;
+  height: 190px !important;
+  margin-top: 90px !important;
+  margin-left: 820px !important;
 }
 
 #app[data-oracle-mode="true"][data-glass="off"] .liquid-glass-material {

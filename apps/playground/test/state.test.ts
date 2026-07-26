@@ -30,12 +30,12 @@ describe('playground URL state', () => {
     ))).toMatchObject({ scene: 'S001', fallbackEnabled: true });
   });
 
-  it('parses reproducible DOM capture state without enabling legacy oracle mode', () => {
+  it('parses reproducible DOM capture state with its legacy oracle fixture', () => {
     expect(createInitialState(new URL(
       'https://example.test/?scene=S003&content=mutated&oracle=1',
     ))).toMatchObject({
       domVariant: 'mutated',
-      oracleMode: false,
+      oracleMode: true,
       scene: 'S003',
     });
   });
@@ -71,7 +71,10 @@ describe('playground URL state', () => {
     });
     expect(createInitialState(new URL(
       'https://example.test/?scene=S005&oracle=1',
-    ))).toMatchObject({ oracleMode: false, scene: 'S005' });
+    ))).toMatchObject({ oracleMode: true, scene: 'S005' });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S007&oracle=1',
+    ))).toMatchObject({ oracleMode: false, scene: 'S007' });
   });
 
   it('gates the interaction-policy fixture behind test-only non-oracle S004', () => {
@@ -174,6 +177,14 @@ describe('playground URL state', () => {
         scrollable: true,
         viewportEnabled: true,
       });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S006&oracle=1&viewport=on',
+    ))).toMatchObject({
+      oracleMode: true,
+      scene: 'S006',
+      scrollable: true,
+      viewportEnabled: false,
+    });
     expect(createInitialState(new URL(
       'https://example.test/?scene=S006&scroll=off&viewport=off',
     ))).toMatchObject({

@@ -366,16 +366,19 @@ describe('isolated Lab state', () => {
     expect(isLabSceneEditable(oracle)).toBe(false);
     const supportedOracle = transitionPlaygroundScene(oracle, 'S002');
     expect(supportedOracle.oracleMode).toBe(true);
-    const unsupportedOracle = transitionPlaygroundScene(oracle, 'S006');
-    expect(unsupportedOracle).toMatchObject({
-      oracleMode: false,
+    const internalScrollOracle = transitionPlaygroundScene(oracle, 'S006');
+    expect(internalScrollOracle).toMatchObject({
+      oracleMode: true,
       scene: 'S006',
       scrollable: true,
-      viewportEnabled: true,
+      viewportEnabled: false,
       fallbackEnabled: false,
       domVariant: 'source',
     });
-    expect(transitionPlaygroundScene(unsupportedOracle, 'S007')).toMatchObject({
+    expect(transitionPlaygroundState(internalScrollOracle, {
+      viewportEnabled: true,
+    }).viewportEnabled).toBe(false);
+    expect(transitionPlaygroundScene(internalScrollOracle, 'S007')).toMatchObject({
       fallbackEnabled: true,
       oracleMode: false,
       scrollable: false,

@@ -5,7 +5,6 @@ import {
   LgBackdropConverter,
   type LgBackdropConverterExposed,
   LiquidGlass,
-  LiquidGlassMaterial,
 } from '@agou/liquid-glass-vue';
 import { computed, useTemplateRef, watchEffect } from 'vue';
 
@@ -13,15 +12,17 @@ import {
   getBackdropDraw,
   isDomCaptureState,
   isEditorialDomCaptureState,
+  LEGACY_ORACLE_SCROLL_BANDS,
   resolveBackdropBackgroundColor,
   resolveDomCaptureContent,
   resolveViewportCapture,
   SCROLL_BANDS,
+  shouldRenderMaterialsBeforeBackdrop,
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
-import InteractionFixtureControl from './InteractionFixtureControl.vue';
+import VueSceneMaterials from './VueSceneMaterials.vue';
 
 const props = defineProps<FrameworkHostProps>();
 const contextOptions = computed<GlassContextOptions>(() => ({
@@ -31,6 +32,9 @@ const contextOptions = computed<GlassContextOptions>(() => ({
   scrollable: props.state.scrollable,
 }));
 const materials = computed(() => resolveSceneMaterials(props.state));
+const materialsBeforeBackdrop = computed(
+  () => shouldRenderMaterialsBeforeBackdrop(props.state),
+);
 const domContent = computed(() => resolveDomCaptureContent(props.state.domVariant));
 const domScene = computed(() => isDomCaptureState(props.state));
 const editorialDomScene = computed(() => isEditorialDomCaptureState(props.state));
@@ -60,6 +64,10 @@ function handleReady(context: GlassContext): void {
 function handleError(error: unknown): void {
   props.callbacks.onError(error);
 }
+
+function handleBackdropRefresh(): void {
+  void backdropConverter.value?.refresh();
+}
 </script>
 
 <template>
@@ -77,19 +85,65 @@ function handleError(error: unknown): void {
     @error="handleError"
     @ready="handleReady"
   >
+    <VueSceneMaterials
+      v-if="materialsBeforeBackdrop"
+      :materials="materials"
+      :oracle-mode="state.oracleMode"
+    />
+
     <LgBackdropConverter
       v-if="domScene"
       ref="backdropConverter"
       :background-color="backdropBackgroundColor"
       class="scene-backdrop"
-      :class="editorialDomScene
-        ? 'dom-capture-backdrop'
-        : ['scroll-backdrop', state.scene === 'S005'
-          ? 'body-scroll-backdrop'
-          : 'internal-scroll-backdrop']"
+      :class="state.oracleMode
+        ? 'oracle-backdrop-converter'
+        : editorialDomScene
+          ? 'dom-capture-backdrop'
+          : ['scroll-backdrop', state.scene === 'S005'
+            ? 'body-scroll-backdrop'
+            : 'internal-scroll-backdrop']"
       :viewport-capture="viewportCapture"
     >
-      <template v-if="editorialDomScene">
+      <div
+        v-if="state.oracleMode && state.scene === 'S003'"
+        class="oracle-dom-backdrop"
+      >
+        <div class="oracle-dom-stripe oracle-stripe-one">Structured DOM</div>
+        <div class="oracle-dom-stripe oracle-stripe-two">Capture parity</div>
+        <div class="oracle-dom-stripe oracle-stripe-three">Text and color</div>
+        <button
+          data-testid="manual-refresh"
+          type="button"
+          @click="handleBackdropRefresh"
+        >
+          Refresh
+        </button>
+      </div>
+      <div
+        v-else-if="state.oracleMode"
+        class="oracle-long-backdrop"
+        :class="state.scene === 'S005'
+          ? 'oracle-body-backdrop'
+          : 'oracle-internal-backdrop'"
+      >
+        <div
+          v-for="index in LEGACY_ORACLE_SCROLL_BANDS"
+          :key="index"
+          class="oracle-scroll-band"
+        >
+          <strong>
+            {{ state.scene === 'S005' ? 'Body' : 'Internal' }} band {{ index }}
+          </strong>
+          <span v-if="state.scene === 'S005'">
+            {{ index % 2 === 0 ? 'cool field' : 'warm field' }}
+          </span>
+          <span v-else>
+            {{ index % 2 === 0 ? 'north' : 'south' }}
+          </span>
+        </div>
+      </div>
+      <template v-else-if="editorialDomScene">
         <div class="dom-capture-photo">
           <img
             alt="Boats crossing a turquoise alpine lake below the Dolomites"
@@ -141,37 +195,10 @@ function handleError(error: unknown): void {
       :draw="backdropDraw"
     />
 
-    <LiquidGlassMaterial
-      v-for="(material, index) in materials"
-      :key="material.id"
-      v-bind="material.options"
-      :class="material.className"
-      :data-interaction-preset="material.options.interactionPreset"
-      :data-material-id="material.id"
-      :data-oracle-material="state.oracleMode ? material.id : undefined"
-      :data-testid="material.testId ?? (index === 0 ? 'primary-material' : undefined)"
-    >
-      <InteractionFixtureControl
-        v-if="material.control"
-        :control="material.control"
-      />
-      <div
-        v-else
-        class="material-copy"
-      >
-        <template v-if="state.oracleMode">
-          <strong>{{ material.name }}</strong>
-          <span v-if="material.detail">{{ material.detail }}</span>
-        </template>
-        <template v-else>
-          <span>{{ material.label }}</span>
-          <strong>{{ material.name }}</strong>
-          <small>
-            {{ material.options.thickness }} px ·
-            {{ material.options.refractIndex?.toFixed(2) }} IOR
-          </small>
-        </template>
-      </div>
-    </LiquidGlassMaterial>
+    <VueSceneMaterials
+      v-if="!materialsBeforeBackdrop"
+      :materials="materials"
+      :oracle-mode="state.oracleMode"
+    />
   </LiquidGlass>
 </template>

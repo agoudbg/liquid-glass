@@ -44,8 +44,19 @@ export const SCROLL_BANDS: readonly ScrollBand[] = [
   { id: '10', tone: 'coral', title: 'Last light', detail: 'EAST / 10' },
 ];
 
+/** Exact band sequence rendered by the three legacy oracle hosts. */
+export const LEGACY_ORACLE_SCROLL_BANDS: readonly number[] = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+];
+
 const VIEWPORT_CAPTURE_POLICY: ViewportCaptureConfig = {
   bufferX: 80,
+  bufferY: 180,
+  enabled: true,
+};
+
+const LEGACY_ORACLE_VIEWPORT_CAPTURE_POLICY: ViewportCaptureConfig = {
+  bufferX: 0,
   bufferY: 180,
   enabled: true,
 };
@@ -104,7 +115,10 @@ export function isEditorialDomCaptureState(state: PlaygroundState): boolean {
 }
 
 /** Resolve the fill supplied to the active DOM backdrop converter. */
-export function resolveBackdropBackgroundColor(state: PlaygroundState): string {
+export function resolveBackdropBackgroundColor(
+  state: PlaygroundState,
+): string | undefined {
+  if (state.oracleMode) return undefined;
   return state.scene === 'S001' && !state.oracleMode
     ? state.lab.source.backgroundColor
     : '#dce4df';
@@ -128,14 +142,24 @@ export function isScrollCaptureScene(scene: SceneId): boolean {
   return captureKind === 'body-scroll' || captureKind === 'internal-scroll';
 }
 
+/** Match the legacy S006 flow order that establishes its full scroll extent. */
+export function shouldRenderMaterialsBeforeBackdrop(
+  state: PlaygroundState,
+): boolean {
+  return state.oracleMode && state.scene === 'S006';
+}
+
 /** Resolve the bounded source policy without recreating option objects. */
 export function resolveViewportCapture(
   state: PlaygroundState,
 ): boolean | ViewportCaptureConfig {
-  return getSceneDefinition(state.scene).captureKind === 'internal-scroll'
-    && state.viewportEnabled
-    ? VIEWPORT_CAPTURE_POLICY
-    : false;
+  if (getSceneDefinition(state.scene).captureKind !== 'internal-scroll') {
+    return false;
+  }
+  if (state.oracleMode) {
+    return LEGACY_ORACLE_VIEWPORT_CAPTURE_POLICY;
+  }
+  return state.viewportEnabled ? VIEWPORT_CAPTURE_POLICY : false;
 }
 
 /** Resolve one of the two deterministic DOM capture states. */

@@ -37,6 +37,10 @@ describe('adapter material CSS contract', () => {
     expect(style).toContain('mix-blend-mode: screen;');
     expect(style).toContain('filter: var(--lg-highlight-filter);');
     expect(style).toContain('scale(var(--lg-highlight-scale))');
+    expect(style).not.toContain('.liquid-glass-material > *');
+    expect(style).not.toContain(
+      '.liquid-glass-material > .liquid-glass-content',
+    );
     expect(style).toContain(".liquid-glass-material[is-fallback-mode='true'] {");
     expect(style).not.toContain(
       ".liquid-glass-container[data-lg-fallback='true'] .liquid-glass-material",
@@ -45,17 +49,17 @@ describe('adapter material CSS contract', () => {
     expect(style).not.toContain('--lg-highlight-size, 160px');
   });
 
-  it('restores S001 strong text without changing S002 or S004', () => {
+  it('preserves the legacy oracle typography on direct slot children', () => {
     const style = readFileSync(ORACLE_STYLE_URL, 'utf8');
 
     expect(style).toMatch(
-      /\.oracle-s001 \.material-copy strong\s*\{\s*font-weight:\s*bolder;\s*\}/u,
+      /\.oracle-material\s*\{[^}]*gap:\s*8px;[^}]*color:\s*#fff;/u,
     );
     expect(style).toMatch(
-      /\.oracle-material \.material-copy strong\s*\{[^}]*font-weight:\s*700;/u,
+      /\.oracle-material > span\s*\{[^}]*font-size:\s*14px;[^}]*font-weight:\s*400;/u,
     );
     expect(style).not.toMatch(
-      /\.oracle-(?:multi|s004)[^{]*\{[^}]*font-weight\s*:/u,
+      /\.oracle-material \.material-copy/u,
     );
   });
 });

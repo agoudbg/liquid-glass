@@ -13,10 +13,12 @@ import {
   getBackdropDraw,
   isDomCaptureState,
   isEditorialDomCaptureState,
+  LEGACY_ORACLE_SCROLL_BANDS,
   resolveBackdropBackgroundColor,
   resolveDomCaptureContent,
   resolveViewportCapture,
   SCROLL_BANDS,
+  shouldRenderMaterialsBeforeBackdrop,
 } from '../../shared/scene-backdrops';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
@@ -39,6 +41,41 @@ export function ReactScene({
   const domContent = resolveDomCaptureContent(state.domVariant);
   const domScene = isDomCaptureState(state);
   const editorialDomScene = isEditorialDomCaptureState(state);
+  const refreshBackdrop = (): void => {
+    void converterRef.current?.refresh();
+  };
+  const materialNodes = materials.map((material, index) => (
+    <LiquidGlassMaterial
+      {...material.options}
+      key={material.id}
+      className={material.className}
+      data-interaction-preset={material.options.interactionPreset}
+      data-material-id={material.id}
+      data-oracle-material={state.oracleMode ? material.id : undefined}
+      data-testid={material.testId ?? (index === 0 ? 'primary-material' : undefined)}
+    >
+      {state.oracleMode ? (
+        material.detail ? (
+          <>
+            <strong>{material.name}</strong>
+            <span>{material.detail}</span>
+          </>
+        ) : material.name
+      ) : material.control ? (
+        <InteractionFixtureControl control={material.control} />
+      ) : (
+        <div className="material-copy">
+          <span>{material.label}</span>
+          <strong>{material.name}</strong>
+          <small>
+            {material.options.thickness} px ·{' '}
+            {material.options.refractIndex?.toFixed(2)} IOR
+          </small>
+        </div>
+      )}
+    </LiquidGlassMaterial>
+  ));
+  const materialsBeforeBackdrop = shouldRenderMaterialsBeforeBackdrop(state);
 
   useEffect(() => {
     if (!domScene) {
@@ -66,20 +103,64 @@ export function ReactScene({
       onError={callbacks.onError}
       onReady={callbacks.onContextReady}
     >
+      {materialsBeforeBackdrop ? materialNodes : null}
       {domScene ? (
         <BackdropConverter
           ref={converterRef}
           backgroundColor={resolveBackdropBackgroundColor(state)}
-          className={editorialDomScene
-            ? 'scene-backdrop dom-capture-backdrop'
-            : `scene-backdrop scroll-backdrop ${
-                state.scene === 'S005'
-                  ? 'body-scroll-backdrop'
-                  : 'internal-scroll-backdrop'
-              }`}
+          className={state.oracleMode
+            ? 'scene-backdrop oracle-backdrop-converter'
+            : editorialDomScene
+              ? 'scene-backdrop dom-capture-backdrop'
+              : `scene-backdrop scroll-backdrop ${
+                  state.scene === 'S005'
+                    ? 'body-scroll-backdrop'
+                    : 'internal-scroll-backdrop'
+                }`}
           viewportCapture={resolveViewportCapture(state)}
         >
-          {editorialDomScene ? (
+          {state.oracleMode && state.scene === 'S003' ? (
+            <div className="oracle-dom-backdrop">
+              <div className="oracle-dom-stripe oracle-stripe-one">
+                Structured DOM
+              </div>
+              <div className="oracle-dom-stripe oracle-stripe-two">
+                Capture parity
+              </div>
+              <div className="oracle-dom-stripe oracle-stripe-three">
+                Text and color
+              </div>
+              <button
+                data-testid="manual-refresh"
+                type="button"
+                onClick={refreshBackdrop}
+              >
+                Refresh
+              </button>
+            </div>
+          ) : state.oracleMode ? (
+            <div
+              className={[
+                'oracle-long-backdrop',
+                state.scene === 'S005'
+                  ? 'oracle-body-backdrop'
+                  : 'oracle-internal-backdrop',
+              ].join(' ')}
+            >
+              {LEGACY_ORACLE_SCROLL_BANDS.map((index) => (
+                <div className="oracle-scroll-band" key={index}>
+                  <strong>
+                    {state.scene === 'S005' ? 'Body' : 'Internal'} band {index}
+                  </strong>
+                  <span>
+                    {state.scene === 'S005'
+                      ? index % 2 === 0 ? 'cool field' : 'warm field'
+                      : index % 2 === 0 ? 'north' : 'south'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : editorialDomScene ? (
             <>
               <div className="dom-capture-photo">
                 <img
@@ -123,39 +204,7 @@ export function ReactScene({
           draw={getBackdropDraw(state.scene, state.oracleMode)}
         />
       )}
-      {materials.map((material, index) => (
-        <LiquidGlassMaterial
-          {...material.options}
-          key={material.id}
-          className={material.className}
-          data-interaction-preset={material.options.interactionPreset}
-          data-material-id={material.id}
-          data-oracle-material={state.oracleMode ? material.id : undefined}
-          data-testid={material.testId ?? (index === 0 ? 'primary-material' : undefined)}
-        >
-          {material.control ? (
-            <InteractionFixtureControl control={material.control} />
-          ) : (
-            <div className="material-copy">
-              {state.oracleMode ? (
-                <>
-                  <strong>{material.name}</strong>
-                  {material.detail ? <span>{material.detail}</span> : null}
-                </>
-              ) : (
-                <>
-                  <span>{material.label}</span>
-                  <strong>{material.name}</strong>
-                  <small>
-                    {material.options.thickness} px ·{' '}
-                    {material.options.refractIndex?.toFixed(2)} IOR
-                  </small>
-                </>
-              )}
-            </div>
-          )}
-        </LiquidGlassMaterial>
-      ))}
+      {materialsBeforeBackdrop ? null : materialNodes}
     </LiquidGlass>
   );
 }

@@ -83,7 +83,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     fallbackByDefault: false,
     scrollableByDefault: false,
     viewportByDefault: false,
-    supportsOracle: false,
+    supportsOracle: true,
   },
   S004: {
     id: 'S004',
@@ -111,7 +111,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     fallbackByDefault: false,
     scrollableByDefault: false,
     viewportByDefault: false,
-    supportsOracle: false,
+    supportsOracle: true,
   },
   S006: {
     id: 'S006',
@@ -122,7 +122,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     fallbackByDefault: false,
     scrollableByDefault: true,
     viewportByDefault: true,
-    supportsOracle: false,
+    supportsOracle: true,
   },
   S007: {
     id: 'S007',

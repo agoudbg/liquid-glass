@@ -6,9 +6,11 @@ import {
   isDomCaptureState,
   isEditorialDomCaptureState,
   isScrollCaptureScene,
+  LEGACY_ORACLE_SCROLL_BANDS,
   resolveBackdropBackgroundColor,
   resolveStageSource,
   resolveViewportCapture,
+  shouldRenderMaterialsBeforeBackdrop,
 } from '../src/shared/scene-backdrops';
 import {
   getSceneDefinition,
@@ -41,6 +43,7 @@ describe('playground scene model', () => {
         title: 'DOM capture',
         captureKind: 'dom',
         stageSource: '01 / DOM SOURCE',
+        supportsOracle: true,
       }),
       expect.objectContaining({
         id: 'S004',
@@ -60,6 +63,7 @@ describe('playground scene model', () => {
         title: 'Body scroll',
         captureKind: 'body-scroll',
         stageSource: '05 / BODY SCROLL',
+        supportsOracle: true,
       }),
       expect.objectContaining({
         id: 'S006',
@@ -67,6 +71,7 @@ describe('playground scene model', () => {
         captureKind: 'internal-scroll',
         scrollableByDefault: true,
         viewportByDefault: true,
+        supportsOracle: true,
       }),
       expect.objectContaining({
         id: 'S007',
@@ -86,6 +91,15 @@ describe('playground scene model', () => {
     ));
     expect(resolveViewportCapture(viewportState)).toEqual({
       bufferX: 80,
+      bufferY: 180,
+      enabled: true,
+    });
+    const oracleState = createInitialState(new URL(
+      'https://example.test/?scene=S006&oracle=1',
+    ));
+    expect(oracleState.viewportEnabled).toBe(false);
+    expect(resolveViewportCapture(oracleState)).toEqual({
+      bufferX: 0,
       bufferY: 180,
       enabled: true,
     });
@@ -176,6 +190,68 @@ describe('playground scene model', () => {
       's004-context',
       's004-slider',
     ]);
+  });
+
+  it('reproduces the exact legacy DOM and scroll oracle contracts', () => {
+    expect(LEGACY_ORACLE_SCROLL_BANDS).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+    ]);
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S003&oracle=1',
+    )))).toEqual([{
+      id: 's003-main',
+      className: 'scene-material oracle-material oracle-s003',
+      label: '',
+      name: 'DOM capture',
+      options: {
+        radius: 36,
+        thickness: 20,
+        refractIndex: 1.2,
+        refractIntensity: 0.76,
+        blur: 0.022,
+        dispersion: 0.016,
+        disableInteractions: true,
+      },
+    }]);
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S005&oracle=1',
+    )))).toEqual([{
+      id: 's005-sticky',
+      className: 'scene-material oracle-material oracle-s005-sticky',
+      label: '',
+      name: 'Body scroll',
+      options: {
+        radius: 34,
+        thickness: 19,
+        refractIndex: 1.16,
+        refractIntensity: 0.7,
+        disableInteractions: true,
+      },
+    }]);
+    expect(resolveSceneMaterials(createInitialState(new URL(
+      'https://example.test/?scene=S006&oracle=1',
+    )))).toEqual([{
+      id: 's006-sticky',
+      className: 'scene-material oracle-material oracle-s006-sticky',
+      label: '',
+      name: 'Internal scroll',
+      options: {
+        radius: 34,
+        thickness: 19,
+        refractIndex: 1.16,
+        refractIntensity: 0.7,
+        disableInteractions: true,
+      },
+    }]);
+    expect(shouldRenderMaterialsBeforeBackdrop(createInitialState(new URL(
+      'https://example.test/?scene=S006&oracle=1',
+    )))).toBe(true);
+    expect(shouldRenderMaterialsBeforeBackdrop(createInitialState(new URL(
+      'https://example.test/?scene=S006',
+    )))).toBe(false);
+    expect(shouldRenderMaterialsBeforeBackdrop(createInitialState(new URL(
+      'https://example.test/?scene=S005&oracle=1',
+    )))).toBe(false);
   });
 
   it('returns shared read-only scene definitions', () => {

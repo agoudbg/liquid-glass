@@ -163,6 +163,10 @@ function normalizePlaygroundState(state: PlaygroundState): PlaygroundState {
     ...state,
     oracleMode,
     renderPrecision: normalizeRenderPrecision(state.renderPrecision),
+    // The legacy S006 oracle renders the complete scrolling surface.
+    viewportEnabled: oracleMode && state.scene === 'S006'
+      ? false
+      : state.viewportEnabled,
   };
   return normalizeTestFixtureState(
     normalizedState,

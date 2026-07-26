@@ -3,7 +3,54 @@ import type { SceneMaterial } from './scene-material-types';
 
 /** Resolve fixed materials that reproduce exact legacy oracle geometry. */
 export function resolveOracleMaterials(scene: SceneId): readonly SceneMaterial[] {
+  if (scene === 'S003') {
+    return [{
+      id: 's003-main',
+      className: 'scene-material oracle-material oracle-s003',
+      label: '',
+      name: 'DOM capture',
+      options: {
+        radius: 36,
+        thickness: 20,
+        refractIndex: 1.2,
+        refractIntensity: 0.76,
+        blur: 0.022,
+        dispersion: 0.016,
+        disableInteractions: true,
+      },
+    }];
+  }
   if (scene === 'S004') return resolveOracleInteractionMaterials();
+  if (scene === 'S005') {
+    return [{
+      id: 's005-sticky',
+      className: 'scene-material oracle-material oracle-s005-sticky',
+      label: '',
+      name: 'Body scroll',
+      options: {
+        radius: 34,
+        thickness: 19,
+        refractIndex: 1.16,
+        refractIntensity: 0.7,
+        disableInteractions: true,
+      },
+    }];
+  }
+  if (scene === 'S006') {
+    return [{
+      id: 's006-sticky',
+      className: 'scene-material oracle-material oracle-s006-sticky',
+      label: '',
+      name: 'Internal scroll',
+      options: {
+        radius: 34,
+        thickness: 19,
+        refractIndex: 1.16,
+        refractIntensity: 0.7,
+        disableInteractions: true,
+      },
+    }];
+  }
   if (scene !== 'S002') {
     return [{
       id: 's001-main',

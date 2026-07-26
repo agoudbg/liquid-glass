@@ -79,8 +79,10 @@ function createInactivePageHarness(
 describe('ContextEventController', () => {
   it('coalesces all scroll targets, prioritizes layout, and owns cleanup', () => {
     const container = target();
+    const content = target('auto');
     const ancestor = target('auto');
     const outer = target();
+    content.parentElement = container as unknown as HTMLElement;
     container.parentElement = ancestor as unknown as HTMLElement;
     ancestor.parentElement = outer as unknown as HTMLElement;
     const browserWindow = target();
@@ -145,6 +147,8 @@ describe('ContextEventController', () => {
       container as unknown as HTMLElement,
       runtime,
       { onBlurredChange, onLayout, onScroll, onScrollPosition },
+      false,
+      content as unknown as HTMLElement,
     );
     const emit = (eventTarget: FakeTarget, type: string): void => {
       for (const record of listeners) {
@@ -167,6 +171,7 @@ describe('ContextEventController', () => {
 
     expect(resizeRecords[0]?.observed).toEqual([
       container as unknown as Element,
+      content as unknown as Element,
     ]);
     const scrollListeners = listeners.filter((record) => record.type === 'scroll');
     expect(scrollListeners).toHaveLength(3);
@@ -174,7 +179,14 @@ describe('ContextEventController', () => {
       typeof record.options === 'object' && record.options.capture === true
     ))).toBe(true);
 
-    emit(container, 'scroll');
+    expect(scrollListeners.some((record) => (
+      record.target === content as unknown as EventTarget
+    ))).toBe(true);
+    expect(scrollListeners.some((record) => (
+      record.target === container as unknown as EventTarget
+    ))).toBe(false);
+
+    emit(content, 'scroll');
     emit(ancestor, 'scroll');
     emit(browserWindow, 'scroll');
     expect(onScrollPosition).toHaveBeenCalledTimes(3);
@@ -182,19 +194,19 @@ describe('ContextEventController', () => {
     flush();
     expect(onScroll).toHaveBeenCalledOnce();
 
-    emit(container, 'scroll');
+    emit(content, 'scroll');
     emit(browserWindow, 'resize');
     flush();
     expect(onLayout).toHaveBeenCalledOnce();
     expect(onScroll).toHaveBeenCalledOnce();
 
-    emit(container, 'scroll');
+    emit(content, 'scroll');
     expect(frames.size).toBe(1);
     controller.destroy();
     expect(frames.size).toBe(0);
     expect(listeners.every((record) => !record.active)).toBe(true);
     expect(resizeRecords[0]?.disconnected).toBe(true);
-    emit(container, 'scroll');
+    emit(content, 'scroll');
     expect(onScroll).toHaveBeenCalledOnce();
     expect(onScrollPosition).toHaveBeenCalledTimes(5);
     expect(onBlurredChange).not.toHaveBeenCalled();

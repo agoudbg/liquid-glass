@@ -35,6 +35,7 @@ export class ContextEventController {
     private readonly runtime: GlassEngineRuntime,
     private readonly callbacks: ContextEventCallbacks,
     enableBlurredEffect = false,
+    private readonly scrollTarget: HTMLElement = container,
   ) {
     try {
       this.configureTargets();
@@ -93,6 +94,9 @@ export class ContextEventController {
     const resizeObserver = this.createResizeObserver(() => this.queue('layout'));
     if (resizeObserver) {
       resizeObserver.observe(this.container);
+      if (this.scrollTarget !== this.container) {
+        resizeObserver.observe(this.scrollTarget);
+      }
       this.targetCleanups.push(() => resizeObserver.disconnect());
     }
 
@@ -111,7 +115,7 @@ export class ContextEventController {
       ));
     }
     this.targetCleanups.push(this.listen(
-      this.container,
+      this.scrollTarget,
       'scroll',
       () => this.handleScroll(),
       { capture: true, passive: true },
@@ -284,7 +288,7 @@ export class ContextEventController {
 
   private getScrollableAncestors(): HTMLElement[] {
     const ancestors: HTMLElement[] = [];
-    let ancestor = this.container.parentElement;
+    let ancestor = this.scrollTarget.parentElement;
     while (ancestor) {
       const style = this.runtime.getComputedStyle(ancestor);
       const overflow = [style.overflow, style.overflowX, style.overflowY].join(' ');

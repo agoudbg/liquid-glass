@@ -128,7 +128,14 @@ export const LiquidGlass = forwardRef<LiquidGlassHandle, LiquidGlassProps>(
           ref={containerRef}
           className={['liquid-glass-container', className].filter(Boolean).join(' ')}
         >
-          {children}
+          <div
+            className={[
+              'liquid-glass-content',
+              scrollable ? 'scrollable' : '',
+            ].filter(Boolean).join(' ')}
+          >
+            {children}
+          </div>
         </div>
       </LiquidGlassContext.Provider>
     );

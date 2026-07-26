@@ -191,12 +191,10 @@ defineExpose(exposed);
   >
     <div class="liquid-glass-background" aria-hidden="true" />
     <div ref="highlightElement" class="liquid-glass-highlight" aria-hidden="true" />
-    <div class="liquid-glass-content">
-      <slot
-        :updating="updating"
-        :start-updating="startUpdating"
-        :stop-updating="stopUpdating"
-      />
-    </div>
+    <slot
+      :updating="updating"
+      :start-updating="startUpdating"
+      :stop-updating="stopUpdating"
+    />
   </div>
 </template>

@@ -95,7 +95,14 @@ export function LiquidGlass(props: LiquidGlassProps): import('solid-js').JSX.Ele
         ref={container}
         class={['liquid-glass-container', local.class].filter(Boolean).join(' ')}
       >
-        {local.children}
+        <div
+          class={[
+            'liquid-glass-content',
+            readOptions().scrollable ? 'scrollable' : '',
+          ].filter(Boolean).join(' ')}
+        >
+          {local.children}
+        </div>
       </div>
     </LiquidGlassContext.Provider>
   );

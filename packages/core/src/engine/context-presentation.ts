@@ -4,15 +4,26 @@ import type { GlassContextOptions } from '../types/context';
 export class ContextPresentation {
   private readonly initialFallbackAttribute: string | null;
   private readonly initialScrollableAttribute: string | null;
+  private readonly initialContentScrollableAttribute: string | null;
+  private readonly initialContentScrollableClass: boolean;
+  private scrollable = false;
+  private viewportMode = false;
 
   /** Configure invariant styles and preserve consumer-owned container state. */
   public constructor(
     private readonly container: HTMLElement,
+    private readonly content: HTMLElement,
     private readonly canvas: HTMLCanvasElement,
     options: GlassContextOptions,
   ) {
     this.initialFallbackAttribute = container.getAttribute('data-lg-fallback');
     this.initialScrollableAttribute = container.getAttribute('data-lg-scrollable');
+    this.initialContentScrollableAttribute = content.getAttribute(
+      'data-lg-scrollable',
+    );
+    this.initialContentScrollableClass = content.classList?.contains(
+      'scrollable',
+    ) ?? false;
     canvas.className = 'liquid-glass-canvas';
     canvas.dataset.liquidGlassCanvas = 'uniform';
     canvas.setAttribute('aria-hidden', 'true');
@@ -30,18 +41,36 @@ export class ContextPresentation {
 
   /** Apply mutable context options without replacing DOM nodes. */
   public update(options: GlassContextOptions): void {
+    this.scrollable = options.scrollable ?? false;
     this.canvas.style.zIndex = String(options.canvasZIndex ?? 9_999);
     this.container.setAttribute(
       'data-lg-scrollable',
-      options.scrollable ? 'true' : 'false',
+      String(this.scrollable),
     );
-    this.syncScrollPosition(options.scrollable ?? false);
+    this.content.setAttribute('data-lg-scrollable', String(this.scrollable));
+    this.content.classList?.toggle('scrollable', this.scrollable);
+    this.syncScrollPosition();
   }
 
-  /** Keep the viewport-sized canvas stationary inside a scrolling container. */
-  public syncScrollPosition(scrollable: boolean): void {
-    this.canvas.style.transform = scrollable
-      ? `translate3d(${this.container.scrollLeft}px, ${this.container.scrollTop}px, 0)`
+  /** Switch between full-content presentation and viewport-limited presentation. */
+  public setViewportMode(enabled: boolean): void {
+    this.viewportMode = enabled;
+    this.canvas.className = enabled
+      ? 'liquid-glass-canvas viewport-mode'
+      : 'liquid-glass-canvas';
+    this.syncScrollPosition();
+  }
+
+  /** Match the canvas CSS box to the logical renderer dimensions. */
+  public syncCanvasSize(width: number, height: number): void {
+    this.canvas.style.width = `${width}px`;
+    this.canvas.style.height = `${height}px`;
+  }
+
+  /** Keep only a viewport-limited canvas stationary inside scrolling content. */
+  public syncScrollPosition(): void {
+    this.canvas.style.transform = this.scrollable && this.viewportMode
+      ? `translate3d(${this.content.scrollLeft}px, ${this.content.scrollTop}px, 0)`
       : '';
   }
 
@@ -70,5 +99,17 @@ export class ContextPresentation {
         this.initialScrollableAttribute,
       );
     }
+    if (this.initialContentScrollableAttribute === null) {
+      this.content.removeAttribute('data-lg-scrollable');
+    } else {
+      this.content.setAttribute(
+        'data-lg-scrollable',
+        this.initialContentScrollableAttribute,
+      );
+    }
+    this.content.classList?.toggle(
+      'scrollable',
+      this.initialContentScrollableClass,
+    );
   }
 }

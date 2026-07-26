@@ -59,6 +59,7 @@ const contextOptions = computed<GlassContextOptions>(() => {
   if (props.zIndex !== undefined) options.canvasZIndex = props.zIndex - 1;
   return options;
 });
+const isScrollable = computed(() => contextOptions.value.scrollable ?? false);
 
 onMounted(() => {
   if (!container.value) {
@@ -108,6 +109,11 @@ defineExpose(exposed);
     class="liquid-glass-container"
     v-bind="$attrs"
   >
-    <slot />
+    <div
+      class="liquid-glass-content"
+      :class="{ scrollable: isScrollable }"
+    >
+      <slot />
+    </div>
   </div>
 </template>

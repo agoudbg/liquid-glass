@@ -156,4 +156,30 @@ describe('resolveRendererMaterial', () => {
       dispersion: 0.02,
     });
   });
+
+  it('maps a scrolled material into full-content canvas coordinates', () => {
+    const container = new StyledElement(
+      { x: 42, y: 42, width: 1_356, height: 760 },
+      computedStyle(),
+    );
+    const element = new StyledElement(
+      { x: 863, y: 143, width: 350, height: 190 },
+      computedStyle(),
+    );
+    element.parentElement = container as unknown as HTMLElement;
+
+    expect(resolveRendererMaterial(
+      'material-scrolled',
+      { element: element as unknown as HTMLElement },
+      container as unknown as HTMLElement,
+      container.getBoundingClientRect(),
+      createRuntime(),
+      { x: 0, y: 360 },
+    )?.rect).toEqual({
+      x: 821,
+      y: 461,
+      width: 350,
+      height: 190,
+    });
+  });
 });

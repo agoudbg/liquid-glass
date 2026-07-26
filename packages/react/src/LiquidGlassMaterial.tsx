@@ -233,9 +233,7 @@ export const LiquidGlassMaterial = forwardRef<
     >
       <div className="liquid-glass-background" aria-hidden="true" />
       <div ref={highlightRef} className="liquid-glass-highlight" aria-hidden="true" />
-      <div className="liquid-glass-content">
-        {typeof children === 'function' ? children(controls) : children}
-      </div>
+      {typeof children === 'function' ? children(controls) : children}
     </div>
   );
 });

@@ -5,11 +5,19 @@
   min-height: 0;
 }
 
-.liquid-glass-container[data-lg-scrollable='true'] {
+.liquid-glass-container > .liquid-glass-content {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.liquid-glass-container > .liquid-glass-content.scrollable {
+  min-width: 100%;
+  min-height: 100%;
   overflow: auto;
 }
 
-.liquid-glass-container > .liquid-glass-canvas {
+.liquid-glass-container > .liquid-glass-content > .liquid-glass-canvas {
   position: absolute;
   inset: 0;
   z-index: var(--lg-canvas-z-index, 9999);
@@ -106,11 +114,6 @@
   -webkit-mask-composite: xor;
   mask-composite: exclude;
   pointer-events: none;
-}
-
-.liquid-glass-material > * {
-  position: relative;
-  z-index: 1;
 }
 
 .liquid-glass-background {

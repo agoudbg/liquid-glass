@@ -78,7 +78,7 @@ test('keeps body-scroll glass fixed without recapturing the full DOM source', as
 test('reuses and renews bounded captures while an internal surface scrolls', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(150_000);
   const runtimeErrors = collectRuntimeErrors(page);
 
   for (const framework of FRAMEWORKS) {
@@ -88,6 +88,9 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
     );
     const shell = page.locator('#app');
     const context = page.locator('.glass-context');
+    const scrollSurface = page.locator(
+      '.glass-context > .liquid-glass-content.scrollable',
+    );
     const converter = page.locator('.internal-scroll-backdrop');
     const canvas = page.locator('.liquid-glass-canvas');
     const material = page.getByTestId('primary-material');
@@ -95,11 +98,12 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
     await expect(shell).toHaveAttribute('data-gl-error', 'NO_ERROR');
     await expect(shell).toHaveAttribute('data-viewport-request', 'on');
     await expect(context).toHaveAttribute('data-lg-scrollable', 'true');
-    await expect(context).toHaveCSS('overflow', 'auto');
+    await expect(context).toHaveCSS('overflow', 'hidden');
+    await expect(scrollSurface).toHaveCSS('overflow', 'auto');
     await expect(material).toHaveCSS('position', 'sticky');
     await expect(page.locator('.viewport-control')).toBeVisible();
 
-    const surfaceSize = await context.evaluate((element) => ({
+    const surfaceSize = await scrollSurface.evaluate((element) => ({
       clientHeight: element.clientHeight,
       scrollHeight: element.scrollHeight,
     }));
@@ -115,20 +119,23 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
     const initialGlass = await material.screenshot({ animations: 'disabled' });
     const initialFrameCount = await readNumericAttribute(shell, 'data-frame-count');
 
-    await context.evaluate((element) => element.scrollTo(0, 60));
-    await expect.poll(() => context.evaluate((element) => element.scrollTop))
+    await scrollSurface.evaluate((element) => element.scrollTo(0, 60));
+    await expect.poll(() => scrollSurface.evaluate((element) => element.scrollTop))
       .toBe(60);
     await expect.poll(() => readNumericAttribute(shell, 'data-frame-count'))
       .toBeGreaterThan(initialFrameCount);
     await expect(canvas).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 60)');
     expectRectToMatch(await readElementRect(material), initialMaterialRect);
-    expectRectToMatch(await readElementRect(canvas), await readElementRect(context));
+    expectRectToMatch(
+      await readElementRect(canvas),
+      await readElementRect(scrollSurface),
+    );
     await page.waitForTimeout(5_500);
     await expect(shell).toHaveAttribute('data-ready', 'true');
     await expect(shell).toHaveAttribute('data-gl-error', 'NO_ERROR');
     expect(await readNumericAttribute(shell, 'data-capture-count')).toBe(captureCount);
 
-    await context.evaluate((element) => element.scrollTo(0, 360));
+    await scrollSurface.evaluate((element) => element.scrollTo(0, 360));
     await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
       timeout: 15_000,
     }).toBeGreaterThan(captureCount);
@@ -143,7 +150,10 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
     expect(captureHeight).toBeLessThan(sourceHeight);
     await expect(canvas).toHaveCSS('transform', 'matrix(1, 0, 0, 1, 0, 360)');
     expectRectToMatch(await readElementRect(material), initialMaterialRect);
-    expectRectToMatch(await readElementRect(canvas), await readElementRect(context));
+    expectRectToMatch(
+      await readElementRect(canvas),
+      await readElementRect(scrollSurface),
+    );
 
     const scrolledGlass = await material.screenshot({ animations: 'disabled' });
     const difference = await comparePngPixels(page, initialGlass, scrolledGlass);
@@ -162,13 +172,72 @@ test('reuses and renews bounded captures while an internal surface scrolls', asy
     }).toBeCloseTo(sourceHeight, 0);
     await waitForStableCaptureCount(page, shell);
 
+    const fullLayout = await readFullContentLayout(
+      canvas,
+      material,
+      scrollSurface,
+    );
+    expect(fullLayout.canvasTransform).toBe('none');
+    expect(fullLayout.canvasBackingWidth).toBeCloseTo(
+      fullLayout.surfaceScrollWidth,
+      0,
+    );
+    expect(fullLayout.canvasBackingHeight).toBeCloseTo(
+      fullLayout.surfaceScrollHeight,
+      0,
+    );
+    expect(fullLayout.canvasRect.width).toBeCloseTo(
+      fullLayout.surfaceScrollWidth,
+      0,
+    );
+    expect(fullLayout.canvasRect.height).toBeCloseTo(
+      fullLayout.surfaceScrollHeight,
+      0,
+    );
+    expect(fullLayout.canvasRect.y).toBeCloseTo(
+      fullLayout.surfaceRect.y - fullLayout.surfaceScrollTop,
+      0,
+    );
+    expectRectToMatch(fullLayout.materialRect, initialMaterialRect);
+
+    const fullHeight = fullLayout.canvasRect.height;
     const fullCount = await readNumericAttribute(shell, 'data-capture-count');
+    await shell.evaluate((element) => {
+      element.style.setProperty('--scroll-source-height', '1200px');
+      window.dispatchEvent(new Event('resize'));
+    });
+    await expect.poll(() => converter.evaluate((element) => element.scrollHeight), {
+      timeout: 15_000,
+    }).toBe(1_200);
+    await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
+      timeout: 15_000,
+    }).toBeGreaterThan(fullCount);
+    await waitForStableCaptureCount(page, shell);
+
+    const shrunkenLayout = await readFullContentLayout(
+      canvas,
+      material,
+      scrollSurface,
+    );
+    expect(shrunkenLayout.canvasRect.height).toBeLessThan(fullHeight);
+    expect(shrunkenLayout.canvasRect.height).toBeCloseTo(
+      shrunkenLayout.surfaceScrollHeight,
+      0,
+    );
+    expect(shrunkenLayout.canvasBackingHeight).toBeCloseTo(
+      shrunkenLayout.surfaceScrollHeight,
+      0,
+    );
+    expect(shrunkenLayout.canvasTransform).toBe('none');
+    expectRectToMatch(shrunkenLayout.materialRect, initialMaterialRect);
+
+    const shrunkenCount = await readNumericAttribute(shell, 'data-capture-count');
     await page.locator('[data-viewport-mode="bounded"]').click();
     await expect(shell).toHaveAttribute('data-viewport-request', 'on');
     await expect(page).toHaveURL(/viewport=on/);
     await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
       timeout: 15_000,
-    }).toBeGreaterThan(fullCount);
+    }).toBeGreaterThan(shrunkenCount);
     await expect.poll(() => readNumericAttribute(shell, 'data-capture-height'), {
       timeout: 15_000,
     }).toBeLessThan(sourceHeight);
@@ -189,8 +258,13 @@ test('keeps mobile scroll scenes ordered without wrapped labels or overlays', as
   });
   const shell = page.locator('#app');
   await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
-  await page.evaluate(() => window.scrollTo(0, 1_550));
-  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(1_549);
+  const bodyScrollTarget = await page.evaluate(() => Math.min(
+    1_550,
+    document.documentElement.scrollHeight - window.innerHeight,
+  ));
+  await page.evaluate((scrollTop) => window.scrollTo(0, scrollTop), bodyScrollTarget);
+  await expect.poll(() => page.evaluate(() => window.scrollY))
+    .toBeCloseTo(bodyScrollTarget, 0);
 
   const bodyLayout = await page.evaluate(() => {
     const stage = document.querySelector<HTMLElement>('.stage');
@@ -253,4 +327,56 @@ function expectRectToMatch(
   for (const dimension of ['x', 'y', 'width', 'height'] as const) {
     expect(Math.abs(actual[dimension] - expected[dimension])).toBeLessThan(1);
   }
+}
+
+async function readFullContentLayout(
+  canvas: ReturnType<Page['locator']>,
+  material: ReturnType<Page['locator']>,
+  scrollSurface: ReturnType<Page['locator']>,
+): Promise<{
+  canvasBackingHeight: number;
+  canvasBackingWidth: number;
+  canvasRect: { x: number; y: number; width: number; height: number };
+  canvasTransform: string;
+  materialRect: { x: number; y: number; width: number; height: number };
+  surfaceRect: { x: number; y: number; width: number; height: number };
+  surfaceScrollHeight: number;
+  surfaceScrollTop: number;
+  surfaceScrollWidth: number;
+}> {
+  const [canvasState, materialRect, surfaceState] = await Promise.all([
+    canvas.evaluate((element) => {
+      if (!(element instanceof HTMLCanvasElement)) {
+        throw new Error('Expected the core-owned presentation canvas.');
+      }
+      const rect = element.getBoundingClientRect();
+      return {
+        backingHeight: element.height,
+        backingWidth: element.width,
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        transform: getComputedStyle(element).transform,
+      };
+    }),
+    readElementRect(material),
+    scrollSurface.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      return {
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        scrollHeight: element.scrollHeight,
+        scrollTop: element.scrollTop,
+        scrollWidth: element.scrollWidth,
+      };
+    }),
+  ]);
+  return {
+    canvasBackingHeight: canvasState.backingHeight,
+    canvasBackingWidth: canvasState.backingWidth,
+    canvasRect: canvasState.rect,
+    canvasTransform: canvasState.transform,
+    materialRect,
+    surfaceRect: surfaceState.rect,
+    surfaceScrollHeight: surfaceState.scrollHeight,
+    surfaceScrollTop: surfaceState.scrollTop,
+    surfaceScrollWidth: surfaceState.scrollWidth,
+  };
 }

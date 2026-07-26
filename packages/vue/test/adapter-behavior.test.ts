@@ -165,6 +165,31 @@ afterEach(() => {
 });
 
 describe('Vue adapter behavior', () => {
+  it('renders a direct scrollable content layer for core ownership', async () => {
+    const harness = createContextHarness();
+    const engine = createEngine(harness.context);
+    const wrapper = mount(LiquidGlass, {
+      props: {
+        engine: engine.engine,
+        options: { scrollable: true },
+      },
+      slots: {
+        default: () => h('span', { 'data-testid': 'content' }, 'Content'),
+      },
+    });
+
+    await nextTick();
+
+    const container = wrapper.get('.liquid-glass-container').element;
+    const content = container.querySelector(
+      ':scope > .liquid-glass-content.scrollable',
+    );
+    expect(content).not.toBeNull();
+    expect(content?.querySelector('[data-testid="content"]')).not.toBeNull();
+    expect(engine.createContext.mock.calls[0]?.[0]).toBe(container);
+    wrapper.unmount();
+  });
+
   it('preserves boolean values supplied through the options object', async () => {
     const harness = createContextHarness();
     const engine = createEngine(harness.context);
@@ -258,7 +283,11 @@ describe('Vue adapter behavior', () => {
         options: initialOptions,
       },
       slots: {
-        default: () => h(LiquidGlassMaterial, { radius: 18 }),
+        default: () => h(
+          LiquidGlassMaterial,
+          { radius: 18 },
+          { default: () => 'Glass content' },
+        ),
       },
     });
 
@@ -271,6 +300,11 @@ describe('Vue adapter behavior', () => {
     );
     expect(harness.addMaterial).toHaveBeenCalledTimes(1);
     expect(materialHandle.id).toBe('material-1');
+    const material = wrapper.get('.liquid-glass-material');
+    expect(material.element.querySelector(
+      ':scope > .liquid-glass-content',
+    )).toBeNull();
+    expect(material.text()).toContain('Glass content');
 
     await wrapper.setProps({ options: updatedOptions });
     await nextTick();

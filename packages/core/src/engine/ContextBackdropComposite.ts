@@ -24,7 +24,11 @@ export class ContextBackdropComposite {
   ) {}
 
   /** Draw current source bitmaps in stacking order for the given container. */
-  public draw(containerRect: DOMRectReadOnly, deviceScale: number): void {
+  public draw(
+    containerRect: DOMRectReadOnly,
+    deviceScale: number,
+    contentOffset: { x: number; y: number } = { x: 0, y: 0 },
+  ): void {
     const captures = drawBackdropComposite(
       this.compositeCanvas,
       this.presentationCanvas.width,
@@ -32,6 +36,7 @@ export class ContextBackdropComposite {
       this.sources.values(),
       containerRect,
       deviceScale,
+      contentOffset,
     );
     for (const capture of captures) {
       this.onCaptured(capture);

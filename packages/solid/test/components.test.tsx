@@ -216,6 +216,28 @@ afterEach(() => {
 });
 
 describe('Solid adapter lifecycle', () => {
+  it('renders a direct scrollable content layer for core ownership', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    mountSolid(() => (
+      <LiquidGlass
+        engine={engineHarness.engine}
+        options={{ scrollable: true }}
+      >
+        <span data-testid="content">Content</span>
+      </LiquidGlass>
+    ));
+    await Promise.resolve();
+
+    const container = document.querySelector('.liquid-glass-container');
+    const content = container?.querySelector(
+      ':scope > .liquid-glass-content.scrollable',
+    );
+    expect(content).not.toBeNull();
+    expect(content?.querySelector('[data-testid="content"]')).not.toBeNull();
+    expect(engineHarness.createContext.mock.calls[0]?.[0]).toBe(container);
+  });
+
   it('preserves fallback blur defaults and explicit zero values', async () => {
     const contextHarness = createContextHarness();
     const engineHarness = createEngineHarness(contextHarness.context);
@@ -234,6 +256,10 @@ describe('Solid adapter lifecycle', () => {
     expect(materials.map((material) => (
       material.style.getPropertyValue('--lg-fallback-blur')
     ))).toEqual(['6px', '0px', '6px']);
+    expect(materials[0]?.querySelector(
+      ':scope > .liquid-glass-content',
+    )).toBeNull();
+    expect(materials[0]?.textContent).toContain('Default blur');
 
     expect(contextHarness.addMaterial.mock.calls.map(([config]) => config.blur)).toEqual([
       undefined,

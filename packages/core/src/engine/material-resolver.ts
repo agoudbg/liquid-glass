@@ -65,6 +65,7 @@ function resolveRadii(
  * @param container - Exclusive boundary for ancestor visibility traversal.
  * @param containerRect - Owning context bounds in viewport coordinates.
  * @param runtime - Injected style-reading runtime.
+ * @param contentOffset - Scroll offset into full-content presentation coordinates.
  * @returns Renderer data, or `null` when the material is synchronously culled.
  */
 export function resolveRendererMaterial(
@@ -73,6 +74,7 @@ export function resolveRendererMaterial(
   container: HTMLElement,
   containerRect: DOMRectReadOnly,
   runtime: GlassEngineRuntime,
+  contentOffset: { x: number; y: number } = { x: 0, y: 0 },
 ): RendererMaterial | null {
   const visibility = resolveMaterialVisibility(
     config.element,
@@ -96,8 +98,18 @@ export function resolveRendererMaterial(
   return {
     id,
     rect: {
-      x: rect.left - containerRect.left + (rect.width - logicalWidth) / 2,
-      y: rect.top - containerRect.top + (rect.height - logicalHeight) / 2,
+      x: (
+        rect.left
+        - containerRect.left
+        + (rect.width - logicalWidth) / 2
+        + contentOffset.x
+      ),
+      y: (
+        rect.top
+        - containerRect.top
+        + (rect.height - logicalHeight) / 2
+        + contentOffset.y
+      ),
       width: logicalWidth,
       height: logicalHeight,
     },
@@ -135,6 +147,7 @@ export function resolveRendererMaterials(
   container: HTMLElement,
   containerRect: DOMRectReadOnly,
   runtime: GlassEngineRuntime,
+  contentOffset: { x: number; y: number } = { x: 0, y: 0 },
 ): RendererMaterial[] {
   return orderMaterialRegistrations(registrations, runtime)
     .map((registration) => resolveRendererMaterial(
@@ -143,6 +156,7 @@ export function resolveRendererMaterials(
       container,
       containerRect,
       runtime,
+      contentOffset,
     ))
     .filter((material): material is RendererMaterial => material !== null);
 }

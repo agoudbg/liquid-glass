@@ -84,6 +84,7 @@ function mirrorToVisibleCanvas(source: CanvasBackdropRegistration): void {
  * @param sources - Current backdrop registrations.
  * @param containerRect - Owning context bounds in CSS pixels.
  * @param deviceScale - Effective DPR multiplied by render precision.
+ * @param contentOffset - Scroll offset into full-content presentation coordinates.
  * @returns Metadata for capture events in source stacking order.
  */
 export function drawBackdropComposite(
@@ -93,6 +94,7 @@ export function drawBackdropComposite(
   sources: Iterable<BackdropRegistration>,
   containerRect: DOMRectReadOnly,
   deviceScale: number,
+  contentOffset: { x: number; y: number } = { x: 0, y: 0 },
 ): CanvasBackdropCapture[] {
   compositeCanvas.width = presentationWidth;
   compositeCanvas.height = presentationHeight;
@@ -139,8 +141,16 @@ export function drawBackdropComposite(
 
       compositeContext.drawImage(
         source.canvas,
-        (sourceRect.left - containerRect.left) * deviceScale,
-        (sourceRect.top - containerRect.top) * deviceScale,
+        (
+          sourceRect.left
+          - containerRect.left
+          + contentOffset.x
+        ) * deviceScale,
+        (
+          sourceRect.top
+          - containerRect.top
+          + contentOffset.y
+        ) * deviceScale,
         sourceRect.width * deviceScale,
         sourceRect.height * deviceScale,
       );
@@ -160,11 +170,13 @@ export function drawBackdropComposite(
         sourceRect.left
         - containerRect.left
         + source.viewportRect.x
+        + contentOffset.x
       ) * deviceScale,
       (
         sourceRect.top
         - containerRect.top
         + source.viewportRect.y
+        + contentOffset.y
       ) * deviceScale,
       source.viewportRect.width * deviceScale,
       source.viewportRect.height * deviceScale,

@@ -125,14 +125,16 @@ async function runCapture(
   if (request.library === 'html-to-image') {
     const fullWidth = request.element.scrollWidth;
     const fullHeight = request.element.scrollHeight;
-    const boundedStyle = request.captureRect === null
-      ? undefined
-      : {
-          height: `${String(fullHeight)}px`,
-          transform: `translate(${-captureRect.x}px, ${-captureRect.y}px)`,
-          transformOrigin: 'top left',
-          width: `${String(fullWidth)}px`,
-        };
+    if (request.captureRect === null) {
+      return runtime.captureHtmlToImage(request.element, {
+        ...(request.backgroundColor === undefined
+          ? {}
+          : { backgroundColor: request.backgroundColor }),
+        height: fullHeight,
+        pixelRatio: request.pixelRatio,
+        width: fullWidth,
+      });
+    }
     return runtime.captureHtmlToImage(request.element, {
       backgroundColor: request.backgroundColor,
       canvasHeight: captureRect.height,
@@ -140,7 +142,12 @@ async function runCapture(
       filter: (node) => !hasGlassClass(node),
       height: captureRect.height,
       pixelRatio: request.pixelRatio,
-      style: boundedStyle,
+      style: {
+        height: `${String(fullHeight)}px`,
+        transform: `translate(${-captureRect.x}px, ${-captureRect.y}px)`,
+        transformOrigin: 'top left',
+        width: `${String(fullWidth)}px`,
+      },
       width: captureRect.width,
     });
   }

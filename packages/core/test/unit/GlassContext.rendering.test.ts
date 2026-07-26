@@ -26,23 +26,36 @@ class FakeElement {
   public readonly offsetHeight: number;
   public readonly offsetWidth: number;
   public readonly parentElement: HTMLElement | null = null;
-  public readonly scrollHeight: number;
-  public readonly scrollWidth: number;
   public scrollLeft = 0;
   public scrollTop = 0;
   private readonly attributes = new Map<string, string>();
   private readonly listeners = new Map<string, Set<EventListener>>();
+  private scrollSize: Pick<RectLike, 'height' | 'width'>;
 
   public constructor(
     private readonly rect: RectLike,
     clientSize: Pick<RectLike, 'height' | 'width'> = rect,
+    scrollSize: Pick<RectLike, 'height' | 'width'> = rect,
   ) {
     this.clientHeight = clientSize.height;
     this.clientWidth = clientSize.width;
     this.offsetHeight = rect.height;
     this.offsetWidth = rect.width;
-    this.scrollHeight = rect.height;
-    this.scrollWidth = rect.width;
+    this.scrollSize = scrollSize;
+  }
+
+  public get scrollHeight(): number {
+    return Math.max(
+      this.scrollSize.height,
+      this.resolveVisibleCanvasDimension('height'),
+    );
+  }
+
+  public get scrollWidth(): number {
+    return Math.max(
+      this.scrollSize.width,
+      this.resolveVisibleCanvasDimension('width'),
+    );
   }
 
   public addEventListener(type: string, listener: EventListener): void {
@@ -87,6 +100,40 @@ class FakeElement {
 
   public setAttribute(name: string, value: string): void {
     this.attributes.set(name, value);
+  }
+
+  public setScrollSize(size: Pick<RectLike, 'height' | 'width'>): void {
+    this.scrollSize = size;
+  }
+
+  private resolveVisibleCanvasDimension(
+    dimension: 'height' | 'width',
+  ): number {
+    return this.children.reduce((largest, canvas) => {
+      if (canvas.style.display === 'none') {
+        return largest;
+      }
+      const value = Number.parseFloat(canvas.style[dimension] ?? '');
+      return Number.isFinite(value) ? Math.max(largest, value) : largest;
+    }, 0);
+  }
+}
+
+class FakeContextElement extends FakeElement {
+  public constructor(
+    rect: RectLike,
+    clientSize: Pick<RectLike, 'height' | 'width'>,
+    private readonly content: FakeElement,
+  ) {
+    super(rect, clientSize);
+  }
+
+  public querySelector<ElementType extends Element = Element>(
+    selector: string,
+  ): ElementType | null {
+    return selector === ':scope > .liquid-glass-content'
+      ? this.content as unknown as ElementType
+      : null;
   }
 }
 
@@ -312,6 +359,72 @@ describe('GlassContext render ownership', () => {
     context.refresh();
 
     expect(context.canvas).toMatchObject({ width: 603, height: 297 });
+    context.destroy();
+  });
+
+  it('separates full-content scrolling from viewport-limited presentation', () => {
+    const harness = createRuntimeHarness();
+    const content = new FakeElement(
+      { x: 43, y: 43, width: 1_354, height: 758 },
+      { width: 1_354, height: 758 },
+      { width: 1_354, height: 1_680 },
+    );
+    content.scrollTop = 360;
+    const container = new FakeContextElement(
+      { x: 42, y: 42, width: 1_356, height: 760 },
+      { width: 1_354, height: 758 },
+      content,
+    );
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({
+      x: 43,
+      y: -317,
+      width: 1_354,
+      height: 1_680,
+    }));
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+      { scrollable: true },
+    );
+
+    context.addBackdropSource({
+      draw: () => undefined,
+      element: backdrop as unknown as HTMLCanvasElement,
+      kind: 'canvas',
+    });
+
+    expect(content.children).toEqual([context.canvas]);
+    expect(context.canvas).toMatchObject({ width: 1_354, height: 1_680 });
+    expect((context.canvas as unknown as FakeCanvas).style).toMatchObject({
+      height: '1680px',
+      transform: '',
+      width: '1354px',
+    });
+    expect(harness.canvases[1]?.context2d.calls).toContainEqual({
+      name: 'drawImage',
+      args: [harness.canvases[3], 1, 1, 1_354, 1_680],
+    });
+
+    content.setScrollSize({ width: 1_354, height: 1_200 });
+    context.refresh();
+
+    expect(context.canvas).toMatchObject({ width: 1_354, height: 1_200 });
+    expect((context.canvas as unknown as FakeCanvas).style).toMatchObject({
+      height: '1200px',
+      transform: '',
+      width: '1354px',
+    });
+    expect((context.canvas as unknown as FakeCanvas).style.display)
+      .not.toBe('none');
+
+    context.setViewportMode(true);
+
+    expect(context.canvas).toMatchObject({ width: 1_354, height: 758 });
+    expect((context.canvas as unknown as FakeCanvas).style).toMatchObject({
+      height: '758px',
+      transform: 'translate3d(0px, 360px, 0)',
+      width: '1354px',
+    });
     context.destroy();
   });
 

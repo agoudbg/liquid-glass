@@ -37,6 +37,15 @@ import {
 } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
+function resolveContextContent(container: HTMLElement): HTMLElement {
+  if (typeof container.querySelector !== 'function') {
+    return container;
+  }
+  return container.querySelector<HTMLElement>(
+    ':scope > .liquid-glass-content',
+  ) ?? container;
+}
+
 /** Concrete core-owned implementation of the public `GlassContext` contract. */
 export class GlassContextImpl implements GlassContext {
   /** Uniform presentation canvas owned and appended by core. */
@@ -59,6 +68,7 @@ export class GlassContextImpl implements GlassContext {
   private readonly contextEvents: ContextEventController;
   private readonly presentation: ContextPresentation;
   private readonly fallback: FallbackController;
+  private readonly content: HTMLElement;
   private optionsSnapshot: GlassContextOptions;
   private precision: number;
   private isDestroyed = false;
@@ -78,11 +88,13 @@ export class GlassContextImpl implements GlassContext {
     private readonly runtime: GlassEngineRuntime,
     private readonly onDestroyed: () => void,
   ) {
+    this.content = resolveContextContent(container);
     this.optionsSnapshot = snapshotContextOptions(options);
     this.precision = resolveContextPrecision(this.optionsSnapshot);
     this.fallback = new FallbackController(this.optionsSnapshot);
     this.renderCoordinator = new ContextRenderCoordinator(
       container,
+      this.content,
       this.sources,
       runtime,
       {
@@ -94,6 +106,8 @@ export class GlassContextImpl implements GlassContext {
         ),
         isDomCaptureActive: () => this.domCapture.active,
         isFallbackMode: () => this.fallbackMode,
+        isScrollable: () => this.optionsSnapshot.scrollable ?? false,
+        isViewportMode: () => this.viewportMode,
         onBackdropCaptured: (capture) => this.emitter.emit(
           'backdropCaptured',
           capture,
@@ -106,6 +120,9 @@ export class GlassContextImpl implements GlassContext {
         onMaterialsRendered: (payload) => this.emitter.emit(
           'materialsRendered',
           payload,
+        ),
+        onPresentationSize: (width, height) => (
+          this.presentation.syncCanvasSize(width, height)
         ),
         onThemeSampled: (
           materialId,
@@ -124,6 +141,7 @@ export class GlassContextImpl implements GlassContext {
     this.canvas = this.renderCoordinator.presentationCanvas;
     this.presentation = new ContextPresentation(
       container,
+      this.content,
       this.canvas,
       this.optionsSnapshot,
     );
@@ -192,7 +210,7 @@ export class GlassContextImpl implements GlassContext {
       this.presentation.setFallbackMode(this.fallbackMode);
       this.materials.setFallbackMode(this.fallbackMode);
       this.domCapture.setPaused(this.fallbackMode);
-      container.appendChild(this.canvas);
+      this.content.appendChild(this.canvas);
       this.contextEvents = new ContextEventController(
         container,
         runtime,
@@ -202,12 +220,11 @@ export class GlassContextImpl implements GlassContext {
             this.refresh('layout');
           },
           onScroll: () => this.refresh('scroll'),
-          onScrollPosition: () => this.presentation.syncScrollPosition(
-            this.optionsSnapshot.scrollable ?? false,
-          ),
+          onScrollPosition: () => this.presentation.syncScrollPosition(),
           onBlurredChange: (blurred) => this.materials.setBlurred(blurred),
         },
         this.optionsSnapshot.enableBlurredEffect ?? false,
+        this.content,
       );
     } catch (error) {
       renderer?.destroy();
@@ -215,8 +232,8 @@ export class GlassContextImpl implements GlassContext {
       this.domCapture.destroy();
       this.presentation.destroy();
       this.renderCoordinator.destroy();
-      if (this.canvas.parentNode === container) {
-        container.removeChild(this.canvas);
+      if (this.canvas.parentNode === this.content) {
+        this.content.removeChild(this.canvas);
       }
       throw GlassError.fromUnknown(
         error,
@@ -261,12 +278,12 @@ export class GlassContextImpl implements GlassContext {
     this.optionsSnapshot = nextSnapshot;
     this.precision = nextPrecision;
     const fallbackChanged = this.fallback.updateOptions(nextSnapshot);
+    this.domCapture.markAllDirty();
+    this.presentation.update(nextSnapshot);
     this.contextEvents.refreshTargets();
     this.contextEvents.setBlurredEffectEnabled(
       nextSnapshot.enableBlurredEffect ?? false,
     );
-    this.domCapture.markAllDirty();
-    this.presentation.update(nextSnapshot);
     if (fallbackChanged) {
       this.applyFallbackModeChange();
     }
@@ -293,6 +310,7 @@ export class GlassContextImpl implements GlassContext {
     this.assertUsable();
     if (this.viewportMode !== enabled) {
       this.viewportMode = enabled;
+      this.presentation.setViewportMode(enabled);
       this.domCapture.markAllDirty();
       this.emitter.emit('viewportModeChanged', enabled);
       this.refresh('viewport');
@@ -346,8 +364,8 @@ export class GlassContextImpl implements GlassContext {
     this.sources.clear();
     this.renderer?.destroy();
     this.renderCoordinator.destroy();
-    if (this.canvas.parentNode === this.container) {
-      this.container.removeChild(this.canvas);
+    if (this.canvas.parentNode === this.content) {
+      this.content.removeChild(this.canvas);
     }
     this.onDestroyed();
     this.emitter.emit('destroyed');

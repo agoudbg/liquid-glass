@@ -65,6 +65,33 @@ describe('captureDomElement', () => {
     );
   });
 
+  it('preserves the legacy full-capture option shape', async () => {
+    const canvas = new FakeCanvas();
+    const captureHtmlToImage = vi.fn(async () => (
+      canvas as unknown as HTMLCanvasElement
+    ));
+
+    await captureDomElement({
+      backdropId: 'dom-full',
+      captureRect: null,
+      element: createElement(),
+      library: 'html-to-image',
+      pixelRatio: 2,
+      timeoutMs: 1000,
+    }, {
+      captureHtmlToImage,
+      clearTimeout,
+      loadHtml2Canvas: vi.fn(),
+      setTimeout,
+    });
+
+    expect(captureHtmlToImage).toHaveBeenCalledWith(expect.anything(), {
+      height: 1200,
+      pixelRatio: 2,
+      width: 800,
+    });
+  });
+
   it('loads html2canvas lazily with direct viewport bounds', async () => {
     const canvas = new FakeCanvas();
     const html2canvas = vi.fn(async () => canvas as unknown as HTMLCanvasElement);

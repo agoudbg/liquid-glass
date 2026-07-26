@@ -3,7 +3,7 @@
   --scroll-source-height: 1600px;
 }
 
-.glass-context > .scroll-backdrop {
+.glass-context > .liquid-glass-content > .scroll-backdrop {
   height: var(--scroll-source-height);
 }
 

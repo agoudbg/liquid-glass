@@ -226,9 +226,7 @@ export function LiquidGlassMaterial(
         class="liquid-glass-highlight"
         aria-hidden="true"
       />
-      <div class="liquid-glass-content">
-        {typeof local.children === 'function' ? local.children(controls) : local.children}
-      </div>
+      {typeof local.children === 'function' ? local.children(controls) : local.children}
     </div>
   );
 }

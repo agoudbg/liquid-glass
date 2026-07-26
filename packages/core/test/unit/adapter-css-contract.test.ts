@@ -37,7 +37,7 @@ describe('adapter material CSS contract', () => {
     expect(style).toContain('mix-blend-mode: screen;');
     expect(style).toContain('filter: var(--lg-highlight-filter);');
     expect(style).toContain('scale(var(--lg-highlight-scale))');
-    expect(style).not.toContain('.liquid-glass-material > *');
+    expect(style).toContain('.liquid-glass-material > *');
     expect(style).not.toContain(
       '.liquid-glass-material > .liquid-glass-content',
     );
@@ -53,7 +53,10 @@ describe('adapter material CSS contract', () => {
     const style = readFileSync(ORACLE_STYLE_URL, 'utf8');
 
     expect(style).toMatch(
-      /\.oracle-material\s*\{[^}]*gap:\s*8px;[^}]*color:\s*#fff;/u,
+      /\.oracle-material\s*\{[^}]*gap:\s*8px;/u,
+    );
+    expect(style).not.toMatch(
+      /\.oracle-material\s*\{[^}]*\bcolor\s*:/u,
     );
     expect(style).toMatch(
       /\.oracle-material > span\s*\{[^}]*font-size:\s*14px;[^}]*font-weight:\s*400;/u,

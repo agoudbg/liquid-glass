@@ -116,6 +116,11 @@
   pointer-events: none;
 }
 
+.liquid-glass-material > * {
+  position: relative;
+  z-index: 1;
+}
+
 .liquid-glass-background {
   position: absolute;
   inset: 0;

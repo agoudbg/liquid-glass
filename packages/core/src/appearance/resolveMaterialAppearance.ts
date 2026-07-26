@@ -131,17 +131,40 @@ function illuminationGradient(angle: number, intensity: number): string {
   const high = Math.max(0, Math.min(intensity, 1));
   const mid = Math.max(0, Math.min(intensity * 0.45, 1));
   const low = Math.max(0, Math.min(intensity * 0.2, 1));
+  const normalizeAngle = (value: number): number => (
+    ((value % 360) + 360) % 360
+  );
+  const stops = [
+    { angle: normalizeAngle(angle), opacity: high },
+    { angle: normalizeAngle(angle + 60), opacity: mid },
+    { angle: normalizeAngle(angle + 90), opacity: low },
+    { angle: normalizeAngle(angle + 120), opacity: mid },
+    { angle: normalizeAngle(angle + 180), opacity: high },
+    { angle: normalizeAngle(angle + 240), opacity: mid },
+    { angle: normalizeAngle(angle + 270), opacity: low },
+    { angle: normalizeAngle(angle + 300), opacity: mid },
+    { angle: normalizeAngle(angle + 360), opacity: high },
+  ].sort((left, right) => left.angle - right.angle);
 
-  return `conic-gradient(from ${cssNumber(angle)}deg,
-      rgba(255, 255, 255, ${cssNumber(high)}) 0deg,
-      rgba(255, 255, 255, ${cssNumber(mid)}) 60deg,
-      rgba(255, 255, 255, ${cssNumber(low)}) 90deg,
-      rgba(255, 255, 255, ${cssNumber(mid)}) 120deg,
-      rgba(255, 255, 255, ${cssNumber(high)}) 180deg,
-      rgba(255, 255, 255, ${cssNumber(mid)}) 240deg,
-      rgba(255, 255, 255, ${cssNumber(low)}) 270deg,
-      rgba(255, 255, 255, ${cssNumber(mid)}) 300deg,
-      rgba(255, 255, 255, ${cssNumber(high)}) 360deg)`;
+  const first = stops[0];
+  const last = stops[stops.length - 1];
+  if (first.angle !== 0) {
+    const wrapSpan = 360 - last.angle + first.angle;
+    const ratio = wrapSpan === 0 ? 0 : (360 - last.angle) / wrapSpan;
+    stops.unshift({
+      angle: 0,
+      opacity: last.opacity + (first.opacity - last.opacity) * ratio,
+    });
+  }
+  if (stops[stops.length - 1].angle !== 360) {
+    stops.push({ angle: 360, opacity: stops[0].opacity });
+  }
+
+  return `conic-gradient(${stops
+    .map((stop) => (
+      `rgba(255, 255, 255, ${cssNumber(stop.opacity)}) ${cssNumber(stop.angle)}deg`
+    ))
+    .join(', ')})`;
 }
 
 function highlightGradient(opacity: number, hdrFactor: number): string {

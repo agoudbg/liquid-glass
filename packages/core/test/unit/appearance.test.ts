@@ -146,16 +146,18 @@ describe('material appearance resolver', () => {
     })).toMatchObject({
       '--lg-illumination-angle': '45deg',
       '--lg-illumination-intensity': '0.5',
-      '--lg-illumination-gradient': `conic-gradient(from 45deg,
-      rgba(255, 255, 255, 0.5) 0deg,
-      rgba(255, 255, 255, 0.225) 60deg,
-      rgba(255, 255, 255, 0.1) 90deg,
-      rgba(255, 255, 255, 0.225) 120deg,
-      rgba(255, 255, 255, 0.5) 180deg,
-      rgba(255, 255, 255, 0.225) 240deg,
-      rgba(255, 255, 255, 0.1) 270deg,
-      rgba(255, 255, 255, 0.225) 300deg,
-      rgba(255, 255, 255, 0.5) 360deg)`,
+      '--lg-illumination-gradient': 'conic-gradient('
+        + 'rgba(255, 255, 255, 0.29375) 0deg, '
+        + 'rgba(255, 255, 255, 0.5) 45deg, '
+        + 'rgba(255, 255, 255, 0.5) 45deg, '
+        + 'rgba(255, 255, 255, 0.225) 105deg, '
+        + 'rgba(255, 255, 255, 0.1) 135deg, '
+        + 'rgba(255, 255, 255, 0.225) 165deg, '
+        + 'rgba(255, 255, 255, 0.5) 225deg, '
+        + 'rgba(255, 255, 255, 0.225) 285deg, '
+        + 'rgba(255, 255, 255, 0.1) 315deg, '
+        + 'rgba(255, 255, 255, 0.225) 345deg, '
+        + 'rgba(255, 255, 255, 0.29375) 360deg)',
     });
   });
 

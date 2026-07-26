@@ -29,6 +29,15 @@ coverage/
 .playwright-cli/
 playwright-report/
 test-results/
+test-results-*/
+
+# Legacy oracle capture transactions
+tests/baselines/.legacy-stage-*/
+tests/baselines/.legacy-backup-*/
+tests/baselines/.legacy-quarantine-*/
+tests/baselines/.legacy-capture.lock
+tests/baselines/.legacy-promotion.json
+.legacy-promotion-test-*/
 
 # Development notes and planning (never committed)
 .development/

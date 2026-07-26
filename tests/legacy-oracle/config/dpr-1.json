@@ -4,7 +4,13 @@
     "isolated": true,
     "launchOptions": {
       "channel": "chrome",
-      "headless": true
+      "headless": true,
+      "args": [
+        "--enable-automation",
+        "--use-gl=angle",
+        "--use-angle=swiftshader",
+        "--force-color-profile=srgb"
+      ]
     },
     "contextOptions": {
       "viewport": {

@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 import react from '@vitejs/plugin-react';
@@ -5,12 +6,14 @@ import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite';
 import solid from 'vite-plugin-solid';
 
-const source = (path: string): string => fileURLToPath(new URL(path, import.meta.url));
+const source = (path: string): string =>
+  realpathSync.native(fileURLToPath(new URL(path, import.meta.url)));
 
 /**
  * Vite configuration for the framework-neutral playground shell.
  */
 export default defineConfig({
+  root: source('.'),
   plugins: [
     vue(),
     react({

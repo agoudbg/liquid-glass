@@ -20,6 +20,96 @@ export interface PixelDifference {
   meanChannelDelta: number;
 }
 
+/** Viewport rectangle used to sample presentation-canvas alpha coverage. */
+export interface CanvasCoverageRectangle {
+  /** Stable label included in the returned coverage evidence. */
+  id: string;
+  /** Viewport-relative rectangle edges in CSS pixels. */
+  rect: {
+    /** Bottom edge. */
+    bottom: number;
+    /** Left edge. */
+    left: number;
+    /** Right edge. */
+    right: number;
+    /** Top edge. */
+    top: number;
+  };
+}
+
+/** Alpha coverage observed within one viewport rectangle. */
+export interface CanvasRegionCoverage {
+  /** Stable rectangle label. */
+  id: string;
+  /** Number of sampled backing pixels with non-zero alpha. */
+  nonTransparentPixels: number;
+  /** Total number of backing pixels intersecting the canvas. */
+  sampledPixels: number;
+}
+
+/** Exact RGBA fingerprint for one presentation-canvas frame. */
+export interface CanvasPixelFingerprint {
+  /** Physical canvas height. */
+  height: number;
+  /** Count of pixels whose alpha channel is non-zero. */
+  nonTransparentPixels: number;
+  /** SHA-256 digest of the complete RGBA backing array. */
+  sha256: string;
+  /** Physical canvas width. */
+  width: number;
+}
+
+/** Serialize the canvas backing store without compositing DOM pixels behind it. */
+export async function captureCanvasBackingStore(
+  canvas: Locator,
+): Promise<Buffer> {
+  const dataUrl = await canvas.evaluate((element) => {
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Expected the core-owned presentation canvas.');
+    }
+    return element.toDataURL('image/png');
+  });
+  const prefix = 'data:image/png;base64,';
+  if (!dataUrl.startsWith(prefix)) {
+    throw new Error('Presentation canvas did not serialize to a PNG data URL.');
+  }
+  return Buffer.from(dataUrl.slice(prefix.length), 'base64');
+}
+
+/** Hash the exact RGBA backing array without relying on PNG encoder output. */
+export async function readCanvasPixelFingerprint(
+  canvas: Locator,
+): Promise<CanvasPixelFingerprint> {
+  return canvas.evaluate(async (element) => {
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Expected the core-owned presentation canvas.');
+    }
+    const context = element.getContext('2d');
+    if (!context) throw new Error('Expected a 2D presentation context.');
+    const pixels = context.getImageData(
+      0,
+      0,
+      element.width,
+      element.height,
+    ).data;
+    let nonTransparentPixels = 0;
+    for (let index = 3; index < pixels.length; index += 4) {
+      if (pixels[index] !== 0) nonTransparentPixels += 1;
+    }
+    const digest = await crypto.subtle.digest('SHA-256', pixels);
+    const sha256 = Array.from(
+      new Uint8Array(digest),
+      (byte) => byte.toString(16).padStart(2, '0'),
+    ).join('');
+    return {
+      height: element.height,
+      nonTransparentPixels,
+      sha256,
+      width: element.width,
+    };
+  });
+}
+
 /** Read dimensions and non-transparent coverage from the visible 2D canvas. */
 export async function readCanvasMetrics(canvas: Locator): Promise<{
   width: number;
@@ -43,6 +133,59 @@ export async function readCanvasMetrics(canvas: Locator): Promise<{
       nonTransparentPixels,
     };
   });
+}
+
+/** Read backing-pixel alpha coverage for viewport-relative material regions. */
+export async function readCanvasRegionCoverage(
+  canvas: Locator,
+  rectangles: readonly CanvasCoverageRectangle[],
+): Promise<CanvasRegionCoverage[]> {
+  return canvas.evaluate((element, regions) => {
+    if (!(element instanceof HTMLCanvasElement)) {
+      throw new Error('Expected the core-owned presentation canvas.');
+    }
+    const context = element.getContext('2d');
+    if (!context) throw new Error('Expected a 2D presentation context.');
+    const canvasRect = element.getBoundingClientRect();
+    if (canvasRect.width <= 0 || canvasRect.height <= 0) {
+      throw new Error('Presentation canvas has no measurable CSS area.');
+    }
+    const scaleX = element.width / canvasRect.width;
+    const scaleY = element.height / canvasRect.height;
+    const pixels = context.getImageData(0, 0, element.width, element.height).data;
+
+    return regions.map(({ id, rect }) => {
+      const startX = Math.max(
+        0,
+        Math.floor((rect.left - canvasRect.left) * scaleX),
+      );
+      const endX = Math.min(
+        element.width,
+        Math.ceil((rect.right - canvasRect.left) * scaleX),
+      );
+      const startY = Math.max(
+        0,
+        Math.floor((rect.top - canvasRect.top) * scaleY),
+      );
+      const endY = Math.min(
+        element.height,
+        Math.ceil((rect.bottom - canvasRect.top) * scaleY),
+      );
+      let nonTransparentPixels = 0;
+      for (let y = startY; y < endY; y += 1) {
+        for (let x = startX; x < endX; x += 1) {
+          if (pixels[(y * element.width + x) * 4 + 3] !== 0) {
+            nonTransparentPixels += 1;
+          }
+        }
+      }
+      return {
+        id,
+        nonTransparentPixels,
+        sampledPixels: Math.max(0, endX - startX) * Math.max(0, endY - startY),
+      };
+    });
+  }, rectangles);
 }
 
 /** Read one numeric data attribute, treating a missing value as zero. */

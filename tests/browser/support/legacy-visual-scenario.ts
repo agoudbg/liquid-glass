@@ -1,7 +1,19 @@
 import {
+  type LegacyRawPublicCanvasArtifact,
+  type LegacyVisualScreenshotArtifacts,
+  parseLegacyPublicCanvasRect,
+  parseLegacyRawPublicCanvasArtifact,
+  parseLegacyScreenshotArtifacts,
+} from './legacy-visual-artifacts';
+import {
+  type LegacyCssRectangle,
   type LegacyMaterialRectangle,
   type LegacyRgbDifference,
 } from './legacy-visual-comparator';
+import {
+  type LegacyVisualScenarioState,
+  parseLegacyVisualScenarioState,
+} from './legacy-visual-scenario-state';
 import {
   assertUnique,
   expectRecord,
@@ -10,6 +22,7 @@ import {
   readPositiveInteger,
   readRatio,
   readString,
+  readStringArray,
 } from './legacy-visual-schema';
 
 const METRIC_TOLERANCE = 1e-11;
@@ -20,11 +33,54 @@ export const LEGACY_VISUAL_THRESHOLD_CAP = 0.005;
 /** Minimum candidate threshold allowed by the calibrated legacy policy. */
 export const LEGACY_VISUAL_THRESHOLD_FLOOR = 0.001;
 
+/** Public canvas class required for every legacy visual-oracle capture. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_CLASS_NAME =
+  'liquid-glass-uniform-canvas';
+
+/** Exclusive alpha-pixel floor required for every legacy public canvas. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_MIN_NON_TRANSPARENT_PIXELS = 1000;
+
+/** Deterministic lifecycle trigger used to populate the legacy public canvas. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_READINESS_TRIGGER = 'window-resize';
+
+/** Consecutive identical RGBA frames required before oracle serialization. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_STABLE_FRAME_COUNT = 3;
+
+/** Exact pixel fingerprint algorithm used for canvas stability. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_STABILITY_FINGERPRINT =
+  'SHA-256 RGBA';
+
+/** Frame boundary used between canvas stability samples. */
+export const LEGACY_PUBLIC_UNIFORM_CANVAS_STABILITY_SAMPLING =
+  'requestAnimationFrame';
+
+/** Deterministic public-canvas frame-stability policy. */
+export interface LegacyPublicUniformCanvasStability {
+  /** Required number of consecutive identical frames. */
+  consecutiveFrames: number;
+  /** Pixel fingerprint algorithm. */
+  fingerprint: string;
+  /** Browser scheduling boundary between samples. */
+  sampling: string;
+}
+
 /** CSS viewport dimensions shared by one calibrated browser run. */
 export interface LegacyVisualDimensions {
   /** Height in CSS or physical pixels, depending on the containing field. */
   height: number;
   /** Width in CSS or physical pixels, depending on the containing field. */
+  width: number;
+}
+
+/** Exact public uniform canvas evidence recorded for one legacy scene. */
+export interface LegacyPublicUniformCanvasReadiness {
+  /** CSS classes present on the user-visible uniform canvas. */
+  classNames: string[];
+  /** Physical canvas height. */
+  height: number;
+  /** Count of canvas pixels whose alpha channel is non-zero. */
+  nonTransparentPixels: number;
+  /** Physical canvas width. */
   width: number;
 }
 
@@ -36,6 +92,21 @@ export interface LegacyVisualSceneCalibration {
   glassOnVersusOff: LegacyRgbDifference;
   /** CSS material rectangles whose union defines the comparison region. */
   materialRectangles: readonly LegacyMaterialRectangle[];
+  /** Non-empty public uniform canvas captured for this scene. */
+  publicUniformCanvas: LegacyPublicUniformCanvasReadiness;
+  /** Viewport-relative legacy public-canvas rectangle in CSS pixels. */
+  publicUniformCanvasRect: LegacyCssRectangle;
+  /** Raw backing-store artifact used for strict optical parity. */
+  rawPublicCanvas: LegacyRawPublicCanvasArtifact;
+  /** Viewport scroll position used for the calibrated screenshot. */
+  scrollPosition: {
+    /** Horizontal window scroll in CSS pixels. */
+    x: number;
+    /** Vertical window scroll in CSS pixels. */
+    y: number;
+  };
+  /** Deterministic interaction or scroll state used for this capture. */
+  scenarioState: LegacyVisualScenarioState;
   /** Stable legacy scenario identifier. */
   scenarioId: string;
   /** Largest self-diff ratio observed across runs two through runCount. */
@@ -44,6 +115,8 @@ export interface LegacyVisualSceneCalibration {
   screenshotHeight: number;
   /** Physical screenshot width. */
   screenshotWidth: number;
+  /** Content-addressed glass-on and glass-off screenshots. */
+  screenshotArtifacts: LegacyVisualScreenshotArtifacts;
   /** Calibrated maximum candidate diff ratio for this scene. */
   threshold: number;
 }
@@ -132,6 +205,65 @@ function readDifference(
   };
 }
 
+function readPublicUniformCanvas(
+  value: unknown,
+  label: string,
+): LegacyPublicUniformCanvasReadiness {
+  expectRecord(value, label);
+  const classNames = readStringArray(
+    value.classNames,
+    `${label}.classNames`,
+  );
+  if (!classNames.includes(LEGACY_PUBLIC_UNIFORM_CANVAS_CLASS_NAME)) {
+    throw new Error(
+      `${label}.classNames must include `
+      + `${LEGACY_PUBLIC_UNIFORM_CANVAS_CLASS_NAME}.`,
+    );
+  }
+  const width = readPositiveInteger(value.width, `${label}.width`);
+  const height = readPositiveInteger(value.height, `${label}.height`);
+  const nonTransparentPixels = readPositiveInteger(
+    value.nonTransparentPixels,
+    `${label}.nonTransparentPixels`,
+  );
+  if (
+    nonTransparentPixels
+    <= LEGACY_PUBLIC_UNIFORM_CANVAS_MIN_NON_TRANSPARENT_PIXELS
+  ) {
+    throw new Error(
+      `${label}.nonTransparentPixels must exceed `
+      + `${LEGACY_PUBLIC_UNIFORM_CANVAS_MIN_NON_TRANSPARENT_PIXELS}.`,
+    );
+  }
+  if (nonTransparentPixels > width * height) {
+    throw new Error(`${label}.nonTransparentPixels exceeds its canvas area.`);
+  }
+  return { classNames, height, nonTransparentPixels, width };
+}
+
+/** Parse the exact frame-stability policy recorded by the legacy oracle. */
+export function parseLegacyPublicCanvasStability(
+  value: unknown,
+  label: string,
+): LegacyPublicUniformCanvasStability {
+  expectRecord(value, label);
+  const consecutiveFrames = readPositiveInteger(
+    value.consecutiveFrames,
+    `${label}.consecutiveFrames`,
+  );
+  const fingerprint = readString(value.fingerprint, `${label}.fingerprint`);
+  const sampling = readString(value.sampling, `${label}.sampling`);
+  if (
+    consecutiveFrames !== LEGACY_PUBLIC_UNIFORM_CANVAS_STABLE_FRAME_COUNT
+    || fingerprint
+      !== LEGACY_PUBLIC_UNIFORM_CANVAS_STABILITY_FINGERPRINT
+    || sampling !== LEGACY_PUBLIC_UNIFORM_CANVAS_STABILITY_SAMPLING
+  ) {
+    throw new Error(`${label} does not match the exact RGBA stability policy.`);
+  }
+  return { consecutiveFrames, fingerprint, sampling };
+}
+
 function readSelfDiff(
   value: unknown,
   runCount: number,
@@ -180,6 +312,19 @@ function readSelfDiff(
   return { maxRatio, threshold };
 }
 
+function readScrollPosition(
+  value: unknown,
+  label: string,
+): { x: number; y: number } {
+  expectRecord(value, label);
+  const x = readNumber(value.x, `${label}.x`);
+  const y = readNumber(value.y, `${label}.y`);
+  if (x < 0 || y < 0) {
+    throw new Error(`${label} coordinates must not be negative.`);
+  }
+  return { x, y };
+}
+
 /** Validate one scenario entry from the legacy visual calibration report. */
 export function parseLegacyVisualScenario(
   value: unknown,
@@ -203,6 +348,51 @@ export function parseLegacyVisualScenario(
     || screenshotHeight !== viewport.height * devicePixelRatio
   ) {
     throw new Error(`${label} screenshot dimensions do not match viewport DPR.`);
+  }
+  const publicUniformCanvas = readPublicUniformCanvas(
+    value.publicUniformCanvas,
+    `${label}.publicUniformCanvas`,
+  );
+  const rawPublicCanvas = parseLegacyRawPublicCanvasArtifact(
+    value.rawPublicCanvas,
+    publicUniformCanvas,
+    scenarioId,
+    devicePixelRatio,
+    LEGACY_PUBLIC_UNIFORM_CANVAS_MIN_NON_TRANSPARENT_PIXELS,
+    `${label}.rawPublicCanvas`,
+  );
+  const publicUniformCanvasRect = parseLegacyPublicCanvasRect(
+    value.canvasDimensions,
+    publicUniformCanvas,
+    devicePixelRatio,
+    LEGACY_PUBLIC_UNIFORM_CANVAS_CLASS_NAME,
+    `${label}.canvasDimensions`,
+  );
+  const screenshotArtifacts = parseLegacyScreenshotArtifacts(
+    value.screenshotArtifacts,
+    scenarioId,
+    devicePixelRatio,
+    `${label}.screenshotArtifacts`,
+  );
+  const scrollPosition = readScrollPosition(
+    value.scrollPosition,
+    `${label}.scrollPosition`,
+  );
+  const scenarioState = parseLegacyVisualScenarioState(
+    value.scenarioState,
+    scenarioId,
+    `${label}.scenarioState`,
+  );
+  if (
+    scenarioState.kind === 'window-scroll'
+    && (
+      scenarioState.x !== scrollPosition.x
+      || scenarioState.y !== scrollPosition.y
+    )
+  ) {
+    throw new Error(
+      `${label}.scenarioState window position does not match scrollPosition.`,
+    );
   }
   const materialRectangles = readArray(
     value.materialRectangles,
@@ -236,9 +426,15 @@ export function parseLegacyVisualScenario(
     devicePixelRatio,
     glassOnVersusOff,
     materialRectangles,
+    publicUniformCanvas,
+    publicUniformCanvasRect,
+    rawPublicCanvas,
+    scrollPosition,
+    scenarioState,
     scenarioId,
     selfDiffMaxRatio: selfDiff.maxRatio,
     screenshotHeight,
+    screenshotArtifacts,
     screenshotWidth,
     threshold: selfDiff.threshold,
   };

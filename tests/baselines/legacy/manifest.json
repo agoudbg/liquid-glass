@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "capturedOn": "2026-07-22",
+  "schemaVersion": 3,
+  "capturedOn": "2026-07-26",
   "status": "complete-legacy-visual-oracle",
   "oracle": {
     "branch": "dev",
@@ -52,6 +52,7 @@
     "automation": "global playwright-cli",
     "browser": "Google Chrome",
     "browserVersion": "150.0.7871.129",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
     "headless": true,
     "isolatedContext": true,
     "viewport": {
@@ -85,14 +86,25 @@
     "pageErrorCount": 0,
     "selfDiffMaximum": 0,
     "threshold": 0.001,
+    "publicUniformCanvasReadiness": {
+      "trigger": "window-resize",
+      "minimumNonTransparentPixels": 1000,
+      "stability": {
+        "consecutiveFrames": 3,
+        "fingerprint": "SHA-256 RGBA",
+        "sampling": "requestAnimationFrame"
+      },
+      "minimumObservedNonTransparentPixels": 63616
+    },
     "glassOnOffDiffRatioRange": {
-      "minimum": 0.958260281385,
-      "maximum": 0.987608225108
+      "maximum": 0.987643398268,
+      "minimum": 0.053806325217
     },
     "glassOffDefinition": "WebGL canvas plus material tint, highlight, border, and shadow disabled; backdrop and content retained",
     "result": "pass",
     "artifacts": {
       "screenshots": "tests/baselines/legacy/visual/dpr-{1,2}/S00{1..6}-glass-{on,off}.png",
+      "rawPublicCanvases": "tests/baselines/legacy/visual/dpr-{1,2}/S00{1..6}-canvas.png",
       "dpr1Metadata": "tests/baselines/legacy/visual/browser-dpr-1.json",
       "dpr2Metadata": "tests/baselines/legacy/visual/browser-dpr-2.json",
       "calibration": "tests/baselines/legacy/visual-calibration.json",
@@ -102,11 +114,22 @@
       "Chrome version and user agent",
       "CSS viewport and device pixel ratio",
       "screenshot and canvas dimensions",
+      "public uniform canvas classes and exact non-transparent pixel count",
+      "raw public canvas path, serialization method, dimensions, and alpha count",
       "material rectangles and scroll positions",
       "three glass-on/off key pixels per material",
       "nineteen self-diffs against run 1 per scenario",
       "material-region glass-on/off diff metrics"
-    ]
+    ],
+    "webGlFingerprint": {
+      "renderer": "WebKit WebGL",
+      "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+      "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "unmaskedVendor": "Google Inc. (Google)",
+      "vendor": "WebKit",
+      "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+    },
+    "captureContractSha256": "c20458bf7a2f0cce3d3dc08ca51a1804caaa228ef357baa51badaa189fa5cb2c"
   },
   "physicsEvidence": {
     "path": "tests/baselines/legacy/physics-traces.json",

@@ -5,6 +5,7 @@ on:
     branches: [main, rewrite, dev]
   pull_request:
     branches: [main, rewrite, dev]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,3 +32,41 @@ jobs:
 
       - name: Run verified workspace gates
         run: pnpm ci
+
+  visual-exact:
+    if: github.event_name == 'workflow_dispatch'
+    needs: ci
+    runs-on: [self-hosted, Windows, X64, liquid-glass-visual]
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify legacy baseline promotion transaction
+        run: pnpm test:legacy:promotion
+
+      - name: Verify calibrated legacy pixel parity
+        run: pnpm test:visual:exact
+        env:
+          PLAYWRIGHT_BASE_URL: ''
+
+      - name: Upload visual parity diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-parity-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14

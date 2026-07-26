@@ -1,12 +1,304 @@
 {
-  "schemaVersion": 1,
-  "generatedAt": "2026-07-22T06:13:48.548Z",
+  "schemaVersion": 3,
+  "generatedAt": "2026-07-26T13:32:57.459Z",
   "sourceCommit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
+  "captureEvidence": {
+    "captureId": "20260726-211211-001008dd",
+    "captureMode": "full",
+    "contract": {
+      "schemaVersion": 1,
+      "browser": {
+        "arguments": [
+          "--enable-automation",
+          "--use-gl=angle",
+          "--use-angle=swiftshader",
+          "--force-color-profile=srgb"
+        ],
+        "browserName": "Google Chrome",
+        "browserVersion": "150.0.7871.129",
+        "channel": "chrome",
+        "distributionFiles": [
+          {
+            "path": "150.0.7871.129/chrome.dll",
+            "sha256": "616736277d485b18046ac2d2eb669417879061e0676f5da7319aeab24de0af68"
+          },
+          {
+            "path": "150.0.7871.129/libEGL.dll",
+            "sha256": "e92ee6a33fe01569249493369060ecc54d15fe5581c49bb3f7db71c18e254e77"
+          },
+          {
+            "path": "150.0.7871.129/libGLESv2.dll",
+            "sha256": "37b2d79e32f5695c786427756472c57653e9d7abe0d80886a890fc1e43b119a6"
+          },
+          {
+            "path": "150.0.7871.129/vk_swiftshader.dll",
+            "sha256": "ab418c0c43e60274d4ecb5fc13db10c65aa3c13dfe50d1dc45b63977e0b1e8f4"
+          },
+          {
+            "path": "150.0.7871.129/vk_swiftshader_icd.json",
+            "sha256": "32d83ff113fef532a9f97e0d2831f8656628ab1c99e9060f0332b1532839afd9"
+          },
+          {
+            "path": "150.0.7871.129/vulkan-1.dll",
+            "sha256": "b1c23c637b32ac152405a73d5c827e18e82e3516c1b03d211cd8b4d98f690d90"
+          },
+          {
+            "path": "chrome.exe",
+            "sha256": "4bcaff4cd5b5e33105bcd9ec4208a10dbf86e143cafbfda6def5493c4c9244ee"
+          }
+        ],
+        "effectiveArguments": [
+          "--allow-pre-commit-input",
+          "--blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4",
+          "--disable-back-forward-cache",
+          "--disable-background-networking",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-blink-features=AutomationControlled",
+          "--disable-breakpad",
+          "--disable-client-side-phishing-detection",
+          "--disable-component-extensions-with-background-pages",
+          "--disable-component-update",
+          "--disable-default-apps",
+          "--disable-dev-shm-usage",
+          "--disable-edgeupdater",
+          "--disable-extensions",
+          "--disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion",
+          "--disable-field-trial-config",
+          "--disable-hang-monitor",
+          "--disable-infobars",
+          "--disable-ipc-flooding-protection",
+          "--disable-popup-blocking",
+          "--disable-prompt-on-repost",
+          "--disable-renderer-backgrounding",
+          "--disable-search-engine-choice-screen",
+          "--disable-sync",
+          "--disable-updater-scheduler",
+          "--edge-skip-compat-layer-relaunch",
+          "--enable-automation",
+          "--enable-features=CDPScreenshotNewSurface",
+          "--enable-unsafe-swiftshader",
+          "--export-tagged-pdf",
+          "--flag-switches-begin",
+          "--flag-switches-end",
+          "--force-color-profile=srgb",
+          "--headless",
+          "--hide-scrollbars",
+          "--metrics-recording-only",
+          "--mute-audio",
+          "--no-default-browser-check",
+          "--no-first-run",
+          "--no-service-autorun",
+          "--no-startup-window",
+          "--noerrdialogs",
+          "--password-store=basic",
+          "--unsafely-disable-devtools-self-xss-warnings",
+          "--use-angle=swiftshader",
+          "--use-gl=angle",
+          "--use-mock-keychain"
+        ],
+        "headless": true,
+        "protocol": {
+          "jsVersion": "15.0.1240245",
+          "product": "Chrome/150.0.7871.129",
+          "protocolVersion": "1.3",
+          "revision": "@e69b30bba288603e514cffb4c79c359cac68e923"
+        },
+        "webGlFingerprint": {
+          "renderer": "WebKit WebGL",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "vendor": "WebKit",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        }
+      },
+      "context": {
+        "colorScheme": "light",
+        "devicePixelRatios": [
+          1,
+          2
+        ],
+        "locale": "en-US",
+        "reducedMotion": "reduce",
+        "timezoneId": "UTC",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        }
+      },
+      "host": {
+        "arch": "x64",
+        "fonts": [
+          {
+            "fileName": "arial.ttf",
+            "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+          },
+          {
+            "fileName": "arialbd.ttf",
+            "sha256": "e8f4e3baf6cc35fed6fcce3a540e8b39e8f6cda1d22a28f2ec8f526fef7a43f5"
+          }
+        ],
+        "osRelease": "10.0.26200",
+        "platform": "win32"
+      },
+      "repository": {
+        "digest": "ec6f2cd618d4e0478adf525b91b30d052ed95ed919e5e50118fc230816dc16bb",
+        "files": [
+          {
+            "path": ".node-version",
+            "sha256": "4137094e7792cb49fe1afddc3f87208f0ef4adfef7d3acd1def0198786d393c2"
+          },
+          {
+            "path": "scripts/legacy/analyze-legacy-oracle.mjs",
+            "sha256": "66f62432108341fe496b386e144fc9d423313f14198da768f1c1f9a896a13f56"
+          },
+          {
+            "path": "scripts/legacy/capture-legacy-oracle.ps1",
+            "sha256": "f0d9e0897d4aadb7d5e59c6b394c4c319797b8ee952d4ebb6c7975bc1db04b2f"
+          },
+          {
+            "path": "scripts/legacy/legacy-capture-config.mjs",
+            "sha256": "acb89311239c852fb2c8be6eb86a6a14f0d8e335003ec41daaf42f1f164e01ce"
+          },
+          {
+            "path": "scripts/legacy/legacy-capture-contract.mjs",
+            "sha256": "00764714d4486525cac471017d357e2160c7ea36f9849f64da24e4c4fc867a20"
+          },
+          {
+            "path": "scripts/legacy/legacy-capture-evidence.mjs",
+            "sha256": "62365f22397ed1a49ea4c1e9d9529b151c880b8912ed6c76fc274e3f35519de2"
+          },
+          {
+            "path": "scripts/legacy/legacy-capture-helpers.ps1",
+            "sha256": "f735c7d3c72a2958afdbcbbcc8ae54f6fd3063f227a6faec55da5b6a5e82b2ea"
+          },
+          {
+            "path": "scripts/legacy/legacy-capture-validation.ps1",
+            "sha256": "b936ce9c3b45fae09ab3aa69ec5fb789b9715dfacfb870124e8559451b59541c"
+          },
+          {
+            "path": "scripts/legacy/legacy-image-analysis.mjs",
+            "sha256": "d158d912db409d8062e9f5e1a48be39b406ee9f8a60c59cad9c47679e8cae02e"
+          },
+          {
+            "path": "scripts/legacy/legacy-playwright-runtime.mjs",
+            "sha256": "93a4a3851fbd3305c76a5b79257339ac9e5eff2f65eca99ed48f39a02112d9f6"
+          },
+          {
+            "path": "scripts/legacy/legacy-promotion-transaction.ps1",
+            "sha256": "d951cf2e8b03e7086b055eb9246a6f9c4d16aa21a76297537cc978b97af99ab1"
+          },
+          {
+            "path": "scripts/legacy/legacy-toolchain-snapshot.mjs",
+            "sha256": "889d26dabfa5058cfa6e3bcda9ec5d400e364b93f2b001825452076641ee4451"
+          },
+          {
+            "path": "scripts/legacy/sync-legacy-visual-manifest.mjs",
+            "sha256": "ddd0ff2d4242194b6d37f886845d1a2c97cff5d7efd18ec467563289490c282c"
+          },
+          {
+            "path": "tests/legacy-oracle/capture-contract-probe.js",
+            "sha256": "4bd3c2c5a13fd284f8a65ca1e25539dca0334d9b56142c620c980f0f41209cd5"
+          },
+          {
+            "path": "tests/legacy-oracle/capture-run-code.js",
+            "sha256": "2b0146fd7fce231d7ada8c9d602e6411bbea9d5357c1a7d77d87902b74f1f564"
+          },
+          {
+            "path": "tests/legacy-oracle/config/dpr-1.json",
+            "sha256": "2f44a957421d8db2d7e42f8a9f8a1a06832e272fdcbd2610187dfedfbb02fa33"
+          },
+          {
+            "path": "tests/legacy-oracle/config/dpr-2.json",
+            "sha256": "f330c0a0bc7d658814c53124cbf08c36137d1b6a784ca6059185e8d206e51ce3"
+          },
+          {
+            "path": "tests/legacy-oracle/harness/OracleApp.vue",
+            "sha256": "b82a8bd2dbdd524c7d34fe6b5937810d27b167cb69545cdc8c4c9f709fcd3919"
+          },
+          {
+            "path": "tests/legacy-oracle/harness/main.ts",
+            "sha256": "06a521211b167b0679fb2d4be24366e3f990541334140b28c7dd741d83fecbcd"
+          },
+          {
+            "path": "tests/legacy-oracle/harness/oracle.css",
+            "sha256": "b4c217e9f3f5e3932bba901d0dc9f35b227bb263fffccfe44b1101b667758b58"
+          }
+        ]
+      },
+      "runtime": {
+        "nodeVersion": "22.22.0",
+        "playwrightCliLauncherDigest": "3e5ffbbff3f782d021eaf23c3ed520f4df05f1c402899e8b183c29a5480d09c4",
+        "playwrightCliPackageDigest": "be9ec7cbc874ee635d63a1535cfbd6169e8f6722dad4a461082c77bef1736723",
+        "playwrightRuntimePackageDigest": "4cee445ab6d17476d22f9f56b2fe0677f99e52aaf7814330970df6919709e9b5",
+        "playwrightCliVersion": "0.1.17",
+        "playwrightCoreVersion": "1.62.0-alpha-1783623505000",
+        "pnpmVersion": "10.32.0"
+      }
+    },
+    "contractSha256": "c20458bf7a2f0cce3d3dc08ca51a1804caaa228ef357baa51badaa189fa5cb2c",
+    "capturedDevicePixelRatios": [
+      1,
+      2
+    ],
+    "browsers": [
+      {
+        "browserName": "Google Chrome",
+        "browserVersion": "150.0.7871.129",
+        "capturedAt": "2026-07-26T13:21:00.554Z",
+        "devicePixelRatio": 1,
+        "runtimeErrorCount": 0,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "webGlFingerprint": {
+          "renderer": "WebKit WebGL",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "vendor": "WebKit",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        }
+      },
+      {
+        "browserName": "Google Chrome",
+        "browserVersion": "150.0.7871.129",
+        "capturedAt": "2026-07-26T13:32:53.903Z",
+        "devicePixelRatio": 2,
+        "runtimeErrorCount": 0,
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
+        "viewport": {
+          "width": 1440,
+          "height": 900
+        },
+        "webGlFingerprint": {
+          "renderer": "WebKit WebGL",
+          "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+          "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+          "unmaskedVendor": "Google Inc. (Google)",
+          "vendor": "WebKit",
+          "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+        }
+      }
+    ]
+  },
   "comparison": {
     "runCount": 20,
     "ignoredChannelDeltaAtOrBelow": 3,
     "thresholdFormula": "min(0.005, max(0.001, 3 * maxSelfDiffRatio))",
-    "thresholdCap": 0.005
+    "thresholdCap": 0.005,
+    "publicUniformCanvasReadiness": {
+      "trigger": "window-resize",
+      "minimumNonTransparentPixels": 1000,
+      "stability": {
+        "consecutiveFrames": 3,
+        "fingerprint": "SHA-256 RGBA",
+        "sampling": "requestAnimationFrame"
+      }
+    }
   },
   "browsers": [
     {
@@ -16,6 +308,14 @@
       "viewport": {
         "width": 1440,
         "height": 900
+      },
+      "webGlFingerprint": {
+        "renderer": "WebKit WebGL",
+        "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "unmaskedVendor": "Google Inc. (Google)",
+        "vendor": "WebKit",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
       },
       "devicePixelRatio": 1,
       "scenarios": [
@@ -42,6 +342,38 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 90076
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S001-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 90076,
+            "sha256": "d6725223695552025163e996abf338430fc329afcc21d43863c9c658c2b2cc60"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S001-glass-off.png",
+              "sha256": "2a75139b7ea59b7d390ffca3e373d895604f2649cf41b359ac43f994132b1e7c"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S001-glass-on.png",
+              "sha256": "d3c1be4aeb2e1844f312222a1012fe6f671d587a471a8328aa9f8fde035092ed"
+            }
+          },
+          "scenarioState": {
+            "kind": "static"
+          },
           "materialRectangles": [
             {
               "id": "s001-main",
@@ -221,11 +553,11 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 88640,
+            "changedPixels": 89409,
             "comparedPixels": 92400,
-            "diffRatio": 0.959307359307,
-            "meanAbsoluteChannelDelta": 15.572637,
-            "maxChannelDelta": 68,
+            "diffRatio": 0.96762987013,
+            "meanAbsoluteChannelDelta": 76.592161,
+            "maxChannelDelta": 147,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -241,9 +573,9 @@
                 "y": 398
               },
               "glassOn": [
-                115,
-                68,
-                79,
+                206,
+                185,
+                189,
                 255
               ],
               "glassOff": [
@@ -253,9 +585,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                18,
-                11,
-                12
+                73,
+                106,
+                98
               ]
             },
             {
@@ -270,9 +602,9 @@
                 "y": 343
               },
               "glassOn": [
-                146,
-                60,
-                69,
+                221,
+                181,
+                185,
                 255
               ],
               "glassOff": [
@@ -282,9 +614,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                23,
-                9,
-                11
+                52,
+                112,
+                105
               ]
             },
             {
@@ -299,9 +631,9 @@
                 "y": 453
               },
               "glassOn": [
-                84,
-                77,
-                89,
+                192,
+                189,
+                194,
                 255
               ],
               "glassOff": [
@@ -311,9 +643,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                13,
-                12,
-                14
+                95,
+                100,
+                91
               ]
             }
           ],
@@ -344,6 +676,38 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 208307
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S002-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 208307,
+            "sha256": "aa613cae26d1094a090efb6ed075de21c76337fe92fddb2613179c22275a6ba3"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S002-glass-off.png",
+              "sha256": "f96a630c912f3fdf1f522f46149873d52066b9a4dcbb6be95da8405445f532ce"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S002-glass-on.png",
+              "sha256": "f170918a1a0ed77a695bca0834c0c62bb2f53865d8b244ff230a439c35112fd4"
+            }
+          },
+          "scenarioState": {
+            "kind": "static"
+          },
           "materialRectangles": [
             {
               "id": "s002-a",
@@ -549,11 +913,11 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 208368,
+            "changedPixels": 208659,
             "comparedPixels": 215700,
-            "diffRatio": 0.966008344924,
-            "meanAbsoluteChannelDelta": 15.852915,
-            "maxChannelDelta": 90,
+            "diffRatio": 0.96735744089,
+            "meanAbsoluteChannelDelta": 78.90664,
+            "maxChannelDelta": 188,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -569,21 +933,21 @@
                 "y": 298
               },
               "glassOn": [
-                210,
-                168,
-                162,
+                226,
+                194,
+                190,
                 255
               ],
               "glassOff": [
-                243,
-                194,
-                187,
+                182,
+                104,
+                93,
                 255
               ],
               "absoluteRgbDelta": [
-                33,
-                26,
-                25
+                44,
+                90,
+                97
               ]
             },
             {
@@ -598,9 +962,9 @@
                 "y": 245
               },
               "glassOn": [
-                201,
-                128,
-                101,
+                246,
+                212,
+                200,
                 255
               ],
               "glassOff": [
@@ -610,9 +974,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                31,
-                20,
-                16
+                14,
+                64,
+                83
               ]
             },
             {
@@ -627,9 +991,9 @@
                 "y": 350
               },
               "glassOn": [
-                196,
-                99,
-                101,
+                243,
+                199,
+                199,
                 255
               ],
               "glassOff": [
@@ -639,9 +1003,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                30,
-                15,
-                15
+                17,
+                85,
+                83
               ]
             },
             {
@@ -656,21 +1020,21 @@
                 "y": 418
               },
               "glassOn": [
-                221,
-                221,
-                221,
+                153,
+                153,
+                153,
                 255
               ],
               "glassOff": [
-                255,
-                255,
-                255,
+                0,
+                0,
+                0,
                 255
               ],
               "absoluteRgbDelta": [
-                34,
-                34,
-                34
+                153,
+                153,
+                153
               ]
             },
             {
@@ -685,9 +1049,9 @@
                 "y": 365
               },
               "glassOn": [
-                171,
-                101,
-                108,
+                232,
+                199,
+                203,
                 255
               ],
               "glassOff": [
@@ -697,9 +1061,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                26,
-                15,
-                17
+                35,
+                83,
+                78
               ]
             },
             {
@@ -714,9 +1078,9 @@
                 "y": 470
               },
               "glassOn": [
-                118,
-                115,
-                125,
+                190,
+                189,
+                195,
                 255
               ],
               "glassOff": [
@@ -726,9 +1090,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                18,
-                18,
-                19
+                54,
+                56,
+                51
               ]
             },
             {
@@ -743,21 +1107,21 @@
                 "y": 558
               },
               "glassOn": [
-                124,
-                156,
-                163,
+                162,
+                186,
+                190,
                 255
               ],
               "glassOff": [
-                143,
-                180,
-                188,
+                22,
+                82,
+                94,
                 255
               ],
               "absoluteRgbDelta": [
-                19,
-                24,
-                25
+                140,
+                104,
+                96
               ]
             },
             {
@@ -772,9 +1136,9 @@
                 "y": 505
               },
               "glassOn": [
-                42,
-                89,
-                102,
+                173,
+                194,
+                200,
                 255
               ],
               "glassOff": [
@@ -784,9 +1148,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                6,
-                14,
-                16
+                125,
+                91,
+                82
               ]
             },
             {
@@ -801,9 +1165,9 @@
                 "y": 610
               },
               "glassOn": [
-                62,
-                112,
-                125,
+                181,
+                205,
+                211,
                 255
               ],
               "glassOff": [
@@ -813,9 +1177,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                9,
-                17,
-                19
+                110,
+                76,
+                67
               ]
             }
           ],
@@ -846,6 +1210,40 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 91276
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S003-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 91276,
+            "sha256": "e9c3cbce363131d210dadf63066f92903507653660d17871587dae3e78f24b09"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S003-glass-off.png",
+              "sha256": "5b85ba0a9e999f96db034f8eda06d4a32f924ba115f661648471ec8d2c575fe6"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S003-glass-on.png",
+              "sha256": "2b2ed5b8d18d89a3122e6d7ab1c02a4ebd590d732635db640da3e725fb240155"
+            }
+          },
+          "scenarioState": {
+            "kind": "manual-refresh",
+            "controlTestId": "manual-refresh",
+            "settleMilliseconds": 1200
+          },
           "materialRectangles": [
             {
               "id": "s003-main",
@@ -1025,10 +1423,10 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 91244,
+            "changedPixels": 91252,
             "comparedPixels": 92400,
-            "diffRatio": 0.987489177489,
-            "meanAbsoluteChannelDelta": 82.58403,
+            "diffRatio": 0.987575757576,
+            "meanAbsoluteChannelDelta": 82.583431,
             "maxChannelDelta": 209,
             "exceedsThreshold": true
           },
@@ -1109,13 +1507,13 @@
                 255
               ],
               "glassOff": [
-                228,
+                227,
                 224,
                 180,
                 255
               ],
               "absoluteRgbDelta": [
-                24,
+                25,
                 31,
                 72
               ]
@@ -1148,18 +1546,55 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 138096
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S004-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 814,
+            "nonTransparentPixels": 138096,
+            "sha256": "11113c3f935bcf08e92dd54520a4d69495b0135cfeb968adb23506d4d397e501"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S004-glass-off.png",
+              "sha256": "2d540ea626e2892e1bb873df592835b28c121f16d5590126a8615de5ebd1223c"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S004-glass-on.png",
+              "sha256": "bdb26c182e18ee1eb006971a1ce2dca90f00090d0184f96f0dd03c7adbf317e6"
+            }
+          },
+          "scenarioState": {
+            "kind": "pointer-hold",
+            "holdSettleMilliseconds": 900,
+            "hoverSettleMilliseconds": 300,
+            "targetTestId": "interaction-button",
+            "xRatio": 0.72,
+            "yRatio": 0.36
+          },
           "materialRectangles": [
             {
               "id": "s004-button",
               "rect": {
-                "x": 254.25,
+                "x": 254.24996948242188,
                 "y": 360.75,
-                "width": 283.5,
+                "width": 283.5000305175781,
                 "height": 178.5,
                 "top": 360.75,
                 "right": 537.75,
                 "bottom": 539.25,
-                "left": 254.25
+                "left": 254.24996948242188
               }
             },
             {
@@ -1211,40 +1646,40 @@
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 4,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 5,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 6,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 7,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 8,
@@ -1259,32 +1694,32 @@
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000091,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 10,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 11,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 12,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 13,
@@ -1299,16 +1734,16 @@
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 15,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 16,
@@ -1323,16 +1758,16 @@
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 18,
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000081,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 19,
@@ -1347,17 +1782,17 @@
                 "changedPixels": 0,
                 "comparedPixels": 1296000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000083,
-                "maxChannelDelta": 2
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               }
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 138581,
+            "changedPixels": 7690,
             "comparedPixels": 142920,
-            "diffRatio": 0.969640358242,
-            "meanAbsoluteChannelDelta": 15.622647,
-            "maxChannelDelta": 93,
+            "diffRatio": 0.053806325217,
+            "meanAbsoluteChannelDelta": 3.559618,
+            "maxChannelDelta": 228,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -1365,36 +1800,36 @@
               "materialId": "s004-button",
               "probe": "center",
               "cssPosition": {
-                "x": 396,
+                "x": 395.99998474121094,
                 "y": 450
               },
               "physicalPosition": {
-                "x": 396,
+                "x": 395,
                 "y": 450
               },
               "glassOn": [
-                173,
-                93,
-                90,
+                186,
+                80,
+                76,
                 255
               ],
               "glassOff": [
-                187,
-                81,
-                77,
+                177,
+                76,
+                72,
                 255
               ],
               "absoluteRgbDelta": [
-                14,
-                12,
-                13
+                9,
+                4,
+                4
               ]
             },
             {
               "materialId": "s004-button",
               "probe": "upperLeftQuarter",
               "cssPosition": {
-                "x": 325.125,
+                "x": 325.1249771118164,
                 "y": 405.375
               },
               "physicalPosition": {
@@ -1402,9 +1837,9 @@
                 "y": 405
               },
               "glassOn": [
-                199,
-                118,
-                101,
+                230,
+                137,
+                117,
                 255
               ],
               "glassOff": [
@@ -1414,16 +1849,16 @@
                 255
               ],
               "absoluteRgbDelta": [
-                31,
-                18,
-                15
+                0,
+                1,
+                1
               ]
             },
             {
               "materialId": "s004-button",
               "probe": "lowerRightQuarter",
               "cssPosition": {
-                "x": 466.875,
+                "x": 466.87499237060547,
                 "y": 494.625
               },
               "physicalPosition": {
@@ -1431,9 +1866,9 @@
                 "y": 494
               },
               "glassOn": [
-                171,
-                79,
-                87,
+                184,
+                66,
+                75,
                 255
               ],
               "glassOff": [
@@ -1443,9 +1878,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                14,
-                13,
-                11
+                1,
+                0,
+                1
               ]
             },
             {
@@ -1460,21 +1895,21 @@
                 "y": 450
               },
               "glassOn": [
-                191,
-                176,
-                179,
+                169,
+                123,
+                133,
                 255
               ],
               "glassOff": [
-                221,
-                203,
-                207,
+                117,
+                86,
+                92,
                 255
               ],
               "absoluteRgbDelta": [
-                30,
-                27,
-                28
+                52,
+                37,
+                41
               ]
             },
             {
@@ -1489,9 +1924,9 @@
                 "y": 407
               },
               "glassOn": [
-                130,
-                64,
+                150,
                 74,
+                86,
                 255
               ],
               "glassOff": [
@@ -1501,9 +1936,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                20,
-                10,
-                11
+                0,
+                0,
+                1
               ]
             },
             {
@@ -1518,9 +1953,9 @@
                 "y": 492
               },
               "glassOn": [
-                125,
-                113,
-                122,
+                145,
+                130,
+                141,
                 255
               ],
               "glassOff": [
@@ -1530,9 +1965,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                19,
-                17,
-                19
+                1,
+                0,
+                0
               ]
             },
             {
@@ -1547,21 +1982,21 @@
                 "y": 450
               },
               "glassOn": [
-                165,
-                186,
-                190,
+                85,
+                147,
+                159,
                 255
               ],
               "glassOff": [
-                190,
-                214,
-                219,
+                57,
+                99,
+                107,
                 255
               ],
               "absoluteRgbDelta": [
-                25,
                 28,
-                29
+                48,
+                52
               ]
             },
             {
@@ -1576,9 +2011,9 @@
                 "y": 407
               },
               "glassOn": [
-                56,
-                86,
-                97,
+                65,
+                99,
+                112,
                 255
               ],
               "glassOff": [
@@ -1588,9 +2023,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                9,
-                13,
-                15
+                0,
+                0,
+                0
               ]
             },
             {
@@ -1605,9 +2040,9 @@
                 "y": 492
               },
               "glassOn": [
-                63,
-                125,
-                136,
+                73,
+                144,
+                157,
                 255
               ],
               "glassOff": [
@@ -1617,9 +2052,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                10,
-                19,
-                21
+                0,
+                0,
+                0
               ]
             }
           ],
@@ -1650,6 +2085,41 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 1798,
+            "nonTransparentPixels": 63616
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S005-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 1798,
+            "nonTransparentPixels": 63616,
+            "sha256": "4c63b0d16828b9d667cf2bfe503ef9aaaf9560b4ec4353ba42a047695e972ad3"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S005-glass-off.png",
+              "sha256": "6b9e3c2f1ea7d8752fc608868319bcaf6190e7c946c82f4111559f030f72cd62"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S005-glass-on.png",
+              "sha256": "c6a73b4abc9d04c1dc3b9909c265e1db7a08188b01ff93f9377b46c0748a240c"
+            }
+          },
+          "scenarioState": {
+            "kind": "window-scroll",
+            "settleMilliseconds": 900,
+            "x": 0,
+            "y": 420
+          },
           "materialRectangles": [
             {
               "id": "s005-sticky",
@@ -1832,7 +2302,7 @@
             "changedPixels": 63680,
             "comparedPixels": 64600,
             "diffRatio": 0.985758513932,
-            "meanAbsoluteChannelDelta": 95.683292,
+            "meanAbsoluteChannelDelta": 95.682926,
             "maxChannelDelta": 191,
             "exceedsThreshold": true
           },
@@ -1952,6 +2422,41 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 1354,
+            "height": 1680,
+            "nonTransparentPixels": 65516
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-1/S006-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 1354,
+            "height": 1680,
+            "nonTransparentPixels": 65516,
+            "sha256": "c69a977b94dcf6dba9af1fe47f274fee6f2cd4c2bc55a7a494a0cefe5ed545c7"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S006-glass-off.png",
+              "sha256": "2ffabf58a016b46bffb90be0a0e793748429fe92cdac98b71c266fdbc830a0ae"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-1/S006-glass-on.png",
+              "sha256": "78879e13ffa802a225c9da212024c69b3aedb3fed9d0d073020497304e32c3a9"
+            }
+          },
+          "scenarioState": {
+            "kind": "internal-scroll",
+            "scrollTop": 360,
+            "selector": ".liquid-glass-content.scrollable",
+            "settleMilliseconds": 1200
+          },
           "materialRectangles": [
             {
               "id": "s006-sticky",
@@ -2134,7 +2639,7 @@
             "changedPixels": 65588,
             "comparedPixels": 66500,
             "diffRatio": 0.986285714286,
-            "meanAbsoluteChannelDelta": 90.85794,
+            "meanAbsoluteChannelDelta": 90.857664,
             "maxChannelDelta": 181,
             "exceedsThreshold": true
           },
@@ -2241,6 +2746,14 @@
         "width": 1440,
         "height": 900
       },
+      "webGlFingerprint": {
+        "renderer": "WebKit WebGL",
+        "shadingLanguageVersion": "WebGL GLSL ES 3.00 (OpenGL ES GLSL ES 3.0 Chromium)",
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "unmaskedVendor": "Google Inc. (Google)",
+        "vendor": "WebKit",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
       "devicePixelRatio": 2,
       "scenarios": [
         {
@@ -2266,6 +2779,38 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 360328
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S001-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 360328,
+            "sha256": "7f2f3e7011e6f91b44bf1d7a9c9b8f8ff9b16f9752bacfbaec2864c65fa13bf0"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S001-glass-off.png",
+              "sha256": "5f308ccaee7e50881ff1de891e8d77585d995a33f15581ecd6a19ff02ccc0365"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S001-glass-on.png",
+              "sha256": "63b585a0ce5ae26f8066567102a258c5c888386368cbed121311a8a6d6837a55"
+            }
+          },
+          "scenarioState": {
+            "kind": "static"
+          },
           "materialRectangles": [
             {
               "id": "s001-main",
@@ -2359,8 +2904,8 @@
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 0
+                "meanAbsoluteChannelDelta": 0.000012,
+                "maxChannelDelta": 1
               },
               {
                 "run": 11,
@@ -2445,11 +2990,11 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 354173,
+            "changedPixels": 356179,
             "comparedPixels": 369600,
-            "diffRatio": 0.958260281385,
-            "meanAbsoluteChannelDelta": 15.604123,
-            "maxChannelDelta": 68,
+            "diffRatio": 0.963687770563,
+            "meanAbsoluteChannelDelta": 76.63559,
+            "maxChannelDelta": 152,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -2465,9 +3010,9 @@
                 "y": 796
               },
               "glassOn": [
-                115,
-                68,
-                79,
+                206,
+                185,
+                189,
                 255
               ],
               "glassOff": [
@@ -2477,9 +3022,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                18,
-                11,
-                12
+                73,
+                106,
+                98
               ]
             },
             {
@@ -2494,9 +3039,9 @@
                 "y": 686
               },
               "glassOn": [
-                146,
-                59,
-                69,
+                221,
+                180,
+                185,
                 255
               ],
               "glassOff": [
@@ -2506,9 +3051,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                23,
-                9,
-                11
+                52,
+                112,
+                105
               ]
             },
             {
@@ -2523,9 +3068,9 @@
                 "y": 906
               },
               "glassOn": [
-                121,
-                114,
-                123,
+                209,
+                205,
+                210,
                 255
               ],
               "glassOff": [
@@ -2535,9 +3080,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                19,
-                17,
-                19
+                69,
+                74,
+                68
               ]
             }
           ],
@@ -2568,6 +3113,38 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 833172
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S002-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 833172,
+            "sha256": "d16fc44fc06fd0d9e06ee4d135b1cc9acd91eecfca6e3a58385b6324299d1ecc"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S002-glass-off.png",
+              "sha256": "67fea84d0c3edb78dd15f0649ab01f56cd9fdedea384760bad4ab31e12147811"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S002-glass-on.png",
+              "sha256": "1094dd7b1c07df6a15f7a53e98c4a0f365c23ba503b39bf087917182e19d217b"
+            }
+          },
+          "scenarioState": {
+            "kind": "static"
+          },
           "materialRectangles": [
             {
               "id": "s002-a",
@@ -2773,11 +3350,11 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 833308,
+            "changedPixels": 834249,
             "comparedPixels": 862800,
-            "diffRatio": 0.96581826611,
-            "meanAbsoluteChannelDelta": 15.919533,
-            "maxChannelDelta": 92,
+            "diffRatio": 0.966908901252,
+            "meanAbsoluteChannelDelta": 78.822542,
+            "maxChannelDelta": 190,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -2793,9 +3370,9 @@
                 "y": 596
               },
               "glassOn": [
-                163,
-                76,
-                66,
+                228,
+                188,
+                183,
                 255
               ],
               "glassOff": [
@@ -2805,9 +3382,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                25,
-                12,
-                10
+                40,
+                100,
+                107
               ]
             },
             {
@@ -2822,9 +3399,9 @@
                 "y": 491
               },
               "glassOn": [
-                166,
-                93,
-                68,
+                229,
+                196,
+                184,
                 255
               ],
               "glassOff": [
@@ -2834,9 +3411,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                25,
-                14,
-                10
+                38,
+                89,
+                106
               ]
             },
             {
@@ -2851,9 +3428,9 @@
                 "y": 701
               },
               "glassOn": [
-                160,
-                62,
-                66,
+                227,
+                182,
+                183,
                 255
               ],
               "glassOff": [
@@ -2863,9 +3440,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                25,
-                10,
-                10
+                42,
+                110,
+                107
               ]
             },
             {
@@ -2880,21 +3457,21 @@
                 "y": 836
               },
               "glassOn": [
-                221,
-                221,
-                221,
+                153,
+                153,
+                153,
                 255
               ],
               "glassOff": [
-                255,
-                255,
-                255,
+                0,
+                0,
+                0,
                 255
               ],
               "absoluteRgbDelta": [
-                34,
-                34,
-                34
+                153,
+                153,
+                153
               ]
             },
             {
@@ -2909,9 +3486,9 @@
                 "y": 731
               },
               "glassOn": [
-                133,
-                63,
-                74,
+                215,
+                182,
+                187,
                 255
               ],
               "glassOff": [
@@ -2921,9 +3498,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                21,
-                10,
-                11
+                61,
+                109,
+                102
               ]
             },
             {
@@ -2938,9 +3515,9 @@
                 "y": 941
               },
               "glassOn": [
-                80,
-                79,
-                91,
+                207,
+                206,
+                211,
                 255
               ],
               "glassOff": [
@@ -2950,9 +3527,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                12,
-                12,
-                14
+                115,
+                115,
+                106
               ]
             },
             {
@@ -2967,21 +3544,21 @@
                 "y": 1116
               },
               "glassOn": [
-                161,
-                184,
-                189,
+                172,
+                191,
+                195,
                 255
               ],
               "glassOff": [
-                186,
-                213,
-                218,
+                49,
+                97,
+                105,
                 255
               ],
               "absoluteRgbDelta": [
-                25,
-                29,
-                29
+                123,
+                94,
+                90
               ]
             },
             {
@@ -2996,9 +3573,9 @@
                 "y": 1011
               },
               "glassOn": [
-                81,
-                126,
-                136,
+                191,
+                211,
+                216,
                 255
               ],
               "glassOff": [
@@ -3008,9 +3585,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                13,
-                19,
-                21
+                97,
+                66,
+                59
               ]
             },
             {
@@ -3025,9 +3602,9 @@
                 "y": 1221
               },
               "glassOn": [
-                23,
-                75,
-                90,
+                163,
+                188,
+                195,
                 255
               ],
               "glassOff": [
@@ -3037,9 +3614,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                3,
-                12,
-                14
+                137,
+                101,
+                91
               ]
             }
           ],
@@ -3070,6 +3647,40 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 365156
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S003-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 365156,
+            "sha256": "beae303455335026ecabdf0fa8002a7732ebf555a090c08fe6399336b11e406e"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S003-glass-off.png",
+              "sha256": "bb8a30796e4bac613dc970eb2036ff4487f1990b58e5261f2f488288dd4495ae"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S003-glass-on.png",
+              "sha256": "dad8682767c730c0e31fba4630f500464f424a22e15262819584ffdf4f8fdaac"
+            }
+          },
+          "scenarioState": {
+            "kind": "manual-refresh",
+            "controlTestId": "manual-refresh",
+            "settleMilliseconds": 1200
+          },
           "materialRectangles": [
             {
               "id": "s003-main",
@@ -3163,8 +3774,8 @@
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 0
+                "meanAbsoluteChannelDelta": 0.000012,
+                "maxChannelDelta": 1
               },
               {
                 "run": 11,
@@ -3249,10 +3860,10 @@
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 365020,
+            "changedPixels": 365033,
             "comparedPixels": 369600,
-            "diffRatio": 0.987608225108,
-            "meanAbsoluteChannelDelta": 82.701334,
+            "diffRatio": 0.987643398268,
+            "meanAbsoluteChannelDelta": 82.701193,
             "maxChannelDelta": 210,
             "exceedsThreshold": true
           },
@@ -3333,15 +3944,15 @@
                 255
               ],
               "glassOff": [
-                240,
+                241,
                 252,
-                243,
+                244,
                 255
               ],
               "absoluteRgbDelta": [
-                12,
+                11,
                 3,
-                9
+                8
               ]
             }
           ],
@@ -3372,6 +3983,43 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 552352
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S004-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 1628,
+            "nonTransparentPixels": 552352,
+            "sha256": "9b59dfcdee3d05646ec4b6785f8b5aed0ab5e7f769ba55b0e09ff5e19a4b660c"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S004-glass-off.png",
+              "sha256": "9b7541e56312ec219de8b9f17e637149675723b74ffd36d42d64f75836224995"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S004-glass-on.png",
+              "sha256": "19a5a72555c58de4a341dbf2113911eac9075e2f70bed16d43f93b564fa7684f"
+            }
+          },
+          "scenarioState": {
+            "kind": "pointer-hold",
+            "holdSettleMilliseconds": 900,
+            "hoverSettleMilliseconds": 300,
+            "targetTestId": "interaction-button",
+            "xRatio": 0.72,
+            "yRatio": 0.36
+          },
           "materialRectangles": [
             {
               "id": "s004-button",
@@ -3428,7 +4076,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 3,
@@ -3436,7 +4084,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 4,
@@ -3452,7 +4100,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 6,
@@ -3468,7 +4116,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 8,
@@ -3476,7 +4124,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 9,
@@ -3484,7 +4132,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 10,
@@ -3492,7 +4140,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 11,
@@ -3500,7 +4148,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 12,
@@ -3508,7 +4156,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 13,
@@ -3516,7 +4164,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 14,
@@ -3524,7 +4172,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 15,
@@ -3532,7 +4180,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 16,
@@ -3540,7 +4188,7 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 17,
@@ -3548,23 +4196,23 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               },
               {
                 "run": 18,
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000001,
-                "maxChannelDelta": 1
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 19,
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.00001,
-                "maxChannelDelta": 1
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 20,
@@ -3572,16 +4220,16 @@
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
                 "meanAbsoluteChannelDelta": 0,
-                "maxChannelDelta": 1
+                "maxChannelDelta": 0
               }
             ]
           },
           "glassOnVersusOff": {
-            "changedPixels": 552255,
+            "changedPixels": 47883,
             "comparedPixels": 570544,
-            "diffRatio": 0.967944628285,
-            "meanAbsoluteChannelDelta": 15.646229,
-            "maxChannelDelta": 90,
+            "diffRatio": 0.083925166157,
+            "meanAbsoluteChannelDelta": 4.811802,
+            "maxChannelDelta": 230,
             "exceedsThreshold": true
           },
           "keyPixels": [
@@ -3597,9 +4245,9 @@
                 "y": 900
               },
               "glassOn": [
-                205,
-                124,
-                120,
+                228,
+                122,
+                116,
                 255
               ],
               "glassOff": [
@@ -3609,9 +4257,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                23,
-                2,
-                4
+                0,
+                0,
+                0
               ]
             },
             {
@@ -3626,9 +4274,9 @@
                 "y": 810
               },
               "glassOn": [
-                164,
-                81,
-                66,
+                189,
+                94,
+                76,
                 255
               ],
               "glassOff": [
@@ -3638,9 +4286,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                25,
-                13,
-                10
+                0,
+                0,
+                0
               ]
             },
             {
@@ -3655,9 +4303,9 @@
                 "y": 989
               },
               "glassOn": [
-                171,
-                79,
-                87,
+                185,
+                66,
+                75,
                 255
               ],
               "glassOff": [
@@ -3667,9 +4315,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                14,
-                13,
-                11
+                0,
+                0,
+                1
               ]
             },
             {
@@ -3684,21 +4332,21 @@
                 "y": 900
               },
               "glassOn": [
-                202,
-                196,
-                198,
+                126,
+                81,
+                93,
                 255
               ],
               "glassOff": [
-                233,
-                226,
-                228,
+                46,
+                30,
+                34,
                 255
               ],
               "absoluteRgbDelta": [
-                31,
-                30,
-                30
+                80,
+                51,
+                59
               ]
             },
             {
@@ -3713,9 +4361,9 @@
                 "y": 815
               },
               "glassOn": [
-                167,
-                101,
-                109,
+                194,
+                117,
+                126,
                 255
               ],
               "glassOff": [
@@ -3725,9 +4373,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                26,
-                16,
-                17
+                1,
+                0,
+                0
               ]
             },
             {
@@ -3742,9 +4390,9 @@
                 "y": 985
               },
               "glassOn": [
-                126,
-                113,
-                122,
+                145,
+                130,
+                141,
                 255
               ],
               "glassOff": [
@@ -3754,9 +4402,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                19,
-                17,
-                19
+                0,
+                0,
+                0
               ]
             },
             {
@@ -3771,21 +4419,21 @@
                 "y": 900
               },
               "glassOn": [
-                213,
-                216,
-                216,
+                85,
+                146,
+                159,
                 255
               ],
               "glassOff": [
-                246,
-                249,
-                250,
+                12,
+                20,
+                22,
                 255
               ],
               "absoluteRgbDelta": [
-                33,
-                33,
-                34
+                73,
+                126,
+                137
               ]
             },
             {
@@ -3800,9 +4448,9 @@
                 "y": 815
               },
               "glassOn": [
-                56,
-                86,
-                98,
+                65,
+                99,
+                113,
                 255
               ],
               "glassOff": [
@@ -3812,9 +4460,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                9,
-                13,
-                15
+                0,
+                0,
+                0
               ]
             },
             {
@@ -3829,9 +4477,9 @@
                 "y": 985
               },
               "glassOn": [
-                24,
-                89,
-                102,
+                28,
+                103,
+                118,
                 255
               ],
               "glassOff": [
@@ -3841,9 +4489,9 @@
                 255
               ],
               "absoluteRgbDelta": [
-                4,
-                14,
-                16
+                0,
+                0,
+                0
               ]
             }
           ],
@@ -3874,6 +4522,41 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 3596,
+            "nonTransparentPixels": 254440
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S005-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 3596,
+            "nonTransparentPixels": 254440,
+            "sha256": "0ec44e1f9da25137da26e84061f8077ec1252903ea482144fbb8cfa92a02dfc6"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S005-glass-off.png",
+              "sha256": "ec2e92bfc029081c67076cf26093d793dff78dc5e93cb1f88a46c0b8f5756271"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S005-glass-on.png",
+              "sha256": "b87204907bf645ecfd8b80dd896275e56f858b82724c1ef708fe37c49a5eb184"
+            }
+          },
+          "scenarioState": {
+            "kind": "window-scroll",
+            "settleMilliseconds": 900,
+            "x": 0,
+            "y": 420
+          },
           "materialRectangles": [
             {
               "id": "s005-sticky",
@@ -4056,7 +4739,7 @@
             "changedPixels": 254372,
             "comparedPixels": 258400,
             "diffRatio": 0.984411764706,
-            "meanAbsoluteChannelDelta": 95.814594,
+            "meanAbsoluteChannelDelta": 95.814636,
             "maxChannelDelta": 191,
             "exceedsThreshold": true
           },
@@ -4176,6 +4859,41 @@
               }
             }
           ],
+          "publicUniformCanvas": {
+            "classNames": [
+              "liquid-glass-uniform-canvas"
+            ],
+            "width": 2708,
+            "height": 3360,
+            "nonTransparentPixels": 262040
+          },
+          "rawPublicCanvas": {
+            "artifactPath": "tests/baselines/legacy/visual/dpr-2/S006-canvas.png",
+            "captureRun": 1,
+            "selector": "canvas.liquid-glass-uniform-canvas",
+            "serialization": "HTMLCanvasElement.toDataURL(\"image/png\")",
+            "transfer": "Playwright Download.saveAs",
+            "width": 2708,
+            "height": 3360,
+            "nonTransparentPixels": 262040,
+            "sha256": "01a256da5720fe94bb66910d22a0fc74e7cf8c3d8109b8b2ca2403d5c4729f65"
+          },
+          "screenshotArtifacts": {
+            "glassOff": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S006-glass-off.png",
+              "sha256": "39368b8ac71c37d2e6abbcf4fe132843c18214cf59a2e46d5df85d4d156bf239"
+            },
+            "glassOn": {
+              "artifactPath": "tests/baselines/legacy/visual/dpr-2/S006-glass-on.png",
+              "sha256": "c13b57f011b617289c80cd46407672ffd59d98a42d6268dae00b741755be7ae2"
+            }
+          },
+          "scenarioState": {
+            "kind": "internal-scroll",
+            "scrollTop": 360,
+            "selector": ".liquid-glass-content.scrollable",
+            "settleMilliseconds": 1200
+          },
           "materialRectangles": [
             {
               "id": "s006-sticky",
@@ -4358,7 +5076,7 @@
             "changedPixels": 262201,
             "comparedPixels": 266000,
             "diffRatio": 0.985718045113,
-            "meanAbsoluteChannelDelta": 90.939941,
+            "meanAbsoluteChannelDelta": 90.93994,
             "maxChannelDelta": 181,
             "exceedsThreshold": true
           },

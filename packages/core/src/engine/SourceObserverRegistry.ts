@@ -1,5 +1,10 @@
 import type { TextureDirtyReason } from '../types/context';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
 import { findClippingAncestors } from './capture-viewport-policy';
+import type { ObserverResourceState } from './diagnostics-internal';
 import type { BackdropRegistration } from './registrations';
 import { isDomBackdropRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
@@ -55,8 +60,7 @@ export class SourceObserverRegistry {
       this.configureMutationObservation(observation);
       this.configurePositionObservation(observation);
     } catch (error) {
-      this.untrack(registration);
-      throw error;
+      rethrowAfterRunningTasks(error, [() => this.untrack(registration)]);
     }
   }
 
@@ -71,26 +75,36 @@ export class SourceObserverRegistry {
     if (!observation) {
       return;
     }
-    observation.resizeObserver?.disconnect();
-    observation.mutationObserver?.disconnect();
-    observation.positionObserver?.disconnect();
-    for (const cleanup of observation.imageCleanups) {
-      cleanup();
-    }
     this.observations.delete(registration.id);
+    runTasksPreservingFirstFailure(this.takeCleanupTasks(observation));
   }
 
   /** Disconnect all observers and event listeners owned by this registry. */
   public destroy(): void {
-    for (const observation of this.observations.values()) {
-      observation.resizeObserver?.disconnect();
-      observation.mutationObserver?.disconnect();
-      observation.positionObserver?.disconnect();
-      for (const cleanup of observation.imageCleanups) {
-        cleanup();
-      }
-    }
+    const observations = [...this.observations.values()];
     this.observations.clear();
+    runTasksPreservingFirstFailure(
+      observations.flatMap((observation) => this.takeCleanupTasks(observation)),
+    );
+  }
+
+  /** Return aggregate observer and image-listener counts for diagnostics. */
+  public getDiagnosticsState(): ObserverResourceState {
+    let eventListeners = 0;
+    let resizeObservers = 0;
+    let mutationObservers = 0;
+    for (const observation of this.observations.values()) {
+      eventListeners += observation.imageCleanups.length;
+      resizeObservers += Number(observation.resizeObserver !== null);
+      mutationObservers += Number(observation.mutationObserver !== null);
+      mutationObservers += Number(observation.positionObserver !== null);
+    }
+    return {
+      eventListeners,
+      resizeObservers,
+      mutationObservers,
+      intersectionObservers: 0,
+    };
   }
 
   private configureResizeObservation(observation: SourceObservation): void {
@@ -198,10 +212,7 @@ export class SourceObserverRegistry {
   }
 
   private bindImageListeners(observation: SourceObservation): void {
-    for (const cleanup of observation.imageCleanups) {
-      cleanup();
-    }
-    observation.imageCleanups = [];
+    runTasksPreservingFirstFailure(this.takeImageCleanupTasks(observation));
     const { registration } = observation;
     if (!isDomBackdropRegistration(registration)) {
       return;
@@ -214,6 +225,28 @@ export class SourceObserverRegistry {
       };
       observation.imageCleanups.push(this.listen(image, 'load', listener));
     }
+  }
+
+  private takeCleanupTasks(observation: SourceObservation): Array<() => void> {
+    const resizeObserver = observation.resizeObserver;
+    const mutationObserver = observation.mutationObserver;
+    const positionObserver = observation.positionObserver;
+    observation.resizeObserver = null;
+    observation.mutationObserver = null;
+    observation.positionObserver = null;
+    observation.positionTarget = null;
+    return [
+      () => resizeObserver?.disconnect(),
+      () => mutationObserver?.disconnect(),
+      () => positionObserver?.disconnect(),
+      ...this.takeImageCleanupTasks(observation),
+    ];
+  }
+
+  private takeImageCleanupTasks(
+    observation: SourceObservation,
+  ): Array<() => void> {
+    return observation.imageCleanups.splice(0);
   }
 
   private createResizeObserver(

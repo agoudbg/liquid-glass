@@ -15,6 +15,12 @@ import {
 } from './backdrop-theme';
 import { type ContextBackdropCapture, ContextBackdropComposite } from './ContextBackdropComposite';
 import { ContextCanvasPipeline } from './ContextCanvasPipeline';
+import type { DiagnosticsFrameMeasurement } from './ContextDiagnosticsController';
+import {
+  type ContextRenderDiagnosticsState,
+  readDiagnosticsTimestamp,
+  resolveDiagnosticsDuration,
+} from './diagnostics-internal';
 import { resolveRendererMaterials } from './material-resolver';
 import type {
   BackdropRegistration,
@@ -40,6 +46,8 @@ export interface ContextRenderCoordinatorCallbacks {
   isScrollable(): boolean;
   /** Read whether presentation is limited to the visible viewport. */
   isViewportMode(): boolean;
+  /** Report whether optional frame measurements are enabled. */
+  isDiagnosticsEnabled(): boolean;
   /** Synchronize the visible canvas CSS box with logical renderer dimensions. */
   onPresentationSize(width: number, height: number): void;
   /** Emit metadata for a freshly drawn custom source. */
@@ -50,6 +58,8 @@ export interface ContextRenderCoordinatorCallbacks {
   onFullCanvasRendered(payload: CanvasRenderPayload): void;
   /** Emit the material-render completion payload. */
   onMaterialsRendered(payload: MaterialsRenderedPayload): void;
+  /** Record one successfully completed frame measurement. */
+  onFrameMeasured(measurement: DiagnosticsFrameMeasurement): void;
   /** Publish one material's current backdrop-derived theme. */
   onThemeSampled(
     materialId: string,
@@ -69,6 +79,7 @@ export class ContextRenderCoordinator {
   private readonly backdropComposite: ContextBackdropComposite;
   private backdropPixels: BackdropPixelData | null = null;
   private backdropTextureReady = false;
+  private destroyed = false;
 
   /** Create the context-owned canvas pipeline and its backdrop drawing facade. */
   public constructor(
@@ -97,8 +108,26 @@ export class ContextRenderCoordinator {
     return this.canvases.presentationCanvas;
   }
 
+  /** Mark the uploaded backdrop unavailable after graphics context loss. */
+  public invalidateBackdropTexture(): void {
+    this.backdropTextureReady = false;
+  }
+
+  /** Return detached presentation state without exposing owned canvases. */
+  public getDiagnosticsState(): ContextRenderDiagnosticsState {
+    return {
+      backdropTextureReady: this.backdropTextureReady,
+      height: this.canvases.presentationCanvas.height,
+      ownedCanvases: this.destroyed ? 0 : 3,
+      width: this.canvases.presentationCanvas.width,
+    };
+  }
+
   /** Render one frame, optionally reusing the last uploaded backdrop texture. */
   public renderFrame(refreshBackdrop: boolean = true): void {
+    const startedAt = this.callbacks.isDiagnosticsEnabled()
+      ? readDiagnosticsTimestamp(this.runtime)
+      : null;
     try {
       const containerRect = this.container.getBoundingClientRect();
       const containerMatrix = parseCSSTransformMatrix(
@@ -141,6 +170,7 @@ export class ContextRenderCoordinator {
           refreshBackdrop,
           contentOffset,
         );
+        this.measureFrame(startedAt, 0, null);
         return;
       }
 
@@ -152,6 +182,7 @@ export class ContextRenderCoordinator {
         renderer.clear();
         this.canvases.presentRendererFrame();
         this.emitRenderedFrame();
+        this.measureFrame(startedAt, 0, 0);
         return;
       }
 
@@ -173,7 +204,7 @@ export class ContextRenderCoordinator {
         this.runtime,
         contentOffset,
       );
-      renderer.render(materials);
+      const frameResult = renderer.render(materials);
       const themeColors = this.sampleThemes(
         materials,
         presentationWidth,
@@ -181,6 +212,11 @@ export class ContextRenderCoordinator {
       );
       this.canvases.presentRendererFrame();
       this.emitRenderedFrame(themeColors);
+      this.measureFrame(
+        startedAt,
+        frameResult.drawCalls,
+        frameResult.glError,
+      );
     } catch (error) {
       const contextual = GlassError.fromUnknown(
         error,
@@ -197,9 +233,26 @@ export class ContextRenderCoordinator {
 
   /** Idempotently release every canvas bitmap owned by this coordinator. */
   public destroy(): void {
+    this.destroyed = true;
     this.backdropPixels = null;
     this.backdropTextureReady = false;
     this.canvases.destroy();
+  }
+
+  private measureFrame(
+    startedAt: number | null,
+    drawCalls: number,
+    glError: number | null,
+  ): void {
+    if (startedAt === null) return;
+    this.callbacks.onFrameMeasured({
+      drawCalls,
+      durationMs: resolveDiagnosticsDuration(
+        startedAt,
+        readDiagnosticsTimestamp(this.runtime),
+      ),
+      glError,
+    });
   }
 
   private renderFallbackFrame(

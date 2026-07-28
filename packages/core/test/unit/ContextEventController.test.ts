@@ -315,4 +315,80 @@ describe('ContextEventController', () => {
     expect(() => controller.refreshTargets()).not.toThrow();
     expect(() => controller.destroy()).not.toThrow();
   });
+
+  it('disconnects a resize observer when initial observation fails', () => {
+    const failure = new Error('observe failed');
+    const disconnect = vi.fn();
+    const container = Object.assign(new EventTarget(), target());
+    const runtime: GlassEngineRuntime = {
+      createCanvas: vi.fn(),
+      createResizeObserver: () => ({
+        disconnect,
+        observe: () => {
+          throw failure;
+        },
+        takeRecords: () => [],
+        unobserve: vi.fn(),
+      }),
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+      getWindow: () => null,
+    };
+
+    expect(() => new ContextEventController(
+      container as unknown as HTMLElement,
+      runtime,
+      {
+        onBlurredChange: vi.fn(),
+        onLayout: vi.fn(),
+        onScroll: vi.fn(),
+        onScrollPosition: vi.fn(),
+      },
+    )).toThrow(failure);
+    expect(disconnect).toHaveBeenCalledOnce();
+  });
+
+  it('runs every listener cleanup after the first cleanup failure', () => {
+    const firstFailure = new Error('listener cleanup failed');
+    const cleanupCalls: string[] = [];
+    let listenerIndex = 0;
+    const container = Object.assign(new EventTarget(), target());
+    const browserWindow = new EventTarget();
+    const runtime: GlassEngineRuntime = {
+      addEventListener: () => {
+        const currentIndex = listenerIndex;
+        listenerIndex += 1;
+        return () => {
+          cleanupCalls.push(String(currentIndex));
+          if (currentIndex === 0) throw firstFailure;
+        };
+      },
+      createCanvas: vi.fn(),
+      createResizeObserver: () => null,
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+      getWindow: () => browserWindow as unknown as Window,
+    };
+    const controller = new ContextEventController(
+      container as unknown as HTMLElement,
+      runtime,
+      {
+        onBlurredChange: vi.fn(),
+        onLayout: vi.fn(),
+        onScroll: vi.fn(),
+        onScrollPosition: vi.fn(),
+      },
+    );
+
+    expect(() => controller.destroy()).toThrow(firstFailure);
+    expect(cleanupCalls).toEqual(['0', '1', '2']);
+    expect(controller.getDiagnosticsState()).toMatchObject({
+      pendingFrame: false,
+      resources: {
+        eventListeners: 0,
+        resizeObservers: 0,
+      },
+    });
+    expect(() => controller.destroy()).not.toThrow();
+  });
 });

@@ -14,12 +14,22 @@ import type {
   TextureDirtyReason,
 } from '../types/context';
 import type { BackdropCapturedPayload } from '../types/events';
+import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import { generateUUID } from '../utils/uuid';
 import {
   needsViewportRecapture,
   resolveCaptureViewport,
   resolveViewportPolicy,
 } from './capture-viewport-policy';
+import {
+  type DomCaptureDiagnosticsState,
+  readDiagnosticsTimestamp,
+  resolveDiagnosticsDuration,
+} from './diagnostics-internal';
+import {
+  createBackdropSourceCaptureError,
+  createScheduledCaptureError,
+} from './dom-capture-errors';
 import type {
   BackdropRegistration,
   DomBackdropRegistration,
@@ -44,7 +54,9 @@ export interface DomBackdropCaptureCallbacks {
   /** Report whether the owning context has been destroyed. */
   isContextDestroyed(): boolean;
   /** Emit metadata after a source is captured successfully. */
-  onCaptured(payload: BackdropCapturedPayload): void;
+  onCaptured(payload: BackdropCapturedPayload, durationMs: number | null): void;
+  /** Report whether optional capture measurements are enabled. */
+  isDiagnosticsEnabled?(): boolean;
   /** Surface an asynchronous capture or render failure. */
   onError(context: GlassErrorContext): void;
   /** Remove a source through the context-owned lifecycle path. */
@@ -63,6 +75,7 @@ export interface DomBackdropCaptureCallbacks {
  */
 export class DomBackdropCaptureController {
   private readonly observers: SourceObserverRegistry;
+  private readonly activeCaptureGenerations = new Set<number>();
   private captureAbortController: AbortController | null = null;
   private paused = false;
   private scheduler: DirtyFrameScheduler | null = null;
@@ -197,8 +210,22 @@ export class DomBackdropCaptureController {
 
   /** Cancel all pending controller work. */
   public destroy(): void {
-    this.observers.destroy();
-    this.retireScheduler();
+    runTasksPreservingFirstFailure([
+      () => this.observers.destroy(),
+      () => this.retireScheduler(),
+    ]);
+  }
+
+  /** Return capture scheduling and observer state for diagnostics. */
+  public getDiagnosticsState(): DomCaptureDiagnosticsState {
+    const scheduler = this.scheduler?.getState();
+    return {
+      active: this.scheduler !== null,
+      activeTasks: this.activeCaptureGenerations.size,
+      pendingFrame: scheduler?.pendingFrame ?? false,
+      running: scheduler?.running ?? false,
+      resources: this.observers.getDiagnosticsState(),
+    };
   }
 
   private update(
@@ -252,12 +279,14 @@ export class DomBackdropCaptureController {
       async () => {
         const abortController = new AbortController();
         this.captureAbortController = abortController;
+        this.activeCaptureGenerations.add(generation);
         try {
           await this.captureDirtySources(generation, abortController.signal);
           if (this.isGenerationActive(generation)) {
             this.callbacks.renderFrame();
           }
         } finally {
+          this.activeCaptureGenerations.delete(generation);
           if (this.captureAbortController === abortController) {
             this.captureAbortController = null;
           }
@@ -265,7 +294,7 @@ export class DomBackdropCaptureController {
       },
       (error) => {
         if (this.isGenerationActive(generation)) {
-          this.reportScheduledError(error);
+          this.callbacks.onError(createScheduledCaptureError(error));
         }
       },
     );
@@ -323,6 +352,9 @@ export class DomBackdropCaptureController {
         ? configuredScale
         : 1;
       const captureVersion = source.captureVersion;
+      const startedAt = (this.callbacks.isDiagnosticsEnabled?.() ?? false)
+        ? readDiagnosticsTimestamp(this.runtime)
+        : null;
       let result: DomCaptureResult;
       try {
         result = await raceWithAbort(
@@ -340,7 +372,10 @@ export class DomBackdropCaptureController {
         );
       } catch (error) {
         if (this.isGenerationActive(generation) && !source.destroyed) {
-          this.reportSourceError(error, source.id);
+          this.callbacks.onError(createBackdropSourceCaptureError(
+            error,
+            source.id,
+          ));
         }
         continue;
       }
@@ -353,13 +388,20 @@ export class DomBackdropCaptureController {
       source.canvas = result.canvas;
       source.viewportRect = result.viewportRect;
       source.dirty = false;
-      this.callbacks.onCaptured({
-        id: source.id,
-        canvas: result.canvas,
-        width: result.canvas.width,
-        height: result.canvas.height,
-        viewportRect: { ...result.viewportRect },
-      });
+      const durationMs = startedAt === null ? null : resolveDiagnosticsDuration(
+        startedAt,
+        readDiagnosticsTimestamp(this.runtime),
+      );
+      this.callbacks.onCaptured(
+        {
+          id: source.id,
+          canvas: result.canvas,
+          width: result.canvas.width,
+          height: result.canvas.height,
+          viewportRect: { ...result.viewportRect },
+        },
+        durationMs,
+      );
     }
   }
 
@@ -438,33 +480,17 @@ export class DomBackdropCaptureController {
   }
 
   private retireScheduler(): void {
+    const retiredGeneration = this.schedulerGeneration;
     this.schedulerGeneration += 1;
-    this.captureAbortController?.abort();
+    this.activeCaptureGenerations.delete(retiredGeneration);
+    const abortController = this.captureAbortController;
     this.captureAbortController = null;
-    this.scheduler?.destroy();
+    const scheduler = this.scheduler;
     this.scheduler = null;
+    runTasksPreservingFirstFailure([
+      () => abortController?.abort(),
+      () => scheduler?.destroy(),
+    ]);
   }
 
-  private reportSourceError(error: unknown, backdropId: string): void {
-    const contextual = GlassError.fromUnknown(
-      error,
-      'CAPTURE_FAILED',
-      'Failed to capture a DOM backdrop source.',
-      { phase: 'capture', backdropId },
-    );
-    this.callbacks.onError(contextual.toContext());
-  }
-
-  private reportScheduledError(error: unknown): void {
-    if (this.callbacks.isContextDestroyed()) {
-      return;
-    }
-    const contextual = GlassError.fromUnknown(
-      error,
-      'CAPTURE_FAILED',
-      'Failed to capture and composite the DOM backdrop.',
-      { phase: 'capture' },
-    );
-    this.callbacks.onError(contextual.toContext());
-  }
 }

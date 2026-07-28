@@ -1,4 +1,5 @@
 import type { CanvasLike, ShaderCornerRadii } from './common';
+import type { DiagnosticsSnapshot } from './diagnostics';
 import type { GlassEventMap } from './events';
 import type { ProxyTargetInterface } from './external-material';
 import type {
@@ -326,6 +327,8 @@ export interface GlassContext {
   readonly destroyed: boolean;
   /** Whether CSS fallback presentation is currently active. */
   readonly fallbackMode: boolean;
+  /** Read a detached diagnostics snapshot, including after destruction. */
+  getDiagnostics(): DiagnosticsSnapshot;
   /** Register a DOM capture source and return its lifecycle handle. */
   addBackdropSource(
     config: DomBackdropSourceConfig,

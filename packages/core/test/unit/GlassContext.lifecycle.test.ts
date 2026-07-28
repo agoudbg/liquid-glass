@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GlassEngine, type GlassEngineRuntime } from '../../src/engine';
 import { GlassError } from '../../src/errors/GlassError';
@@ -113,5 +113,72 @@ describe('GlassContext lifecycle rollback', () => {
     )).toThrowError(expect.objectContaining({ code: 'SHADER_COMPILE_FAILED' }));
     expect(host.children).toHaveLength(0);
     expect(host.getAttribute('data-lg-fallback')).toBeNull();
+  });
+
+  it('finishes context teardown before rethrowing a browser cleanup failure', () => {
+    const host = new HostElement();
+    const cleanupFailure = new Error('listener cleanup failed');
+    const onDestroyed = vi.fn();
+    const cleanupLifecycles: string[] = [];
+    let readLifecycle = (): string => 'unavailable';
+    const runtime: GlassEngineRuntime = {
+      addEventListener: () => () => {
+        cleanupLifecycles.push(readLifecycle());
+        throw cleanupFailure;
+      },
+      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+    };
+    const context = new GlassEngine(runtime).createContext(
+      host as unknown as HTMLElement,
+      { debug: true },
+    );
+    readLifecycle = () => context.getDiagnostics().lifecycle;
+    context.on('destroyed', onDestroyed);
+
+    expect(() => context.destroy()).toThrow(cleanupFailure);
+    expect(context.destroyed).toBe(true);
+    expect(cleanupLifecycles).toEqual(['destroying']);
+    expect(onDestroyed).toHaveBeenCalledOnce();
+    expect(host.children).toHaveLength(0);
+    expect(context.getDiagnostics()).toMatchObject({
+      lifecycle: 'destroyed',
+      resources: {
+        activeCaptureTasks: 0,
+        ownedCanvases: 0,
+        trackedEventListeners: 0,
+        webgl: {
+          buffers: 0,
+          programs: 0,
+          textures: 0,
+          vertexArrays: 0,
+        },
+      },
+    });
+    expect(() => context.destroy()).not.toThrow();
+  });
+
+  it('destroys every context before propagating the first context failure', () => {
+    const hosts = [new HostElement(), new HostElement()];
+    const cleanupFailure = new Error('context cleanup failed');
+    const runtime: GlassEngineRuntime = {
+      addEventListener: () => () => {
+        throw cleanupFailure;
+      },
+      createCanvas: () => new FakeCanvas() as unknown as HTMLCanvasElement,
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+    };
+    const engine = new GlassEngine(runtime);
+    const contexts = hosts.map((host) => engine.createContext(
+      host as unknown as HTMLElement,
+    ));
+
+    expect(() => engine.destroy()).toThrow(cleanupFailure);
+    expect(engine.destroyed).toBe(true);
+    expect(contexts.every((context) => context.destroyed)).toBe(true);
+    expect(hosts.every((host) => host.children.length === 0)).toBe(true);
+    expect(() => engine.destroy()).not.toThrow();
   });
 });

@@ -249,6 +249,11 @@ export class MaterialInteractionRuntime {
     return this.engine.isMotionAtRest();
   }
 
+  /** Report whether the interaction engine retains an idle-return timer. */
+  public hasPendingTimer(): boolean {
+    return this.engine.hasPendingTimer();
+  }
+
   /** Clear the engine clock before the shared scheduler starts a frame run. */
   public resetTimestamp(): void {
     this.engine.resetTimestamp();

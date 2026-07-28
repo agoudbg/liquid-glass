@@ -1,3 +1,4 @@
+import type { ObserverResourceState } from './diagnostics-internal';
 import type { MaterialRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -121,6 +122,16 @@ export class MaterialObserverRegistry {
     this.registrations.clear();
     this.elements.clear();
     this.safelyTeardownObservers();
+  }
+
+  /** Return live shared-observer counts without exposing browser handles. */
+  public getDiagnosticsState(): ObserverResourceState {
+    return {
+      eventListeners: 0,
+      resizeObservers: Number(this.resizeObserver !== null),
+      mutationObservers: Number(this.mutationObserver !== null),
+      intersectionObservers: Number(this.intersectionObserver !== null),
+    };
   }
 
   private ensureResizeObserver(): void {

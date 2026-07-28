@@ -40,6 +40,8 @@ export interface GlassEngineRuntime {
   getViewportRect?(): RectLike;
   /** Resolve the current browser window without touching it during SSR import. */
   getWindow?(): Window | null;
+  /** Read a monotonic timestamp for deterministic diagnostics. */
+  now?(): number;
   /** Schedule a context-owned animation frame. */
   requestAnimationFrame?(callback: FrameRequestCallback): number;
 }
@@ -105,6 +107,11 @@ export const DEFAULT_GLASS_ENGINE_RUNTIME: GlassEngineRuntime = {
   }),
   getWindow: () => (
     typeof globalThis.window === 'undefined' ? null : globalThis.window
+  ),
+  now: () => (
+    typeof globalThis.performance?.now === 'function'
+      ? globalThis.performance.now()
+      : Date.now()
   ),
   requestAnimationFrame: (callback) => globalThis.requestAnimationFrame(callback),
 };

@@ -8,6 +8,8 @@ import type {
   MaterialPresentationState,
 } from '../types/context';
 import type { InteractionState } from '../types/interaction';
+import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
+import type { MaterialPresentationDiagnosticsState } from './diagnostics-internal';
 import { prepareMaterialUpdate } from './material-config';
 import {
   restoreMaterialFallbackMode,
@@ -87,6 +89,20 @@ export class MaterialPresentationController {
   /** Return live registrations in stable insertion order. */
   public values(): Iterable<MaterialRegistration> {
     return [...this.registrations.values()].map(({ registration }) => registration);
+  }
+
+  /** Return detached registration, scheduling, and observer diagnostics. */
+  public getDiagnosticsState(): MaterialPresentationDiagnosticsState {
+    const materials = [...this.registrations.values()];
+    return {
+      materials: materials.length,
+      materialsInViewport: materials.filter(({ inViewport }) => inViewport).length,
+      pendingIdleTimers: materials.filter(
+        ({ interaction }) => interaction.hasPendingTimer(),
+      ).length,
+      frames: this.frames.getDiagnosticsState(),
+      resources: this.observers.getDiagnosticsState(),
+    };
   }
 
   /** Register one material and immediately draw its structural change. */
@@ -179,14 +195,19 @@ export class MaterialPresentationController {
   public destroy(): void {
     if (this.destroyed) return;
     this.destroyed = true;
-    this.observers.destroy();
-    this.frames.destroy();
-    for (const materialRuntime of this.registrations.values()) {
-      materialRuntime.interaction.destroy();
-      restoreMaterialFallbackMode(materialRuntime.registration);
+    const materials = [...this.registrations.values()];
+    this.registrations.clear();
+    for (const materialRuntime of materials) {
       materialRuntime.registration.destroyed = true;
     }
-    this.registrations.clear();
+    runTasksPreservingFirstFailure([
+      () => this.observers.destroy(),
+      () => this.frames.destroy(),
+      ...materials.flatMap((materialRuntime) => [
+        () => materialRuntime.interaction.destroy(),
+        () => restoreMaterialFallbackMode(materialRuntime.registration),
+      ]),
+    ]);
   }
 
   private update(

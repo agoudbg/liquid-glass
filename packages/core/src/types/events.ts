@@ -10,6 +10,7 @@ import type {
   TextureDirtyReason,
   ViewportCaptureRect,
 } from './context';
+import type { DiagnosticsSnapshot } from './diagnostics';
 
 /**
  * Payload emitted after one backdrop source has been captured.
@@ -38,6 +39,8 @@ export interface MaterialsRenderedPayload {
  * Material update events are the exception described on `materialUpdated`.
  */
 export interface GlassEventMap {
+  /** Structured context diagnostics changed while debug collection was enabled. */
+  diagnosticsUpdated: (snapshot: DiagnosticsSnapshot) => void;
   /** A source capture completed. */
   backdropCaptured: (payload: BackdropCapturedPayload) => void;
   /** The current material set was drawn. */

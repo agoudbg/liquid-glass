@@ -408,4 +408,66 @@ describe('SourceObserverRegistry', () => {
     expect(disconnect).toHaveBeenCalledOnce();
     registry.destroy();
   });
+
+  it('disconnects every tracked observer after one disconnect fails', () => {
+    const firstFailure = new Error('first disconnect failed');
+    const disconnects = [
+      vi.fn(() => {
+        throw firstFailure;
+      }),
+      vi.fn(),
+    ];
+    let observerIndex = 0;
+    const runtime: GlassEngineRuntime = {
+      createCanvas: () => {
+        throw new Error('Canvas creation is not used by observer tests.');
+      },
+      createResizeObserver: () => {
+        const disconnect = disconnects[observerIndex];
+        observerIndex += 1;
+        return {
+          disconnect,
+          observe: vi.fn(),
+          takeRecords: () => [],
+          unobserve: vi.fn(),
+        } as ResizeObserver;
+      },
+      devicePixelRatio: () => 1,
+      getComputedStyle: () => ({}) as CSSStyleDeclaration,
+    };
+    const registry = new SourceObserverRegistry(runtime, vi.fn());
+    for (const id of ['first', 'second']) {
+      const canvas = {
+        parentElement: null,
+        getBoundingClientRect: () => domRect({
+          x: 0,
+          y: 0,
+          width: 10,
+          height: 10,
+        }),
+      } as unknown as HTMLCanvasElement;
+      registry.track({
+        id,
+        canvas,
+        config: {
+          kind: 'canvas',
+          draw: () => undefined,
+          element: canvas,
+          watchResize: true,
+        },
+        destroyed: false,
+        dirty: false,
+      });
+    }
+
+    expect(() => registry.destroy()).toThrow(firstFailure);
+    expect(disconnects[0]).toHaveBeenCalledOnce();
+    expect(disconnects[1]).toHaveBeenCalledOnce();
+    expect(registry.getDiagnosticsState()).toMatchObject({
+      eventListeners: 0,
+      mutationObservers: 0,
+      resizeObservers: 0,
+    });
+    expect(() => registry.destroy()).not.toThrow();
+  });
 });

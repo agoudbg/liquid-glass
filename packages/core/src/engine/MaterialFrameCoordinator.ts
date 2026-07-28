@@ -1,5 +1,6 @@
 import type { MaterialChanges } from '../types/context';
 import { ContextFrameScheduler } from './ContextFrameScheduler';
+import type { MaterialFrameDiagnosticsState } from './diagnostics-internal';
 import type { GlassEngineRuntime } from './runtime';
 
 interface PendingMaterialUpdate {
@@ -167,6 +168,16 @@ export class MaterialFrameCoordinator {
     ) {
       this.frameScheduler.cancel();
     }
+  }
+
+  /** Return detached shared-frame scheduling state for diagnostics. */
+  public getDiagnosticsState(): MaterialFrameDiagnosticsState {
+    return {
+      ...this.frameScheduler.getDiagnosticsState(),
+      activeMaterials: this.activeMaterialIds.size,
+      pendingUpdates: this.pendingUpdates.size,
+      renderRequested: this.renderRequested,
+    };
   }
 
   /** Cancel scheduled work and reject every later request. */

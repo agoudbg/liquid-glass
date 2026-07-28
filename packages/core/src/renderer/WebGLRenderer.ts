@@ -3,6 +3,7 @@ import {
   LIQUID_GLASS_FRAGMENT_SHADER,
   LIQUID_GLASS_VERTEX_SHADER,
 } from '../shaders';
+import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import { validateFiniteNumber } from '../utils/validation';
 import { createQuadGeometry, type QuadGeometry } from './geometry';
 import { calculateMaterialScissor } from './scissor';
@@ -11,6 +12,7 @@ import type {
   RendererFrameResult,
   RendererMaterial,
   RendererResourceCounts,
+  WebGLRendererDiagnosticsState,
   WebGLRendererOptions,
 } from './types';
 import {
@@ -381,16 +383,35 @@ export class WebGLRenderer {
     };
   }
 
+  /** Return detached renderer lifecycle and resource diagnostics. */
+  public getDiagnosticsState(): WebGLRendererDiagnosticsState {
+    return {
+      state: this.isDestroyed
+        ? 'destroyed'
+        : (this.isContextLost ? 'context-lost' : 'ready'),
+      eventListeners: this.isDestroyed ? 0 : 2,
+      resources: this.getResourceCounts(),
+    };
+  }
+
   /** Idempotently release listeners, texture, geometry, and shader program. */
   public destroy(): void {
     if (this.isDestroyed) {
       return;
     }
     this.isDestroyed = true;
-    this.canvas.removeEventListener('webglcontextlost', this.handleContextLost);
-    this.canvas.removeEventListener('webglcontextrestored', this.handleContextRestored);
-    this.releaseResources();
     this.backdrop = null;
+    runTasksPreservingFirstFailure([
+      () => this.canvas.removeEventListener(
+        'webglcontextlost',
+        this.handleContextLost,
+      ),
+      () => this.canvas.removeEventListener(
+        'webglcontextrestored',
+        this.handleContextRestored,
+      ),
+      () => this.releaseResources(),
+    ]);
   }
 
   private initializeResources(): void {
@@ -415,21 +436,30 @@ export class WebGLRenderer {
   }
 
   private releaseResources(): void {
-    if (this.texture) {
-      this.gl.deleteTexture(this.texture);
-      this.texture = null;
-    }
-    if (this.geometry) {
-      this.gl.deleteBuffer(this.geometry.vertexBuffer);
-      this.gl.deleteVertexArray(this.geometry.vertexArray);
-      this.geometry = null;
-    }
-    if (this.program) {
-      this.gl.useProgram(null);
-      this.gl.deleteProgram(this.program);
-      this.program = null;
-    }
+    const texture = this.texture;
+    const geometry = this.geometry;
+    const program = this.program;
+    this.texture = null;
+    this.geometry = null;
+    this.program = null;
     this.uniforms = null;
+    runTasksPreservingFirstFailure([
+      () => {
+        if (texture) this.gl.deleteTexture(texture);
+      },
+      () => {
+        if (geometry) this.gl.deleteBuffer(geometry.vertexBuffer);
+      },
+      () => {
+        if (geometry) this.gl.deleteVertexArray(geometry.vertexArray);
+      },
+      () => {
+        if (program) this.gl.useProgram(null);
+      },
+      () => {
+        if (program) this.gl.deleteProgram(program);
+      },
+    ]);
   }
 
   private abandonResources(): void {

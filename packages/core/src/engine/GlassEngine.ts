@@ -1,5 +1,6 @@
 import { GlassError } from '../errors/GlassError';
 import type { GlassContext, GlassContextOptions } from '../types/context';
+import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import { GlassContextImpl } from './GlassContext';
 import {
   DEFAULT_GLASS_ENGINE_RUNTIME,
@@ -67,10 +68,11 @@ export class GlassEngine {
       return;
     }
     this.isDestroyed = true;
-    for (const context of [...this.contexts]) {
-      context.destroy();
-    }
+    const contexts = [...this.contexts];
     this.contexts.clear();
+    runTasksPreservingFirstFailure(
+      contexts.map((context) => () => context.destroy()),
+    );
   }
 }
 

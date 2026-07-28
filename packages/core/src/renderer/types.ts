@@ -64,3 +64,13 @@ export interface RendererResourceCounts {
   /** Backdrop textures. */
   textures: number;
 }
+
+/** Narrow renderer state consumed by context diagnostics. */
+export interface WebGLRendererDiagnosticsState {
+  /** Current renderer lifecycle state. */
+  readonly state: 'ready' | 'context-lost' | 'destroyed';
+  /** Number of context lifecycle listeners owned by the renderer. */
+  readonly eventListeners: number;
+  /** Current live graphics resource counts. */
+  readonly resources: RendererResourceCounts;
+}

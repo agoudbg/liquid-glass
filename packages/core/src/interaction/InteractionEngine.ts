@@ -361,6 +361,11 @@ export class InteractionEngine {
     this.onAnimationRequest = undefined;
   }
 
+  /** Report whether an idle-return timer is currently retained. */
+  public hasPendingTimer(): boolean {
+    return this.idleTimer !== null;
+  }
+
   private getActiveSpring(): SpringConfig {
     switch (this.state.phase) {
       case 'hover':

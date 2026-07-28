@@ -1,3 +1,8 @@
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
+import type { ContextEventDiagnosticsState } from './diagnostics-internal';
 import type { GlassEngineRuntime } from './runtime';
 
 /** Callbacks invoked for coalesced browser lifecycle events. */
@@ -21,6 +26,7 @@ export interface ContextEventCallbacks {
 export class ContextEventController {
   private readonly targetCleanups: Array<() => void> = [];
   private readonly inactivePageCleanups: Array<() => void> = [];
+  private targetResizeObservers = 0;
   private frameHandle: number | null = null;
   private pendingReason: 'layout' | 'scroll' | null = null;
   private blurredEffectEnabled = false;
@@ -41,8 +47,7 @@ export class ContextEventController {
       this.configureTargets();
       this.setBlurredEffectEnabled(enableBlurredEffect);
     } catch (error) {
-      this.teardown();
-      throw error;
+      rethrowAfterRunningTasks(error, [() => this.teardown()]);
     }
   }
 
@@ -55,8 +60,7 @@ export class ContextEventController {
     try {
       this.configureTargets();
     } catch (error) {
-      this.teardownTargets();
-      throw error;
+      rethrowAfterRunningTasks(error, [() => this.teardownTargets()]);
     }
   }
 
@@ -74,10 +78,13 @@ export class ContextEventController {
     try {
       this.configureInactivePage();
     } catch (error) {
-      this.teardownInactivePage();
-      this.blurredEffectEnabled = false;
-      this.publishBlurred(false);
-      throw error;
+      rethrowAfterRunningTasks(error, [
+        () => this.teardownInactivePage(),
+        () => {
+          this.blurredEffectEnabled = false;
+          this.publishBlurred(false);
+        },
+      ]);
     }
   }
 
@@ -90,14 +97,31 @@ export class ContextEventController {
     this.teardown();
   }
 
+  /** Return current layout scheduling and owned browser resource counts. */
+  public getDiagnosticsState(): ContextEventDiagnosticsState {
+    return {
+      pendingFrame: this.frameHandle !== null,
+      resources: {
+        eventListeners: Math.max(
+          0,
+          this.targetCleanups.length - this.targetResizeObservers,
+        ) + this.inactivePageCleanups.length,
+        resizeObservers: this.targetResizeObservers,
+        mutationObservers: 0,
+        intersectionObservers: 0,
+      },
+    };
+  }
+
   private configureTargets(): void {
     const resizeObserver = this.createResizeObserver(() => this.queue('layout'));
     if (resizeObserver) {
+      this.targetCleanups.push(() => resizeObserver.disconnect());
+      this.targetResizeObservers = 1;
       resizeObserver.observe(this.container);
       if (this.scrollTarget !== this.container) {
         resizeObserver.observe(this.scrollTarget);
       }
-      this.targetCleanups.push(() => resizeObserver.disconnect());
     }
 
     const browserWindow = this.getWindow();
@@ -241,31 +265,33 @@ export class ContextEventController {
   }
 
   private teardown(): void {
-    this.teardownTargets();
-    this.teardownInactivePage();
+    runTasksPreservingFirstFailure([
+      () => this.teardownTargets(),
+      () => this.teardownInactivePage(),
+    ]);
   }
 
   private teardownTargets(): void {
-    for (const cleanup of this.targetCleanups.splice(0)) {
-      cleanup();
-    }
-    if (this.frameHandle !== null) {
+    const cleanups = this.targetCleanups.splice(0);
+    this.targetResizeObservers = 0;
+    const frameHandle = this.frameHandle;
+    this.frameHandle = null;
+    this.pendingReason = null;
+    if (frameHandle !== null) {
+      const handle = frameHandle;
       const cancelFrame = this.runtime.cancelAnimationFrame
         ?? (
           typeof globalThis.cancelAnimationFrame === 'function'
             ? globalThis.cancelAnimationFrame.bind(globalThis)
             : null
         );
-      cancelFrame?.(this.frameHandle);
-      this.frameHandle = null;
+      cleanups.push(() => cancelFrame?.(handle));
     }
-    this.pendingReason = null;
+    runTasksPreservingFirstFailure(cleanups);
   }
 
   private teardownInactivePage(): void {
-    for (const cleanup of this.inactivePageCleanups.splice(0)) {
-      cleanup();
-    }
+    runTasksPreservingFirstFailure(this.inactivePageCleanups.splice(0));
   }
 
   private createResizeObserver(

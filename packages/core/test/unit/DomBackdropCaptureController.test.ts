@@ -126,6 +126,7 @@ function createController(
     getOptions: () => ({}),
     getViewportMode: () => false,
     isContextDestroyed: () => false,
+    isDiagnosticsEnabled: () => false,
     onCaptured: vi.fn(),
     onError: vi.fn(),
     removeSource: (registration) => {
@@ -185,11 +186,14 @@ describe('DomBackdropCaptureController', () => {
     });
 
     await vi.waitFor(() => expect(onCaptured).toHaveBeenCalledOnce());
-    expect(onCaptured).toHaveBeenCalledWith(expect.objectContaining({
-      id: replacement.id,
-      canvas: replacementCanvas,
-      viewportRect: { x: 0, y: 0, width: 320, height: 180 },
-    }));
+    expect(onCaptured).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: replacement.id,
+        canvas: replacementCanvas,
+        viewportRect: { x: 0, y: 0, width: 320, height: 180 },
+      }),
+      null,
+    );
     expect(capture).toHaveBeenCalledTimes(2);
     controller.destroy();
   });
@@ -231,9 +235,12 @@ describe('DomBackdropCaptureController', () => {
     await vi.waitFor(() => expect(capture).toHaveBeenCalledTimes(2));
     expect(requests[0]?.signal?.aborted).toBe(true);
     await vi.waitFor(() => {
-      expect(onCaptured).toHaveBeenCalledWith(expect.objectContaining({
-        id: second.id,
-      }));
+      expect(onCaptured).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: second.id,
+        }),
+        null,
+      );
     });
     controller.destroy();
   });
@@ -381,10 +388,13 @@ describe('DomBackdropCaptureController', () => {
       code: 'CAPTURE_FAILED',
       error: failure,
     }));
-    expect(onCaptured).toHaveBeenCalledWith(expect.objectContaining({
-      id: successful.id,
-      canvas: successfulCanvas,
-    }));
+    expect(onCaptured).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: successful.id,
+        canvas: successfulCanvas,
+      }),
+      null,
+    );
     expect(renderFrame).toHaveBeenCalledOnce();
     controller.destroy();
   });

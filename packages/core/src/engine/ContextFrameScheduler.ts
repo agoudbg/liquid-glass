@@ -1,3 +1,4 @@
+import type { ContextFrameDiagnosticsState } from './diagnostics-internal';
 import type { GlassEngineRuntime } from './runtime';
 
 interface AnimationFrameRequest {
@@ -30,6 +31,14 @@ export class ContextFrameScheduler {
   /** Whether one callback is waiting to run. */
   public get scheduled(): boolean {
     return this.pending !== null;
+  }
+
+  /** Return the kind of pending frame without exposing its host handle. */
+  public getDiagnosticsState(): ContextFrameDiagnosticsState {
+    return {
+      pendingAnimationFrame: this.pending?.kind === 'animation-frame',
+      pendingTimer: this.pending?.kind === 'timer',
+    };
   }
 
   /** Request one callback while coalescing duplicate requests. */

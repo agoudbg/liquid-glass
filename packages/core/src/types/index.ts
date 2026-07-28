@@ -48,6 +48,21 @@ export type {
   ViewportMode,
 } from './context';
 export type {
+  DiagnosticsCaptureSchedulerSnapshot,
+  DiagnosticsFallbackSnapshot,
+  DiagnosticsLifecycleState,
+  DiagnosticsMaterialSchedulerSnapshot,
+  DiagnosticsMetricsSnapshot,
+  DiagnosticsModeSnapshot,
+  DiagnosticsPresentationSnapshot,
+  DiagnosticsRegistrationSnapshot,
+  DiagnosticsRendererState,
+  DiagnosticsResourceSnapshot,
+  DiagnosticsSchedulingSnapshot,
+  DiagnosticsSnapshot,
+  DiagnosticsWebGLResourceCounts,
+} from './diagnostics';
+export type {
   BackdropCapturedPayload,
   GlassEvent,
   GlassEventMap,

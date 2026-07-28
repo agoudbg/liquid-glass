@@ -56,18 +56,18 @@ describe('GlassEngine', () => {
     });
 
     expect(draw).toHaveBeenLastCalledWith(expect.anything(), 640, 360);
-    expect(runtime.canvases[3]).toMatchObject({ width: 640, height: 360 });
-    expect(runtime.canvases[3].context2d.calls.filter(
+    expect(runtime.canvases[5]).toMatchObject({ width: 640, height: 360 });
+    expect(runtime.canvases[5].context2d.calls.filter(
       (call) => call.name === 'setTransform',
     ).every((call) => call.args.join(',') === '1,0,0,1,0,0')).toBe(true);
-    expect(runtime.canvases[3].context2d.calls).toContainEqual({
+    expect(runtime.canvases[5].context2d.calls).toContainEqual({
       name: 'fillRect',
       args: [0, 0, 640, 360],
     });
     expect(backdrop).toMatchObject({ width: 640, height: 360 });
     expect(callsNamed(runtime.canvases[0].gl, 'drawArrays')).toHaveLength(1);
     expect(rendered).toHaveBeenCalledWith(expect.objectContaining({
-      canvas: context.canvas,
+      canvas: runtime.canvases[3],
     }));
 
     const clearCountBeforeRemoval = callsNamed(runtime.canvases[0].gl, 'clear').length;
@@ -110,7 +110,7 @@ describe('GlassEngine', () => {
       element: backdrop as unknown as HTMLCanvasElement,
       draw,
     });
-    const ownedSource = runtime.canvases[3];
+    const ownedSource = runtime.canvases[5];
 
     expect(draw).toHaveBeenCalledOnce();
     expect(draw).toHaveBeenLastCalledWith(ownedSource.context2d, 400, 200);
@@ -148,7 +148,7 @@ describe('GlassEngine', () => {
       draw,
       scale: 1.5,
     });
-    const ownedSource = runtime.canvases[3];
+    const ownedSource = runtime.canvases[5];
 
     expect(ownedSource).toMatchObject({ width: 600, height: 300 });
     expect(backdrop).toMatchObject({ width: 600, height: 300 });
@@ -196,7 +196,7 @@ describe('GlassEngine', () => {
     expect(context.canvas).toMatchObject({ width: 200, height: 100 });
     expect(runtime.canvases[0]).toMatchObject({ width: 200, height: 100 });
     expect(runtime.canvases[1]).toMatchObject({ width: 200, height: 100 });
-    expect(runtime.canvases[3]).toMatchObject({ width: 200, height: 100 });
+    expect(runtime.canvases[5]).toMatchObject({ width: 200, height: 100 });
     expect(backdrop).toMatchObject({ width: 200, height: 100 });
     expect(draw).toHaveBeenCalledTimes(drawCount + 1);
     expect(draw).toHaveBeenLastCalledWith(expect.anything(), 200, 100);
@@ -205,33 +205,10 @@ describe('GlassEngine', () => {
     expect(context.canvas.style.zIndex).toBe('9999');
     expect(context.canvas).toMatchObject({ width: 400, height: 200 });
     expect(runtime.canvases[0]).toMatchObject({ width: 400, height: 200 });
-    expect(runtime.canvases[3]).toMatchObject({ width: 400, height: 200 });
+    expect(runtime.canvases[5]).toMatchObject({ width: 400, height: 200 });
     expect(draw).toHaveBeenLastCalledWith(expect.anything(), 400, 200);
     expect(source).toMatchObject({ id: sourceId, destroyed: false });
     expect(materialHandle).toMatchObject({ id: materialId, destroyed: false });
-  });
-
-  it('rejects dedicated mode on creation and in-place option updates', () => {
-    const runtime = createRuntime();
-    const container = new FakeElement({ x: 0, y: 0, width: 100, height: 50 });
-    const engine = new GlassEngine(runtime);
-
-    expect(() => engine.createContext(
-      container as unknown as HTMLElement,
-      { renderMode: 'dedicated' },
-    )).toThrowError(GlassError);
-
-    const context = engine.createContext(
-      container as unknown as HTMLElement,
-      { canvasZIndex: 14 },
-    );
-    expect(() => context.updateOptions({
-      renderMode: 'dedicated',
-      canvasZIndex: 99,
-      renderPrecision: 0.5,
-    })).toThrowError(GlassError);
-    expect(context.canvas.style.zIndex).toBe('14');
-    expect(context.canvas).toMatchObject({ width: 1, height: 1 });
   });
 
   it('cascades engine destruction and rejects work on destroyed contexts', () => {

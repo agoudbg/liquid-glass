@@ -199,21 +199,11 @@ function copyRenderMode(
     if (retainUndefined) target.renderMode = undefined;
     return;
   }
-  if (value === 'dedicated') {
-    throw new GlassError(
-      'INVALID_CONFIG',
-      'Dedicated per-material canvases are introduced after the P3 uniform slice.',
-      {
-        phase: 'configuration',
-        details: { renderMode: value },
-      },
-    );
-  }
-  if (value !== 'uniform') {
+  if (value !== 'uniform' && value !== 'dedicated') {
     invalidMaterial(
       'material.renderMode',
       value,
-      'expected the uniform render mode',
+      'expected a supported render mode',
     );
   }
   target.renderMode = value satisfies RenderMode;

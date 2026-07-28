@@ -121,6 +121,20 @@
   z-index: 1;
 }
 
+.liquid-glass-material > .liquid-glass-dedicated-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  opacity: 1;
+  pointer-events: none;
+  transition: visibility 0.2s ease, opacity 0.2s ease;
+  visibility: visible;
+}
+
 .liquid-glass-background {
   position: absolute;
   inset: 0;

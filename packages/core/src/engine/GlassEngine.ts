@@ -27,7 +27,7 @@ export class GlassEngine {
   ) {}
 
   /**
-   * Create one core-owned uniform rendering context inside a container.
+   * Create one core-owned rendering context inside a container.
    *
    * @param container - DOM element that owns the presentation canvas.
    * @param options - Rendering and lifecycle configuration.
@@ -44,17 +44,9 @@ export class GlassEngine {
         { phase: 'lifecycle' },
       );
     }
-    if (options.renderMode === 'dedicated') {
-      throw new GlassError(
-        'INVALID_CONFIG',
-        'Dedicated per-material canvases are introduced after the P3 uniform slice.',
-        { phase: 'configuration', details: { renderMode: options.renderMode } },
-      );
-    }
-
     const context = new GlassContextImpl(
       container,
-      { ...options, renderMode: 'uniform' },
+      options,
       this.runtime,
       () => this.contexts.delete(context),
     );

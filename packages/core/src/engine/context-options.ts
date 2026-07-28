@@ -14,17 +14,21 @@ export function resolveContextPrecision(options: GlassContextOptions): number {
 export function snapshotContextOptions(
   options: GlassContextOptions,
 ): GlassContextOptions {
-  if (options.renderMode === 'dedicated') {
+  if (
+    options.renderMode !== undefined
+    && options.renderMode !== 'uniform'
+    && options.renderMode !== 'dedicated'
+  ) {
     throw new GlassError(
       'INVALID_CONFIG',
-      'Dedicated per-material canvases are introduced after the P3 uniform slice.',
+      'Invalid liquid-glass context render mode.',
       { phase: 'configuration', details: { renderMode: options.renderMode } },
     );
   }
 
   return {
     ...options,
-    renderMode: 'uniform',
+    renderMode: options.renderMode ?? 'uniform',
     themeColorThresholds: resolveThemeColorThresholds(
       options.themeColorThresholds,
     ),

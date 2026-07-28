@@ -89,7 +89,7 @@ describe('material config boundary', () => {
     });
   });
 
-  it('rejects invalid booleans, enums, deferred modes, and unknown fields', () => {
+  it('accepts presentation modes and rejects invalid enums or unknown fields', () => {
     expect(() => snapshotMaterialConfig(config({
       disableInteractions: 1 as unknown as boolean,
     }))).toThrow(GlassError);
@@ -102,10 +102,10 @@ describe('material config boundary', () => {
     expect(() => snapshotMaterialConfig(config({
       interactionPreset: 'unknown' as 'button',
     }))).toThrow(GlassError);
-    expect(() => snapshotMaterialConfig(config({ renderMode: 'dedicated' })))
-      .toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
+    expect(snapshotMaterialConfig(config({ renderMode: 'dedicated' })))
+      .toMatchObject({ renderMode: 'dedicated' });
     expect(() => snapshotMaterialConfig(config({
-      renderMode: 'other' as 'uniform',
+      renderMode: 'other' as MaterialConfig['renderMode'],
     }))).toThrow(GlassError);
     expect(() => snapshotMaterialConfig(config({
       proxyTarget: {} as MaterialConfig['proxyTarget'],

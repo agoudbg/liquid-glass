@@ -136,12 +136,57 @@ describe('GlassContext fallback lifecycle', () => {
       element: material as unknown as HTMLElement,
     });
     const drawCalls = callsNamed(runtime.canvases[0].gl, 'drawArrays').length;
+    const materialsCanvas = runtime.canvases[3];
+    const fullCompositeCanvas = runtime.canvases[4];
+    if (!materialsCanvas || !fullCompositeCanvas) {
+      throw new Error('Missing aggregate output canvas.');
+    }
+    const materialCopies = materialsCanvas.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    ).length;
 
     context.setFallbackMode(true);
     expect(context.fallbackMode).toBe(true);
     expect(container.getAttribute('data-lg-fallback')).toBe('true');
     expect(material.getAttribute('is-fallback-mode')).toBe('true');
     expect(context.canvas.style.visibility).toBe('hidden');
+    expect(materialsCanvas.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    )).toHaveLength(materialCopies);
+    expect(materialsCanvas.context2d.calls.at(-1)).toEqual({
+      name: 'clearRect',
+      args: [0, 0, 240, 120],
+    });
+    expect(fullCompositeCanvas.context2d.calls.slice(-2)).toEqual([
+      {
+        name: 'drawImage',
+        args: [
+          runtime.canvases[1],
+          0,
+          0,
+          240,
+          120,
+          0,
+          0,
+          240,
+          120,
+        ],
+      },
+      {
+        name: 'drawImage',
+        args: [
+          materialsCanvas,
+          0,
+          0,
+          240,
+          120,
+          0,
+          0,
+          240,
+          120,
+        ],
+      },
+    ]);
     source.refresh();
     expect(draw).toHaveBeenCalledTimes(2);
     expect(callsNamed(runtime.canvases[0].gl, 'drawArrays')).toHaveLength(drawCalls);

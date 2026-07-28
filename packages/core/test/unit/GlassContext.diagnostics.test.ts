@@ -42,7 +42,7 @@ describe('GlassContext diagnostics', () => {
         readyBackdrops: 1,
       },
       resources: {
-        ownedCanvases: 4,
+        ownedCanvases: 6,
         webgl: {
           programs: 1,
           buffers: 1,
@@ -195,7 +195,7 @@ describe('GlassContext diagnostics', () => {
         readyBackdrops: 2,
       },
       resources: {
-        ownedCanvases: 5,
+        ownedCanvases: 7,
       },
     });
     expect('canvas' in context.getDiagnostics()).toBe(false);

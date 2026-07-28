@@ -4,6 +4,7 @@ import {
   GlassEngine,
   type GlassEngineRuntime,
 } from '../../src/engine';
+import type { CanvasRenderPayload } from '../../src/types';
 import { FakeCanvas } from '../fixtures/fake-webgl2';
 import {
   createRuntimeHarness,
@@ -35,7 +36,7 @@ describe('GlassContext viewport presentation', () => {
     expect(context.canvas).toMatchObject({ width: 299, height: 146 });
     expect(harness.canvases[1]?.context2d.calls).toContainEqual({
       name: 'drawImage',
-      args: [harness.canvases[3], 1.5, 1.5, 298.5, 145.5],
+      args: [harness.canvases[5], 1.5, 1.5, 298.5, 145.5],
     });
     context.destroy();
   });
@@ -80,6 +81,8 @@ describe('GlassContext viewport presentation', () => {
       container as unknown as HTMLElement,
       { scrollable: true },
     );
+    const fullFrames: CanvasRenderPayload[] = [];
+    context.on('fullCanvasRendered', (payload) => fullFrames.push(payload));
 
     context.addBackdropSource({
       draw: () => undefined,
@@ -96,8 +99,43 @@ describe('GlassContext viewport presentation', () => {
     });
     expect(harness.canvases[1]?.context2d.calls).toContainEqual({
       name: 'drawImage',
-      args: [harness.canvases[3], 1, 1, 1_354, 1_680],
+      args: [harness.canvases[5], 1, 1, 1_354, 1_680],
     });
+    expect(fullFrames.at(-1)).toEqual({
+      canvas: harness.canvases[4],
+      width: 1_354,
+      height: 758,
+    });
+    expect(harness.canvases[4]?.context2d.calls.slice(-2)).toEqual([
+      {
+        name: 'drawImage',
+        args: [
+          harness.canvases[1],
+          0,
+          360,
+          1_354,
+          758,
+          0,
+          0,
+          1_354,
+          758,
+        ],
+      },
+      {
+        name: 'drawImage',
+        args: [
+          harness.canvases[3],
+          0,
+          360,
+          1_354,
+          758,
+          0,
+          0,
+          1_354,
+          758,
+        ],
+      },
+    ]);
 
     content.setScrollSize({ width: 1_354, height: 1_200 });
     context.refresh();
@@ -119,6 +157,41 @@ describe('GlassContext viewport presentation', () => {
       transform: 'translate3d(0px, 360px, 0)',
       width: '1354px',
     });
+    expect(fullFrames.at(-1)).toEqual({
+      canvas: harness.canvases[4],
+      width: 1_354,
+      height: 758,
+    });
+    expect(harness.canvases[4]?.context2d.calls.slice(-2)).toEqual([
+      {
+        name: 'drawImage',
+        args: [
+          harness.canvases[1],
+          0,
+          0,
+          1_354,
+          758,
+          0,
+          0,
+          1_354,
+          758,
+        ],
+      },
+      {
+        name: 'drawImage',
+        args: [
+          harness.canvases[3],
+          0,
+          0,
+          1_354,
+          758,
+          0,
+          0,
+          1_354,
+          758,
+        ],
+      },
+    ]);
     context.destroy();
   });
 
@@ -147,11 +220,16 @@ describe('GlassContext viewport presentation', () => {
     ['missing renderer', true],
   ])('resizes the %s canvas when DPR changes', (_label, missingRenderer) => {
     let devicePixelRatio = 1;
+    let canvasIndex = 0;
     const container = new FakeElement({ x: 0, y: 0, width: 123, height: 45 });
     const runtime: GlassEngineRuntime = {
-      createCanvas: () => (
-        missingRenderer ? new MissingWebGlCanvas() : new FakeCanvas()
-      ) as unknown as HTMLCanvasElement,
+      createCanvas: () => {
+        const canvas = missingRenderer && canvasIndex === 0
+          ? new MissingWebGlCanvas()
+          : new FakeCanvas();
+        canvasIndex += 1;
+        return canvas as unknown as HTMLCanvasElement;
+      },
       devicePixelRatio: () => devicePixelRatio,
       getComputedStyle: () => ({}) as CSSStyleDeclaration,
     };

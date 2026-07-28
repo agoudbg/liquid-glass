@@ -87,6 +87,16 @@ describe('DedicatedMaterialPresentationController', () => {
     expect(canvas?.className).toBe('liquid-glass-dedicated-canvas');
     expect(canvas?.getAttribute('aria-hidden')).toBe('true');
     expect(canvas?.getAttribute('data-liquid-glass-canvas')).toBe('dedicated');
+    expect(canvas?.style).toMatchObject({
+      borderRadius: 'inherit',
+      display: 'block',
+      height: '100%',
+      inset: '0',
+      pointerEvents: 'none',
+      position: 'absolute',
+      width: '100%',
+      zIndex: '-1',
+    });
     expect(canvas?.style.visibility).toBe('visible');
     expect(canvas?.style.opacity).toBe('1');
     expect(canvas?.width).toBe(80);
@@ -291,5 +301,8 @@ describe('DedicatedMaterialPresentationController', () => {
       materialId: 'material-1',
       phase: 'render',
     }));
+    expect(element.children).toHaveLength(0);
+    expect(target.canvases[0]).toMatchObject({ width: 0, height: 0 });
+    expect(target.controller.getDiagnosticsState().ownedCanvases).toBe(0);
   });
 });

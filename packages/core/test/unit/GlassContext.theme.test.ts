@@ -44,7 +44,7 @@ describe('GlassContext automatic theme presentation', () => {
       averageLuminance: 0,
     });
     expect(rendered).toHaveBeenLastCalledWith({
-      canvas: mounted.context.canvas,
+      canvas: mounted.harness.canvases[3],
       themeColors: { [handle.id]: 'ultra_dark' },
     });
 
@@ -64,7 +64,7 @@ describe('GlassContext automatic theme presentation', () => {
       averageLuminance: 100,
     });
     expect(rendered).toHaveBeenLastCalledWith({
-      canvas: mounted.context.canvas,
+      canvas: mounted.harness.canvases[3],
       themeColors: { [handle.id]: 'light' },
     });
 
@@ -119,7 +119,7 @@ describe('GlassContext automatic theme presentation', () => {
 
     expect(handle.getPresentation().themeColorMode).toBe('light');
     expect(rendered).toHaveBeenLastCalledWith({
-      canvas: mounted.context.canvas,
+      canvas: mounted.harness.canvases[3],
     });
     expect(errors).toHaveBeenCalledOnce();
     expect(errors).toHaveBeenCalledWith(expect.objectContaining({
@@ -133,7 +133,7 @@ describe('GlassContext automatic theme presentation', () => {
 
     expect(handle.getPresentation().themeColorMode).toBe('ultra_light');
     expect(rendered).toHaveBeenLastCalledWith({
-      canvas: mounted.context.canvas,
+      canvas: mounted.harness.canvases[3],
       themeColors: { [handle.id]: 'ultra_light' },
     });
     expect(errors).toHaveBeenCalledOnce();

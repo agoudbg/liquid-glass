@@ -3,9 +3,11 @@ import type { WebGLRenderer } from '../renderer';
 import type {
   AutomaticBackgroundColorMode,
   CanvasRenderPayload,
+  RenderMode,
   ThemeColorThresholds,
 } from '../types/context';
 import type { MaterialsRenderedPayload } from '../types/events';
+import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import { parseCSSTransformMatrix } from '../utils/transforms';
 import {
   type BackdropPixelData,
@@ -13,9 +15,14 @@ import {
   resolveThemeColorThresholds,
   sampleBackdropThemes,
 } from './backdrop-theme';
+import {
+  measureFullContentPresentation,
+  resolveContextLogicalDimension,
+} from './context-render-size';
 import { type ContextBackdropCapture, ContextBackdropComposite } from './ContextBackdropComposite';
 import { ContextCanvasPipeline } from './ContextCanvasPipeline';
 import type { DiagnosticsFrameMeasurement } from './ContextDiagnosticsController';
+import { ContextMaterialRenderController } from './ContextMaterialRenderController';
 import {
   type ContextRenderDiagnosticsState,
   readDiagnosticsTimestamp,
@@ -34,6 +41,8 @@ export interface ContextRenderCoordinatorCallbacks {
   getDeviceScale(): number;
   /** Read the current material registrations in context-owned order. */
   getMaterials(): Iterable<MaterialRegistration>;
+  /** Read the current context-level default presentation mode. */
+  getRenderMode(): RenderMode;
   /** Read the current automatic-theme threshold snapshot. */
   getThemeColorThresholds(): ThemeColorThresholds | undefined;
   /** Read the renderer after context construction has completed. */
@@ -77,6 +86,7 @@ export interface ContextRenderCoordinatorCallbacks {
 export class ContextRenderCoordinator {
   private readonly canvases: ContextCanvasPipeline;
   private readonly backdropComposite: ContextBackdropComposite;
+  private readonly materialRenderer: ContextMaterialRenderController;
   private backdropPixels: BackdropPixelData | null = null;
   private backdropTextureReady = false;
   private destroyed = false;
@@ -90,6 +100,7 @@ export class ContextRenderCoordinator {
     private readonly callbacks: ContextRenderCoordinatorCallbacks,
   ) {
     this.canvases = new ContextCanvasPipeline(runtime);
+    this.materialRenderer = new ContextMaterialRenderController(runtime);
     this.backdropComposite = new ContextBackdropComposite(
       this.canvases.compositeCanvas,
       this.canvases.presentationCanvas,
@@ -118,9 +129,24 @@ export class ContextRenderCoordinator {
     return {
       backdropTextureReady: this.backdropTextureReady,
       height: this.canvases.presentationCanvas.height,
-      ownedCanvases: this.destroyed ? 0 : 3,
+      ownedCanvases: this.destroyed
+        ? 0
+        : 5 + this.materialRenderer.getOwnedCanvasCount(),
       width: this.canvases.presentationCanvas.width,
     };
+  }
+
+  /** Synchronize fallback visibility across every dedicated canvas. */
+  public setFallbackMode(enabled: boolean): void {
+    this.materialRenderer.setFallbackMode(enabled);
+  }
+
+  /** Synchronize effective material modes without waiting for the next frame. */
+  public syncMaterialModes(): void {
+    this.materialRenderer.syncRegistrations(
+      [...this.callbacks.getMaterials()],
+      this.callbacks.getRenderMode(),
+    );
   }
 
   /** Render one frame, optionally reusing the last uploaded backdrop texture. */
@@ -137,12 +163,12 @@ export class ContextRenderCoordinator {
         || containerMatrix[1] !== 0
         || containerMatrix[2] !== 0
         || containerMatrix[3] !== 1;
-      const logicalWidth = this.resolveLogicalDimension(
+      const logicalWidth = resolveContextLogicalDimension(
         this.container.clientWidth,
         containerRect.width,
         hasLinearTransform,
       );
-      const logicalHeight = this.resolveLogicalDimension(
+      const logicalHeight = resolveContextLogicalDimension(
         this.container.clientHeight,
         containerRect.height,
         hasLinearTransform,
@@ -150,13 +176,21 @@ export class ContextRenderCoordinator {
       const fullContentPresentation = this.callbacks.isScrollable()
         && !this.callbacks.isViewportMode();
       const presentationSize = fullContentPresentation
-        ? this.measureFullContentSize(logicalWidth, logicalHeight)
+        ? measureFullContentPresentation(
+            this.content,
+            this.canvases.presentationCanvas,
+            logicalWidth,
+            logicalHeight,
+          )
         : { width: logicalWidth, height: logicalHeight };
       const presentationWidth = presentationSize.width;
       const presentationHeight = presentationSize.height;
       const contentOffset = fullContentPresentation
         ? { x: this.content.scrollLeft, y: this.content.scrollTop }
         : { x: 0, y: 0 };
+      const registrations = [...this.callbacks.getMaterials()];
+      const renderMode = this.callbacks.getRenderMode();
+      this.materialRenderer.syncRegistrations(registrations, renderMode);
       this.callbacks.onPresentationSize(
         presentationWidth,
         presentationHeight,
@@ -167,6 +201,8 @@ export class ContextRenderCoordinator {
           containerRect,
           presentationWidth,
           presentationHeight,
+          logicalWidth,
+          logicalHeight,
           refreshBackdrop,
           contentOffset,
         );
@@ -176,13 +212,45 @@ export class ContextRenderCoordinator {
 
       renderer.resize(presentationWidth, presentationHeight);
       this.canvases.resizePresentationToRenderer();
+      const materials = resolveRendererMaterials(
+        registrations,
+        this.container,
+        containerRect,
+        this.runtime,
+        contentOffset,
+      );
       if (this.sources.size === 0) {
         this.backdropPixels = null;
         this.backdropTextureReady = false;
-        renderer.clear();
-        this.canvases.presentRendererFrame();
-        this.emitRenderedFrame();
-        this.measureFrame(startedAt, 0, 0);
+        const frameResult = this.materialRenderer.render({
+          deviceScale: this.callbacks.getDeviceScale(),
+          excludeDedicated: (material, deviceScale) => {
+            this.canvases.excludeDedicatedMaterial(
+              material,
+              deviceScale,
+            );
+          },
+          hasBackdrop: false,
+          materials,
+          presentUniform: () => this.canvases.presentRendererFrame(),
+          registrations,
+          renderer,
+          renderMode,
+          source: this.canvases.rendererCanvas,
+        });
+        this.canvases.captureMaterialFrame();
+        this.emitRenderedFrame(
+          undefined,
+          false,
+          logicalWidth,
+          logicalHeight,
+          contentOffset,
+        );
+        this.measureFrame(
+          startedAt,
+          frameResult.drawCalls,
+          frameResult.glError,
+        );
         return;
       }
 
@@ -197,21 +265,40 @@ export class ContextRenderCoordinator {
         this.captureThemePixels();
         this.backdropTextureReady = true;
       }
-      const materials = resolveRendererMaterials(
-        this.callbacks.getMaterials(),
-        this.container,
-        containerRect,
-        this.runtime,
+      let themeColors:
+        | Readonly<Record<string, AutomaticBackgroundColorMode>>
+        | undefined;
+      const frameResult = this.materialRenderer.render({
+        beforePresentUniform: () => {
+          themeColors = this.sampleThemes(
+            materials,
+            presentationWidth,
+            presentationHeight,
+          );
+        },
+        deviceScale: this.callbacks.getDeviceScale(),
+        excludeDedicated: (material, deviceScale) => {
+          this.canvases.excludeDedicatedMaterial(
+            material,
+            deviceScale,
+          );
+        },
+        hasBackdrop: true,
+        materials,
+        presentUniform: () => this.canvases.presentRendererFrame(),
+        registrations,
+        renderer,
+        renderMode,
+        source: this.canvases.rendererCanvas,
+      });
+      this.canvases.captureMaterialFrame();
+      this.emitRenderedFrame(
+        themeColors,
+        true,
+        logicalWidth,
+        logicalHeight,
         contentOffset,
       );
-      const frameResult = renderer.render(materials);
-      const themeColors = this.sampleThemes(
-        materials,
-        presentationWidth,
-        presentationHeight,
-      );
-      this.canvases.presentRendererFrame();
-      this.emitRenderedFrame(themeColors);
       this.measureFrame(
         startedAt,
         frameResult.drawCalls,
@@ -236,7 +323,10 @@ export class ContextRenderCoordinator {
     this.destroyed = true;
     this.backdropPixels = null;
     this.backdropTextureReady = false;
-    this.canvases.destroy();
+    runTasksPreservingFirstFailure([
+      () => this.materialRenderer.destroy(),
+      () => this.canvases.destroy(),
+    ]);
   }
 
   private measureFrame(
@@ -259,13 +349,17 @@ export class ContextRenderCoordinator {
     containerRect: DOMRectReadOnly,
     logicalWidth: number,
     logicalHeight: number,
+    viewportWidth: number,
+    viewportHeight: number,
     refreshBackdrop: boolean,
     contentOffset: { x: number; y: number },
   ): void {
     const scale = this.callbacks.getDeviceScale();
     const width = Math.max(1, Math.round(Math.max(1, logicalWidth) * scale));
     const height = Math.max(1, Math.round(Math.max(1, logicalHeight) * scale));
-    const resized = this.canvases.resizePresentation(width, height);
+    const resized = this.canvases.presentationCanvas.width !== width
+      || this.canvases.presentationCanvas.height !== height;
+    this.canvases.resetMaterialFrames(width, height);
     if (this.sources.size > 0 && (refreshBackdrop || resized)) {
       // Preserve the independent scale read used by the original composite path.
       this.backdropComposite.draw(
@@ -274,60 +368,13 @@ export class ContextRenderCoordinator {
         contentOffset,
       );
     }
-    this.emitRenderedFrame();
-  }
-
-  private resolveLogicalDimension(
-    clientDimension: number,
-    boundingDimension: number,
-    useBoundingDimension: boolean,
-  ): number {
-    return !useBoundingDimension
-      && Number.isFinite(clientDimension)
-      && clientDimension >= 0
-      ? clientDimension
-      : boundingDimension;
-  }
-
-  private resolveContentDimension(
-    scrollDimension: number,
-    clientDimension: number,
-    fallback: number,
-  ): number {
-    const resolvedScroll = Number.isFinite(scrollDimension)
-      ? Math.max(0, scrollDimension)
-      : 0;
-    const resolvedClient = Number.isFinite(clientDimension)
-      ? Math.max(0, clientDimension)
-      : 0;
-    return Math.max(resolvedScroll, resolvedClient, fallback);
-  }
-
-  private measureFullContentSize(
-    fallbackWidth: number,
-    fallbackHeight: number,
-  ): { width: number; height: number } {
-    const canvas = this.canvases.presentationCanvas;
-    const display = canvas.style.display;
-    // The owned canvas participates in scroll overflow, so exclude its previous
-    // dimensions before measuring content that may have become smaller.
-    canvas.style.display = 'none';
-    try {
-      return {
-        width: this.resolveContentDimension(
-          this.content.scrollWidth,
-          this.content.clientWidth,
-          fallbackWidth,
-        ),
-        height: this.resolveContentDimension(
-          this.content.scrollHeight,
-          this.content.clientHeight,
-          fallbackHeight,
-        ),
-      };
-    } finally {
-      canvas.style.display = display;
-    }
+    this.emitRenderedFrame(
+      undefined,
+      this.sources.size > 0,
+      viewportWidth,
+      viewportHeight,
+      contentOffset,
+    );
   }
 
   private sampleThemes(
@@ -375,15 +422,29 @@ export class ContextRenderCoordinator {
 
   private emitRenderedFrame(
     themeColors?: Readonly<Record<string, AutomaticBackgroundColorMode>>,
+    hasBackdrop: boolean = false,
+    viewportWidth: number = this.canvases.presentationCanvas.width,
+    viewportHeight: number = this.canvases.presentationCanvas.height,
+    contentOffset: { x: number; y: number } = { x: 0, y: 0 },
   ): void {
-    const payload = { canvas: this.canvases.presentationCanvas };
+    const scale = this.callbacks.getDeviceScale();
+    const width = Math.max(1, Math.round(Math.max(1, viewportWidth) * scale));
+    const height = Math.max(1, Math.round(Math.max(1, viewportHeight) * scale));
+    const fullCanvas = this.canvases.composeFullFrame({
+      hasBackdrop,
+      height,
+      sourceX: contentOffset.x * scale,
+      sourceY: contentOffset.y * scale,
+      width,
+    });
+    const payload = { canvas: this.canvases.materialsCanvas };
     this.callbacks.onMaterialsRendered(themeColors === undefined
       ? payload
       : { ...payload, themeColors });
     this.callbacks.onFullCanvasRendered({
-      ...payload,
-      width: this.canvases.presentationCanvas.width,
-      height: this.canvases.presentationCanvas.height,
+      canvas: fullCanvas,
+      width,
+      height,
     });
   }
 }

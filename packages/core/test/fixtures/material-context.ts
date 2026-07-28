@@ -44,6 +44,10 @@ export class FakeMaterialElement {
     this.scrollWidth = rect.width;
   }
 
+  public get firstChild(): Node | null {
+    return (this.children[0] ?? null) as unknown as Node | null;
+  }
+
   public addEventListener(type: string, listener: EventListener): void {
     const listeners = this.listeners.get(type) ?? new Set<EventListener>();
     listeners.add(listener);
@@ -55,6 +59,16 @@ export class FakeMaterialElement {
     fakeCanvas.parentNode = this;
     this.children.push(fakeCanvas);
     return canvas;
+  }
+
+  public insertBefore<T extends Node>(node: T, child: Node | null): T {
+    const fakeCanvas = node as unknown as FakeCanvas;
+    const index = child === null
+      ? this.children.length
+      : this.children.indexOf(child as unknown as FakeCanvas);
+    fakeCanvas.parentNode = this;
+    this.children.splice(index < 0 ? this.children.length : index, 0, fakeCanvas);
+    return node;
   }
 
   public getAttribute(name: string): string | null {

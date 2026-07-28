@@ -50,6 +50,10 @@ export class FakeElement {
     this.scrollHeight = rect.height;
   }
 
+  public get firstChild(): Node | null {
+    return (this.children[0] ?? null) as unknown as Node | null;
+  }
+
   public getBoundingClientRect(): DOMRectReadOnly {
     return domRect(this.rect);
   }
@@ -85,6 +89,16 @@ export class FakeElement {
     fakeCanvas.parentNode = this;
     this.children.push(fakeCanvas);
     return canvas;
+  }
+
+  public insertBefore<T extends Node>(node: T, child: Node | null): T {
+    const fakeCanvas = node as unknown as FakeCanvas;
+    const index = child === null
+      ? this.children.length
+      : this.children.indexOf(child as unknown as FakeCanvas);
+    fakeCanvas.parentNode = this;
+    this.children.splice(index < 0 ? this.children.length : index, 0, fakeCanvas);
+    return node;
   }
 
   public removeChild(canvas: HTMLCanvasElement): HTMLCanvasElement {

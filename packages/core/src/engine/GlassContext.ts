@@ -102,6 +102,7 @@ export class GlassContextImpl implements GlassContext {
       {
         getDeviceScale: () => this.getDeviceScale(),
         getMaterials: () => this.materials.values(),
+        getRenderMode: () => this.optionsSnapshot.renderMode ?? 'uniform',
         getRenderer: () => this.renderer,
         getThemeColorThresholds: () => (
           this.optionsSnapshot.themeColorThresholds
@@ -222,6 +223,7 @@ export class GlassContextImpl implements GlassContext {
       this.fallback.setRendererUnavailable(renderer === null);
       this.renderer = renderer;
       this.presentation.setFallbackMode(this.fallbackMode);
+      this.renderCoordinator.setFallbackMode(this.fallbackMode);
       this.materials.setFallbackMode(this.fallbackMode);
       this.domCapture.setPaused(this.fallbackMode);
       this.content.appendChild(this.canvas);
@@ -326,6 +328,7 @@ export class GlassContextImpl implements GlassContext {
     this.renderer?.setRenderScale(nextPrecision);
     this.optionsSnapshot = nextSnapshot;
     this.precision = nextPrecision;
+    this.renderCoordinator.syncMaterialModes();
     const fallbackChanged = this.fallback.updateOptions(nextSnapshot);
     this.domCapture.markAllDirty();
     this.presentation.update(nextSnapshot);
@@ -428,6 +431,7 @@ export class GlassContextImpl implements GlassContext {
     if (!enabled && this.renderer) {
       this.renderCoordinator.renderFrame();
     }
+    this.renderCoordinator.setFallbackMode(enabled);
     this.presentation.setFallbackMode(enabled);
     this.domCapture.setPaused(enabled);
     this.materials.setFallbackMode(enabled);

@@ -38,6 +38,15 @@ describe('adapter material CSS contract', () => {
     expect(style).toContain('filter: var(--lg-highlight-filter);');
     expect(style).toContain('scale(var(--lg-highlight-scale))');
     expect(style).toContain('.liquid-glass-material > *');
+    expect(style).toContain(
+      '.liquid-glass-material > .liquid-glass-dedicated-canvas {',
+    );
+    expect(style).toMatch(
+      /\.liquid-glass-material > \.liquid-glass-dedicated-canvas\s*\{[^}]*width:\s*100%;[^}]*height:\s*100%;/u,
+    );
+    expect(style).toMatch(
+      /\.liquid-glass-material > \.liquid-glass-dedicated-canvas\s*\{[^}]*z-index:\s*-1;/u,
+    );
     expect(style).not.toContain(
       '.liquid-glass-material > .liquid-glass-content',
     );

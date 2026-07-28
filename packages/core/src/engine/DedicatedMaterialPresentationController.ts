@@ -1,6 +1,7 @@
 import { GlassError } from '../errors/GlassError';
 import { calculateMaterialScissor } from '../renderer/scissor';
 import type { RendererMaterial } from '../renderer/types';
+import { rethrowAfterRunningTasks } from '../utils/run-tasks';
 import type { GlassEngineRuntime } from './runtime';
 
 interface DedicatedCanvasEntry {
@@ -20,15 +21,15 @@ interface ClippedSourceRect {
   readonly sourceY: number;
 }
 
-/** Input required to copy one isolated WebGL material into its visible canvas. */
+/** Input required to copy one material region into its visible canvas. */
 export interface DedicatedMaterialPresentationInput {
   /** Device pixel ratio multiplied by the normalized render precision. */
   readonly deviceScale: number;
   /** DOM element that owns the dedicated presentation canvas. */
   readonly element: HTMLElement;
-  /** Fully resolved material used for the isolated WebGL pass. */
+  /** Fully resolved material used to calculate the extraction region. */
   readonly material: RendererMaterial;
-  /** WebGL canvas containing only the requested material's latest frame. */
+  /** WebGL canvas containing the complete ordered material frame. */
   readonly source: HTMLCanvasElement;
 }
 
@@ -109,8 +110,8 @@ function resolveClippedSourceRect(
 /**
  * Own per-material 2D presentation canvases while reusing one shared WebGL renderer.
  *
- * The renderer must provide a frame containing only the requested material. This
- * prevents overlapping materials from contaminating each other's dedicated canvas.
+ * The renderer provides one complete ordered frame so extraction matches the
+ * reference implementation's shared material buffer.
  */
 export class DedicatedMaterialPresentationController {
   private readonly entries = new Map<string, DedicatedCanvasEntry>();
@@ -120,7 +121,7 @@ export class DedicatedMaterialPresentationController {
   /** Create a dedicated-canvas owner around the injected browser runtime. */
   public constructor(private readonly runtime: GlassEngineRuntime) {}
 
-  /** Copy one isolated WebGL material frame into its core-owned visible canvas. */
+  /** Copy one material region into its core-owned visible canvas. */
   public present(input: DedicatedMaterialPresentationInput): void {
     this.assertUsable(input.material.id);
     const { deviceScale, element, material, source } = input;
@@ -136,6 +137,7 @@ export class DedicatedMaterialPresentationController {
       );
     }
 
+    const entryExisted = this.entries.has(material.id);
     const entry = this.getOrCreateEntry(material.id, element);
     try {
       const width = requirePresentationDimension(
@@ -172,12 +174,18 @@ export class DedicatedMaterialPresentationController {
         clipped.destinationHeight,
       );
     } catch (error) {
-      throw GlassError.fromUnknown(
+      const contextual = GlassError.fromUnknown(
         error,
         'RENDER_FAILED',
         'Failed to present a dedicated liquid-glass material.',
         { phase: 'render', materialId: material.id },
       );
+      if (!entryExisted) {
+        rethrowAfterRunningTasks(contextual, [
+          () => this.remove(material.id),
+        ]);
+      }
+      throw contextual;
     }
   }
 
@@ -216,6 +224,23 @@ export class DedicatedMaterialPresentationController {
         { phase: 'render', materialId },
       );
     }
+  }
+
+  /** Release canvases that no longer belong to an effective dedicated material. */
+  public retain(materialIds: ReadonlySet<string>): void {
+    if (this.destroyed) return;
+    let firstFailure: unknown;
+    let failed = false;
+    for (const materialId of [...this.entries.keys()]) {
+      if (materialIds.has(materialId)) continue;
+      try {
+        this.remove(materialId);
+      } catch (error) {
+        if (!failed) firstFailure = error;
+        failed = true;
+      }
+    }
+    if (failed) throw firstFailure;
   }
 
   /** Return a detached resource snapshot for context-level diagnostics. */
@@ -271,6 +296,15 @@ export class DedicatedMaterialPresentationController {
       canvas.className = 'liquid-glass-dedicated-canvas';
       canvas.setAttribute('aria-hidden', 'true');
       canvas.setAttribute('data-liquid-glass-canvas', 'dedicated');
+      canvas.style.position = 'absolute';
+      canvas.style.inset = '0';
+      canvas.style.zIndex = '-1';
+      canvas.style.display = 'block';
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      canvas.style.borderRadius = 'inherit';
+      canvas.style.pointerEvents = 'none';
+      canvas.style.transition = 'visibility 0.2s ease, opacity 0.2s ease';
       this.syncVisibility(canvas);
       element.insertBefore(canvas, element.firstChild);
       const context = canvas.getContext('2d');

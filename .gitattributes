@@ -1,6 +1,12 @@
 # Auto-detect line endings based on file type
 * text=auto
 
+# Content-addressed visual provenance must survive cross-platform checkouts.
+.gitattributes text eol=lf
+.node-version text eol=lf
+scripts/legacy/** text eol=lf
+tests/legacy-oracle/** text eol=lf
+
 # Shaders must use LF line endings (critical for WebGL compilation)
 *.vert text eol=lf
 *.frag text eol=lf

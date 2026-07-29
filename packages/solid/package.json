@@ -20,6 +20,8 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "browser": "./dist/index.js",
+      "node": "./dist/ssr.js",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
@@ -30,7 +32,9 @@
     "dist"
   ],
   "scripts": {
-    "build": "vite build",
+    "build": "pnpm run build:client && pnpm run build:ssr",
+    "build:client": "vite build",
+    "build:ssr": "vite build --mode ssr",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src test vite.config.ts vitest.config.ts",
     "test": "vitest run --config vitest.config.ts",

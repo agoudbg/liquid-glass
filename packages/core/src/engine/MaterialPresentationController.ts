@@ -1,4 +1,5 @@
 import { GlassError } from '../errors/GlassError';
+import type { RendererMaterial } from '../renderer';
 import type {
   AutomaticBackgroundColorMode,
   MaterialChanges,
@@ -7,9 +8,11 @@ import type {
   MaterialPresentationListener,
   MaterialPresentationState,
 } from '../types/context';
+import type { ProxyInterface } from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
 import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import type { MaterialPresentationDiagnosticsState } from './diagnostics-internal';
+import { ExternalMaterialController } from './ExternalMaterialController';
 import { prepareMaterialUpdate } from './material-config';
 import {
   restoreMaterialFallbackMode,
@@ -35,6 +38,8 @@ interface MaterialRuntimeState {
 export interface MaterialPresentationControllerCallbacks {
   /** Assert that the owning context still accepts work. */
   assertContextUsable(): void;
+  /** Report whether owning context teardown has started. */
+  isContextDestroyed(): boolean;
   /** Emit a material-added event. */
   onAdded(registration: MaterialRegistration): void;
   /** Emit a material-removed event. */
@@ -52,6 +57,7 @@ export class MaterialPresentationController {
   private readonly registrations = new Map<string, MaterialRuntimeState>();
   private readonly frames: MaterialFrameCoordinator;
   private readonly observers: MaterialObserverRegistry;
+  private readonly externalMaterials: ExternalMaterialController;
   private latestCommittedRevision = 0;
   private destroyed = false;
   private fallbackMode = false;
@@ -60,6 +66,7 @@ export class MaterialPresentationController {
   /** Create a material lifecycle controller for one glass context. */
   public constructor(
     container: HTMLElement,
+    content: HTMLElement,
     runtime: GlassEngineRuntime,
     private readonly callbacks: MaterialPresentationControllerCallbacks,
   ) {
@@ -75,6 +82,18 @@ export class MaterialPresentationController {
       },
       renderMaterials: () => this.callbacks.renderMaterials(),
     });
+    this.externalMaterials = new ExternalMaterialController(
+      container,
+      content,
+      {
+        assertContextUsable: () => this.callbacks.assertContextUsable(),
+        isContextDestroyed: () => (
+          this.destroyed || this.callbacks.isContextDestroyed()
+        ),
+        renderImmediately: () => this.renderImmediately(),
+        requestRender: () => this.requestRender(),
+      },
+    );
     this.observers = new MaterialObserverRegistry(
       container,
       runtime,
@@ -91,12 +110,33 @@ export class MaterialPresentationController {
     return [...this.registrations.values()].map(({ registration }) => registration);
   }
 
+  /** Return the stable target interface used by delegated material owners. */
+  public createProxyInterface(): ProxyInterface {
+    this.callbacks.assertContextUsable();
+    return this.externalMaterials.getProxyInterface();
+  }
+
+  /** Resolve target-side externally owned materials for one renderer frame. */
+  public resolveExternalMaterials(
+    containerRect: DOMRectReadOnly,
+    contentOffset: { x: number; y: number },
+  ): RendererMaterial[] {
+    return this.externalMaterials.resolveMaterials(
+      containerRect,
+      contentOffset,
+    );
+  }
+
   /** Return detached registration, scheduling, and observer diagnostics. */
   public getDiagnosticsState(): MaterialPresentationDiagnosticsState {
     const materials = [...this.registrations.values()];
+    const external = this.externalMaterials.getDiagnosticsState();
     return {
-      materials: materials.length,
-      materialsInViewport: materials.filter(({ inViewport }) => inViewport).length,
+      materials: materials.length + external.materials,
+      materialsInViewport: (
+        materials.filter(({ inViewport }) => inViewport).length
+        + external.materialsInViewport
+      ),
       pendingIdleTimers: materials.filter(
         ({ interaction }) => interaction.hasPendingTimer(),
       ).length,
@@ -178,17 +218,27 @@ export class MaterialPresentationController {
     this.publishAll(materials);
   }
 
-  /** Update one material's sampled theme without coupling adapters to the renderer. */
-  public setTheme(
+  /**
+   * Apply sampled theme state to a local material or publish it externally.
+   *
+   * @returns The changed local registration, or null for external/unchanged samples.
+   */
+  public applyThemeSample(
     materialId: string,
     themeColorMode: AutomaticBackgroundColorMode,
-  ): boolean {
+    averageLuminance: number,
+  ): MaterialRegistration | null {
     const materialRuntime = this.registrations.get(materialId);
-    if (!materialRuntime || !materialRuntime.interaction.setTheme(themeColorMode)) {
-      return false;
+    if (materialRuntime) {
+      if (!materialRuntime.interaction.setTheme(themeColorMode)) return null;
+      materialRuntime.interaction.publish();
+      return materialRuntime.registration;
     }
-    materialRuntime.interaction.publish();
-    return true;
+    this.externalMaterials.publishFeedback(materialId, {
+      themeColorMode,
+      averageLuminance,
+    });
+    return null;
   }
 
   /** Release all engines, listeners, timers, and the shared animation frame. */
@@ -202,6 +252,7 @@ export class MaterialPresentationController {
     }
     runTasksPreservingFirstFailure([
       () => this.observers.destroy(),
+      () => this.externalMaterials.destroy(),
       () => this.frames.destroy(),
       ...materials.flatMap((materialRuntime) => [
         () => materialRuntime.interaction.destroy(),

@@ -1,5 +1,5 @@
 import { GlassError, type GlassErrorContext } from '../errors/GlassError';
-import type { WebGLRenderer } from '../renderer';
+import type { RendererMaterial, WebGLRenderer } from '../renderer';
 import type {
   AutomaticBackgroundColorMode,
   CanvasRenderPayload,
@@ -41,6 +41,11 @@ export interface ContextRenderCoordinatorCallbacks {
   getDeviceScale(): number;
   /** Read the current material registrations in context-owned order. */
   getMaterials(): Iterable<MaterialRegistration>;
+  /** Resolve externally owned materials in target canvas coordinates. */
+  getExternalMaterials(
+    containerRect: DOMRectReadOnly,
+    contentOffset: { x: number; y: number },
+  ): RendererMaterial[];
   /** Read the current context-level default presentation mode. */
   getRenderMode(): RenderMode;
   /** Read the current automatic-theme threshold snapshot. */
@@ -212,13 +217,19 @@ export class ContextRenderCoordinator {
 
       renderer.resize(presentationWidth, presentationHeight);
       this.canvases.resizePresentationToRenderer();
-      const materials = resolveRendererMaterials(
-        registrations,
-        this.container,
-        containerRect,
-        this.runtime,
-        contentOffset,
-      );
+      const materials = [
+        ...resolveRendererMaterials(
+          registrations,
+          this.container,
+          containerRect,
+          this.runtime,
+          contentOffset,
+        ),
+        ...this.callbacks.getExternalMaterials(
+          containerRect,
+          contentOffset,
+        ),
+      ];
       if (this.sources.size === 0) {
         this.backdropPixels = null;
         this.backdropTextureReady = false;
@@ -378,7 +389,7 @@ export class ContextRenderCoordinator {
   }
 
   private sampleThemes(
-    materials: ReturnType<typeof resolveRendererMaterials>,
+    materials: readonly RendererMaterial[],
     logicalWidth: number,
     logicalHeight: number,
   ): Readonly<Record<string, AutomaticBackgroundColorMode>> | undefined {

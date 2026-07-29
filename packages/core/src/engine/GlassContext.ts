@@ -15,9 +15,7 @@ import type {
 import type { DiagnosticsSnapshot } from '../types/diagnostics';
 import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
-import {
-  rethrowAfterRunningTasks,
-} from '../utils/run-tasks';
+import { rethrowAfterRunningTasks } from '../utils/run-tasks';
 import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import { resolveContextContent } from './context-content';
 import { createDiagnosticsListenerError } from './context-diagnostics-error';
@@ -34,7 +32,6 @@ import { teardownContext } from './context-teardown';
 import { ContextDiagnosticsController } from './ContextDiagnosticsController';
 import { ContextEventController } from './ContextEventController';
 import { ContextRenderCoordinator } from './ContextRenderCoordinator';
-import { createContextProxyInterface } from './create-context-proxy';
 import {
   assertContextRendererOptions,
   createContextRenderer,
@@ -43,6 +40,7 @@ import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { FallbackController } from './FallbackController';
 import { cloneMaterialConfig } from './material-config';
 import { MaterialPresentationController } from './MaterialPresentationController';
+import { createMaterialThemeFeedbackPublisher } from './publish-material-theme-feedback';
 import type { BackdropRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -85,7 +83,7 @@ export class GlassContextImpl implements GlassContext {
    * @param onDestroyed - Engine callback used to forget this context.
    */
   public constructor(
-    private readonly container: HTMLElement,
+    container: HTMLElement,
     options: GlassContextOptions,
     private readonly runtime: GlassEngineRuntime,
     private readonly onDestroyed: () => void,
@@ -101,6 +99,9 @@ export class GlassContextImpl implements GlassContext {
       runtime,
       {
         getDeviceScale: () => this.getDeviceScale(),
+        getExternalMaterials: (containerRect, contentOffset) => (
+          this.materials.resolveExternalMaterials(containerRect, contentOffset)
+        ),
         getMaterials: () => this.materials.values(),
         getRenderMode: () => this.optionsSnapshot.renderMode ?? 'uniform',
         getRenderer: () => this.renderer,
@@ -129,18 +130,10 @@ export class GlassContextImpl implements GlassContext {
         onPresentationSize: (width, height) => (
           this.presentation.syncCanvasSize(width, height)
         ),
-        onThemeSampled: (
-          materialId,
-          themeColorMode,
-          averageLuminance,
-        ) => {
-          if (!this.materials.setTheme(materialId, themeColorMode)) return;
-          this.emitter.emit('materialFeedback', materialId, {
-            type: 'theme-changed',
-            themeColorMode,
-            averageLuminance,
-          });
-        },
+        onThemeSampled: createMaterialThemeFeedbackPublisher(
+          () => this.materials,
+          this.emitter,
+        ),
       },
     );
     this.canvas = this.renderCoordinator.presentationCanvas;
@@ -150,25 +143,31 @@ export class GlassContextImpl implements GlassContext {
       this.canvas,
       this.optionsSnapshot,
     );
-    this.materials = new MaterialPresentationController(container, runtime, {
-      assertContextUsable: () => this.assertUsable(),
-      onAdded: (registration) => this.emitter.emit(
-        'materialAdded',
-        registration.id,
-        cloneMaterialConfig(registration.config),
-      ),
-      onRemoved: (registration) => this.emitter.emit(
-        'materialRemoved',
-        registration.id,
-      ),
-      onUpdated: (registration, changes) => this.emitter.emit(
-        'materialUpdated',
-        registration.id,
-        changes,
-      ),
-      renderImmediately: () => this.renderCoordinator.renderFrame(false),
-      renderMaterials: () => this.renderCoordinator.renderFrame(false),
-    });
+    this.materials = new MaterialPresentationController(
+      container,
+      this.content,
+      runtime,
+      {
+        assertContextUsable: () => this.assertUsable(),
+        isContextDestroyed: () => this.destroyStarted,
+        onAdded: (registration) => this.emitter.emit(
+          'materialAdded',
+          registration.id,
+          cloneMaterialConfig(registration.config),
+        ),
+        onRemoved: (registration) => this.emitter.emit(
+          'materialRemoved',
+          registration.id,
+        ),
+        onUpdated: (registration, changes) => this.emitter.emit(
+          'materialUpdated',
+          registration.id,
+          changes,
+        ),
+        renderImmediately: () => this.renderCoordinator.renderFrame(false),
+        renderMaterials: () => this.renderCoordinator.renderFrame(false),
+      },
+    );
     this.domCapture = new DomBackdropCaptureController(
       container,
       this.sources,
@@ -343,10 +342,9 @@ export class GlassContextImpl implements GlassContext {
     this.refresh('structural');
   }
 
-  /** Create the delegation surface; external registration is deferred to P6. */
+  /** Return the stable target-side external material registration surface. */
   public createProxyInterface(): ProxyInterface {
-    this.assertUsable();
-    return createContextProxyInterface(this.container, () => this.destroyStarted);
+    return this.materials.createProxyInterface();
   }
 
   /** Force or release CSS fallback presentation. */

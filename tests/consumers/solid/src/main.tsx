@@ -1,4 +1,5 @@
 import '@agou/liquid-glass-solid/style.css';
+import './styles.css';
 
 import { render } from 'solid-js/web';
 

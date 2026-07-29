@@ -5,6 +5,12 @@ import { tmpdir } from 'node:os';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import {
+  launchPackedConsumerBrowser,
+  verifyPackedConsumerBrowserRuntime,
+  verifyPackedConsumerSsrImport,
+} from './packed-consumer-runtime.mjs';
+
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const keepTemporaryFiles = process.env.LIQUID_GLASS_KEEP_CONSUMER_TEMP === '1';
 const packageManagerPath = process.env.npm_execpath;
@@ -28,14 +34,17 @@ const consumers = [
   {
     adapter: '@agou/liquid-glass-vue',
     fixture: 'vue',
+    heading: 'Vue adapter package loaded',
   },
   {
     adapter: '@agou/liquid-glass-react',
     fixture: 'react',
+    heading: 'React adapter package loaded',
   },
   {
     adapter: '@agou/liquid-glass-solid',
     fixture: 'solid',
+    heading: 'Solid adapter package loaded',
   },
 ];
 
@@ -215,7 +224,7 @@ function toFileReference(fromDirectory, targetPath) {
   return `file:${relativePath}`;
 }
 
-async function verifyConsumer(temporaryRoot, consumer, tarballs) {
+async function verifyConsumer(browser, temporaryRoot, consumer, tarballs) {
   const fixtureDirectory = join(repositoryRoot, 'tests', 'consumers', consumer.fixture);
   const consumerDirectory = join(temporaryRoot, 'consumers', consumer.fixture);
   await cp(fixtureDirectory, consumerDirectory, { recursive: true });
@@ -256,6 +265,8 @@ async function verifyConsumer(temporaryRoot, consumer, tarballs) {
 
   await runPnpm(installArguments, consumerDirectory);
   await runPnpm(['run', 'build'], consumerDirectory);
+  await verifyPackedConsumerSsrImport(consumerDirectory, consumer);
+  await verifyPackedConsumerBrowserRuntime(browser, consumerDirectory, consumer);
   console.log(`Verified packed ${consumer.fixture} consumer.`);
 }
 
@@ -267,14 +278,19 @@ try {
   const tarballs = await packPackages(tarballDirectory);
 
   if (!packOnly) {
+    const browser = await launchPackedConsumerBrowser();
     const consumerErrors = [];
-    for (const consumer of consumers) {
-      try {
-        await verifyConsumer(temporaryRoot, consumer, tarballs);
-      } catch (error) {
-        consumerErrors.push(error);
-        console.error(`Packed ${consumer.fixture} consumer failed.`, error);
+    try {
+      for (const consumer of consumers) {
+        try {
+          await verifyConsumer(browser, temporaryRoot, consumer, tarballs);
+        } catch (error) {
+          consumerErrors.push(error);
+          console.error(`Packed ${consumer.fixture} consumer failed.`, error);
+        }
       }
+    } finally {
+      await browser.close();
     }
 
     if (consumerErrors.length > 0) {

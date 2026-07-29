@@ -1,4 +1,5 @@
 import '@agou/liquid-glass-vue/style.css';
+import './styles.css';
 
 import { createApp } from 'vue';
 

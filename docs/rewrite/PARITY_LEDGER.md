@@ -140,8 +140,8 @@ screenshots are committed beside `tests/browser/workbench-visual.spec.ts`.
 | S010 External proxy material | CMP-013 | `composition-scenes.spec.ts` proves delegated rendering, update, resize, retirement, and remount through every adapter; `workbench-visual.spec.ts` proves responsive layout |
 | S011 Theme feedback | OPT-011, VUE-006 | `composition-scenes.spec.ts` proves all four feedback modes through every adapter; `workbench-visual.spec.ts` proves responsive layout |
 | S012 Lifecycle stress | CMP-015 through CMP-019 | `composition-scenes.spec.ts` proves context loss/restoration, 20 mode switches, 20 remounts, resource retirement, and diagnostics; `workbench-visual.spec.ts` provides mobile evidence |
-| S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending P8 packed-consumer and SSR gates |
-| S014 Packed React/Solid consumers | PKG-003 through PKG-005 | Pending P8 packed-consumer and SSR gates |
+| S013 SSR imports | CMP-018, PKG-001, PKG-003 through PKG-005 | `test-packed-consumers.mjs` cold-imports every installed tarball entry point in Node without browser globals; the Solid package selects its dedicated `node` build |
+| S014 Packed consumers | PKG-001, PKG-003 through PKG-005, PKG-013, VUE-001 through VUE-014 | `test-packed-consumers.mjs` inspects all four tarballs, then installs, typechecks, builds, previews, and proves non-empty glass in isolated Vue, React, and Solid consumers |
 
 Every implementation phase must update this ledger when evidence changes. A
 green unit test does not close a visual row, and a non-empty canvas does not

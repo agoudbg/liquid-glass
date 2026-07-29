@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  createProxyMaterial,
+  getCompositionBackdropDraw,
+  isCompositionScene,
+  resolveCompositionMaterials,
+} from '../src/shared/composition-scenes';
+import {
   getBackdropDraw,
   isDomCaptureScene,
   isDomCaptureState,
@@ -79,7 +85,72 @@ describe('playground scene model', () => {
         captureKind: 'canvas',
         fallbackByDefault: true,
       }),
+      expect.objectContaining({
+        id: 'S008',
+        title: 'Dedicated clipping',
+        materialCount: 2,
+        renderModeByDefault: 'dedicated',
+      }),
+      expect.objectContaining({
+        id: 'S009',
+        title: 'Nested composition',
+        materialCount: 2,
+      }),
+      expect.objectContaining({
+        id: 'S010',
+        title: 'Proxy delegation',
+        materialCount: 1,
+      }),
+      expect.objectContaining({
+        id: 'S011',
+        title: 'Theme feedback',
+        materialCount: 4,
+      }),
+      expect.objectContaining({
+        id: 'S012',
+        title: 'Lifecycle stress',
+        materialCount: 1,
+      }),
     ]);
+  });
+
+  it('defines the advanced Composition fixtures through shared scene data', () => {
+    expect(SCENE_IDS.filter(isCompositionScene)).toEqual([
+      'S008',
+      'S009',
+      'S010',
+      'S011',
+      'S012',
+    ]);
+    expect(resolveCompositionMaterials('S008').map(({ id }) => id)).toEqual([
+      'dedicated-wide',
+      'dedicated-compact',
+    ]);
+    expect(resolveCompositionMaterials('S009').map(({ id }) => id)).toEqual([
+      'nested-parent',
+      'nested-child',
+    ]);
+    expect(resolveCompositionMaterials('S011').map(({ id }) => id)).toEqual([
+      'theme-ultra-dark',
+      'theme-dark',
+      'theme-light',
+      'theme-ultra-light',
+    ]);
+    expect(resolveCompositionMaterials('S012').map(({ id }) => id))
+      .toEqual(['lifecycle']);
+    expect(getCompositionBackdropDraw('S008'))
+      .toBe(getCompositionBackdropDraw('S010'));
+    expect(getCompositionBackdropDraw('S011'))
+      .not.toBe(getCompositionBackdropDraw('S008'));
+
+    const target = {
+      getContainerRect: () => null,
+      getScrollPosition: () => ({ x: 0, y: 0 }),
+      registerExternalMaterial: () => {
+        throw new Error('Registration is not exercised by scene-model tests.');
+      },
+    };
+    expect(createProxyMaterial(target).options.proxyTarget).toBe(target);
   });
 
   it('derives capture policies from catalog definitions', () => {

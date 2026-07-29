@@ -16,6 +16,7 @@ describe('workbench tabs', () => {
     expect(resolveWorkbenchTab('S005')).toBe('composition');
     expect(resolveWorkbenchTab('S006')).toBe('composition');
     expect(resolveWorkbenchTab('S007')).toBe('composition');
+    expect(resolveWorkbenchTab('S012')).toBe('composition');
     expect(resolveWorkbenchTab('S099')).toBe('composition');
   });
 
@@ -27,7 +28,7 @@ describe('workbench tabs', () => {
     ]);
     expect(getWorkbenchTabDefaultScene('lab')).toBe('S001');
     expect(getWorkbenchTabDefaultScene('materials')).toBe('S002');
-    expect(getWorkbenchTabDefaultScene('composition')).toBe('S003');
+    expect(getWorkbenchTabDefaultScene('composition')).toBe('S008');
     expect(isWorkbenchTab('lab')).toBe(true);
     expect(isWorkbenchTab('unknown')).toBe(false);
   });

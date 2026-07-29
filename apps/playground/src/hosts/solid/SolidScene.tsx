@@ -10,6 +10,10 @@ import {
 import { For, Index, Show } from 'solid-js';
 
 import {
+  type CompositionSceneId,
+  isCompositionScene,
+} from '../../shared/composition-scenes';
+import {
   getBackdropDraw,
   isDomCaptureState,
   isEditorialDomCaptureState,
@@ -25,6 +29,7 @@ import { resolveSceneMaterials } from '../../shared/scene-materials';
 import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import { InteractionFixtureControl } from './InteractionFixtureControl';
+import { SolidCompositionScene } from './SolidCompositionScene';
 
 interface SolidSceneMaterialsProps {
   materials: readonly SceneMaterial[];
@@ -104,8 +109,22 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
     void converterHandle?.refresh();
   };
   const domContent = () => resolveDomCaptureContent(props.state.domVariant);
+  const compositionScene = (): CompositionSceneId | undefined => (
+    isCompositionScene(props.state.scene) ? props.state.scene : undefined
+  );
 
   return (
+    <>
+      <Show when={compositionScene()}>
+        {(scene) => (
+          <SolidCompositionScene
+            callbacks={props.callbacks}
+            scene={scene()}
+            state={props.state}
+          />
+        )}
+      </Show>
+      <Show when={!isCompositionScene(props.state.scene)}>
     <LiquidGlass
       class={[
         'glass-context',
@@ -256,5 +275,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
         />
       </Show>
     </LiquidGlass>
+      </Show>
+    </>
   );
 }

@@ -166,6 +166,8 @@ export interface BackdropCaptureReport {
 export interface FrameworkHostCallbacks {
   /** Attach diagnostics after an adapter creates its core context. */
   onContextReady(context: GlassContext): void;
+  /** Track an additional nested or proxy-source context in Composition scenes. */
+  onAuxiliaryContextReady?(context: GlassContext): void;
   /** Publish or clear the active framework converter refresh command. */
   onBackdropRefreshReady(refresh: (() => void) | null): void;
   /** Surface adapter context-creation failures. */

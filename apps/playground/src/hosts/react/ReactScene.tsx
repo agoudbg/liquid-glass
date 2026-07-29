@@ -9,6 +9,7 @@ import {
 } from '@agou/liquid-glass-react';
 import { useEffect, useRef } from 'react';
 
+import { isCompositionScene } from '../../shared/composition-scenes';
 import {
   getBackdropDraw,
   isDomCaptureState,
@@ -24,6 +25,7 @@ import { resolveSceneMaterials } from '../../shared/scene-materials';
 import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import { InteractionFixtureControl } from './InteractionFixtureControl';
+import { ReactCompositionScene } from './ReactCompositionScene';
 
 /** Render the canonical scene through the React public adapter. */
 export function ReactScene({
@@ -85,6 +87,16 @@ export function ReactScene({
     callbacks.onBackdropRefreshReady(() => converterRef.current?.refresh());
     return () => callbacks.onBackdropRefreshReady(null);
   }, [callbacks, domScene]);
+
+  if (isCompositionScene(state.scene)) {
+    return (
+      <ReactCompositionScene
+        callbacks={callbacks}
+        scene={state.scene}
+        state={state}
+      />
+    );
+  }
 
   return (
     <LiquidGlass

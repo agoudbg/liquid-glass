@@ -25,8 +25,11 @@ function require2DContext(
   canvas: HTMLCanvasElement,
   message: string,
   backdropId?: string,
+  willReadFrequently = false,
 ): CanvasRenderingContext2D {
-  const context = canvas.getContext('2d');
+  const context = willReadFrequently
+    ? canvas.getContext('2d', { willReadFrequently: true })
+    : canvas.getContext('2d');
   if (!context) {
     throw new GlassError(
       'CAPTURE_FAILED',
@@ -102,6 +105,8 @@ export function drawBackdropComposite(
   const compositeContext = require2DContext(
     compositeCanvas,
     'Unable to allocate the custom-backdrop composite context.',
+    undefined,
+    true,
   );
   compositeContext.clearRect(0, 0, presentationWidth, presentationHeight);
 

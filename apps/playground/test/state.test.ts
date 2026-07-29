@@ -22,6 +22,21 @@ describe('playground URL state', () => {
       .toBe('dedicated');
   });
 
+  it('enters the dedicated scene in dedicated mode with an explicit URL override', () => {
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S008',
+    ))).toMatchObject({
+      renderMode: 'dedicated',
+      scene: 'S008',
+    });
+    expect(createInitialState(new URL(
+      'https://example.test/?scene=S008&mode=uniform',
+    ))).toMatchObject({
+      renderMode: 'uniform',
+      scene: 'S008',
+    });
+  });
+
   it('parses and clamps the global render precision', () => {
     expect(createInitialState(new URL(
       'https://example.test/?scene=S004&precision=1.65',

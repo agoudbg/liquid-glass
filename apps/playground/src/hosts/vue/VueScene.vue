@@ -19,10 +19,12 @@ import {
   SCROLL_BANDS,
   shouldRenderMaterialsBeforeBackdrop,
 } from '../../shared/scene-backdrops';
+import { isCompositionScene } from '../../shared/composition-scenes';
 import { resolveSceneMaterials } from '../../shared/scene-materials';
 import { resolveSceneRenderPrecision } from '../../shared/scene-render-options';
 import type { FrameworkHostProps } from '../../shared/types';
 import VueSceneMaterials from './VueSceneMaterials.vue';
+import VueCompositionScene from './VueCompositionScene.vue';
 
 const props = defineProps<FrameworkHostProps>();
 const contextOptions = computed<GlassContextOptions>(() => ({
@@ -47,6 +49,7 @@ const backdropDraw = computed(() => getBackdropDraw(
   props.state.oracleMode,
 ));
 const backdropConverter = useTemplateRef<LgBackdropConverterExposed>('backdropConverter');
+const compositionScene = computed(() => isCompositionScene(props.state.scene));
 
 watchEffect((onCleanup) => {
   if (!domScene.value || !backdropConverter.value) {
@@ -71,7 +74,13 @@ function handleBackdropRefresh(): void {
 </script>
 
 <template>
+  <VueCompositionScene
+    v-if="compositionScene"
+    :callbacks="callbacks"
+    :state="state"
+  />
   <LiquidGlass
+    v-else
     class="glass-context"
     :class="{
       'is-test-mode': state.testMode,

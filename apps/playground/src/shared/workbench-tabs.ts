@@ -7,7 +7,7 @@ export type WorkbenchTab = 'materials' | 'lab' | 'composition';
 export const WORKBENCH_TABS = [
   { id: 'materials', label: 'Materials', defaultScene: 'S002' },
   { id: 'lab', label: 'Lab', defaultScene: 'S001' },
-  { id: 'composition', label: 'Composition', defaultScene: 'S003' },
+  { id: 'composition', label: 'Composition', defaultScene: 'S008' },
 ] as const satisfies readonly {
   id: WorkbenchTab;
   label: string;

@@ -6,6 +6,7 @@ import './styles/diagnostics.css';
 import './styles/scroll-scenes.css';
 import './styles/interaction-scenes.css';
 import './styles/interaction-policy-fixture.css';
+import './styles/composition-scenes.css';
 import './styles/scene-controls.css';
 import './styles/workbench-tabs.css';
 import './styles/lab-controls.css';

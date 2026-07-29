@@ -7,6 +7,11 @@ export const SCENE_IDS = [
   'S005',
   'S006',
   'S007',
+  'S008',
+  'S009',
+  'S010',
+  'S011',
+  'S012',
 ] as const;
 
 /** Canonical visible scene identifier. */
@@ -47,6 +52,8 @@ export interface SceneDefinition {
   readonly viewportByDefault: boolean;
   /** Whether deterministic legacy oracle geometry is available. */
   readonly supportsOracle: boolean;
+  /** Rendering strategy selected when entering the scene. */
+  readonly renderModeByDefault: 'dedicated' | 'uniform';
   /** Optional initial optical values inherited from the legacy scene. */
   readonly opticalDefaults?: SceneOpticalDefaults;
 }
@@ -62,6 +69,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
   },
   S002: {
     id: 'S002',
@@ -73,6 +81,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
   },
   S003: {
     id: 'S003',
@@ -84,6 +93,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
   },
   S004: {
     id: 'S004',
@@ -95,6 +105,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
     opticalDefaults: {
       radius: 28,
       thickness: 30,
@@ -112,6 +123,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
   },
   S006: {
     id: 'S006',
@@ -123,6 +135,7 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: true,
     viewportByDefault: true,
     supportsOracle: true,
+    renderModeByDefault: 'uniform',
   },
   S007: {
     id: 'S007',
@@ -134,6 +147,67 @@ const SCENE_DEFINITIONS_BY_ID = {
     scrollableByDefault: false,
     viewportByDefault: false,
     supportsOracle: false,
+    renderModeByDefault: 'uniform',
+  },
+  S008: {
+    id: 'S008',
+    title: 'Dedicated clipping',
+    materialCount: 2,
+    captureKind: 'canvas',
+    stageSource: '08 / DEDICATED CLIPS',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: false,
+    renderModeByDefault: 'dedicated',
+  },
+  S009: {
+    id: 'S009',
+    title: 'Nested composition',
+    materialCount: 2,
+    captureKind: 'canvas',
+    stageSource: '09 / NESTED FULL CANVAS',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: false,
+    renderModeByDefault: 'uniform',
+  },
+  S010: {
+    id: 'S010',
+    title: 'Proxy delegation',
+    materialCount: 1,
+    captureKind: 'canvas',
+    stageSource: '10 / EXTERNAL MATERIAL',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: false,
+    renderModeByDefault: 'uniform',
+  },
+  S011: {
+    id: 'S011',
+    title: 'Theme feedback',
+    materialCount: 4,
+    captureKind: 'canvas',
+    stageSource: '11 / LUMA SAMPLING',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: false,
+    renderModeByDefault: 'uniform',
+  },
+  S012: {
+    id: 'S012',
+    title: 'Lifecycle stress',
+    materialCount: 1,
+    captureKind: 'canvas',
+    stageSource: '12 / RESOURCE AUDIT',
+    fallbackByDefault: false,
+    scrollableByDefault: false,
+    viewportByDefault: false,
+    supportsOracle: false,
+    renderModeByDefault: 'uniform',
   },
 } satisfies Readonly<Record<SceneId, SceneDefinition>>;
 

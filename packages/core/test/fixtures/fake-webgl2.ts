@@ -322,6 +322,9 @@ export class FakeCanvas2DContext {
 export class FakeCanvas {
   readonly gl = new FakeWebGL2Context();
   readonly context2d = new FakeCanvas2DContext();
+  readonly context2dSettings: Array<
+    CanvasRenderingContext2DSettings | undefined
+  > = [];
   readonly dataset: Record<string, string> = {};
   readonly style: Record<string, string> = {};
   className = '';
@@ -363,11 +366,15 @@ export class FakeCanvas {
     this.gl.drawingBufferHeight = value;
   }
 
-  getContext(contextId: string): WebGL2RenderingContext | FakeCanvas2DContext | null {
+  getContext(
+    contextId: string,
+    settings?: CanvasRenderingContext2DSettings,
+  ): WebGL2RenderingContext | FakeCanvas2DContext | null {
     if (contextId === 'webgl2') {
       return this.gl as unknown as WebGL2RenderingContext;
     }
     if (contextId === '2d') {
+      this.context2dSettings.push(settings ? { ...settings } : undefined);
       return this.context2d;
     }
     return null;

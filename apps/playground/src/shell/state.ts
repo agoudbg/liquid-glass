@@ -65,7 +65,9 @@ export function createInitialState(url: URL): PlaygroundState {
     ...defaults,
     framework: isFrameworkId(framework) ? framework : defaults.framework,
     scene,
-    renderMode: mode === 'dedicated' ? 'dedicated' : 'uniform',
+    renderMode: mode === 'dedicated' || mode === 'uniform'
+      ? mode
+      : sceneDefinition.renderModeByDefault,
     renderPrecision: parseRenderPrecision(url.searchParams.get('precision')),
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on'
@@ -108,6 +110,7 @@ export function transitionPlaygroundScene(
     domVariant: 'source',
     fallbackEnabled: definition.fallbackByDefault,
     oracleMode: current.oracleMode && definition.supportsOracle,
+    renderMode: definition.renderModeByDefault,
     scene,
     scrollable: definition.scrollableByDefault,
     viewportEnabled: definition.viewportByDefault,

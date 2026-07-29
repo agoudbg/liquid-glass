@@ -40,7 +40,7 @@ import { DomBackdropCaptureController } from './DomBackdropCaptureController';
 import { FallbackController } from './FallbackController';
 import { cloneMaterialConfig } from './material-config';
 import { MaterialPresentationController } from './MaterialPresentationController';
-import { createMaterialThemeFeedbackPublisher } from './publish-material-theme-feedback';
+import { createDelegatedMaterialFeedbackPublisher, createMaterialThemeFeedbackPublisher } from './publish-material-theme-feedback';
 import type { BackdropRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
@@ -164,6 +164,8 @@ export class GlassContextImpl implements GlassContext {
           registration.id,
           changes,
         ),
+        onError: (error) => this.emitError(error.toContext()),
+        onFeedback: createDelegatedMaterialFeedbackPublisher(this.emitter),
         renderImmediately: () => this.renderCoordinator.renderFrame(false),
         renderMaterials: () => this.renderCoordinator.renderFrame(false),
       },

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   cloneMaterialConfig,
@@ -107,6 +107,13 @@ describe('material config boundary', () => {
     expect(() => snapshotMaterialConfig(config({
       renderMode: 'other' as MaterialConfig['renderMode'],
     }))).toThrow(GlassError);
+    const proxyTarget = {
+      getContainerRect: () => null,
+      getScrollPosition: () => ({ x: 0, y: 0 }),
+      registerExternalMaterial: vi.fn(),
+    };
+    expect(snapshotMaterialConfig(config({ proxyTarget })).proxyTarget)
+      .toBe(proxyTarget);
     expect(() => snapshotMaterialConfig(config({
       proxyTarget: {} as MaterialConfig['proxyTarget'],
     }))).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));

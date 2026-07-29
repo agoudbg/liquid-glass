@@ -4,6 +4,7 @@ import type {
   MaterialConfig,
   RenderMode,
 } from '../types/context';
+import type { ProxyTargetInterface } from '../types/external-material';
 import type { InteractionPreset } from '../types/interaction';
 import type { NumberValidationOptions } from '../utils/validation';
 import { validateFiniteNumber } from '../utils/validation';
@@ -220,14 +221,22 @@ function copyProxyTarget(
     if (retainUndefined) target.proxyTarget = undefined;
     return;
   }
-  throw new GlassError(
-    'INVALID_CONFIG',
-    'External material delegation is introduced in rewrite phase P6.',
-    {
-      phase: 'configuration',
-      details: { proxyTarget: value },
-    },
-  );
+  const candidate = requireRecord(value, 'material.proxyTarget');
+  const methods = [
+    'getContainerRect',
+    'getScrollPosition',
+    'registerExternalMaterial',
+  ] as const;
+  for (const method of methods) {
+    if (typeof candidate[method] !== 'function') {
+      invalidMaterial(
+        'material.proxyTarget',
+        value,
+        `expected an object with ${method}()`,
+      );
+    }
+  }
+  target.proxyTarget = value as ProxyTargetInterface;
 }
 
 function snapshotOptions(

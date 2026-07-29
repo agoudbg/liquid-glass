@@ -155,6 +155,11 @@ export class ContextDiagnosticsController {
           pendingUpdates: material.frames.pendingUpdates,
           renderRequested: material.frames.renderRequested,
         },
+        delegation: {
+          pendingFrame: material.delegation.frames.pendingAnimationFrame,
+          pendingTimer: material.delegation.frames.pendingTimer,
+          activeMaterials: material.delegation.activeMaterials,
+        },
       },
       resources: {
         ownedCanvases: render.ownedCanvases + this.readOwnedBackdropCanvases(),
@@ -173,8 +178,10 @@ export class ContextDiagnosticsController {
           + material.resources.intersectionObservers,
         pendingAnimationFrames: Number(contextEvents.pendingFrame)
           + Number(capture.pendingFrame)
-          + Number(material.frames.pendingAnimationFrame),
+          + Number(material.frames.pendingAnimationFrame)
+          + Number(material.delegation.frames.pendingAnimationFrame),
         pendingTimers: Number(material.frames.pendingTimer)
+          + Number(material.delegation.frames.pendingTimer)
           + material.pendingIdleTimers,
         activeCaptureTasks: capture.activeTasks,
         webgl: renderer ? { ...renderer.resources } : { ...EMPTY_WEBGL_RESOURCES },

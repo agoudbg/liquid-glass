@@ -1,6 +1,7 @@
 import type { TypedEventEmitter } from '../events/TypedEventEmitter';
 import type { AutomaticBackgroundColorMode } from '../types/context';
 import type { GlassEventMap } from '../types/events';
+import type { ExternalMaterialFeedback } from '../types/external-material';
 import type { MaterialPresentationController } from './MaterialPresentationController';
 
 /**
@@ -26,6 +27,18 @@ export function createMaterialThemeFeedbackPublisher(
       type: 'theme-changed',
       themeColorMode,
       averageLuminance,
+    });
+  };
+}
+
+/** Create the event adapter used when a target context samples a source material. */
+export function createDelegatedMaterialFeedbackPublisher(
+  emitter: TypedEventEmitter<GlassEventMap>,
+): (materialId: string, feedback: ExternalMaterialFeedback) => void {
+  return (materialId, feedback) => {
+    emitter.emit('materialFeedback', materialId, {
+      type: 'theme-changed',
+      ...feedback,
     });
   };
 }

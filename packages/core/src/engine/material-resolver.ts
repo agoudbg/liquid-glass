@@ -1,61 +1,12 @@
 import type { RendererMaterial } from '../renderer';
-import type { CornerRadii } from '../types/common';
 import type { MaterialConfig } from '../types/context';
-import {
-  normalizeCornerRadii,
-  parseComputedCornerRadii,
-  toShaderCornerRadii,
-} from '../utils/radius';
+import { toShaderCornerRadii } from '../utils/radius';
 import { parseCSSTransformMatrix } from '../utils/transforms';
-import { validateOptionalFiniteNumber } from '../utils/validation';
+import { resolveMaterialGlassValues } from './material-glass-values';
 import { orderMaterialRegistrations } from './material-order';
 import { resolveMaterialVisibility } from './material-visibility';
 import type { MaterialRegistration } from './registrations';
 import type { GlassEngineRuntime } from './runtime';
-
-function optionalNumber(
-  value: number | undefined,
-  field: string,
-  fallback: number,
-  minimum: number = 0,
-): number {
-  return validateOptionalFiniteNumber(value, field, { minimum }) ?? fallback;
-}
-
-function resolveRadii(
-  config: MaterialConfig,
-  style: CSSStyleDeclaration,
-  width: number,
-  height: number,
-): CornerRadii {
-  const computed = parseComputedCornerRadii(style, width, height);
-  const base = config.radius === undefined
-    ? undefined
-    : optionalNumber(config.radius, 'material.radius', 0);
-
-  return normalizeCornerRadii({
-    topLeft: optionalNumber(
-      config.radiusTL,
-      'material.radiusTL',
-      base ?? computed.topLeft,
-    ),
-    topRight: optionalNumber(
-      config.radiusTR,
-      'material.radiusTR',
-      base ?? computed.topRight,
-    ),
-    bottomRight: optionalNumber(
-      config.radiusBR,
-      'material.radiusBR',
-      base ?? computed.bottomRight,
-    ),
-    bottomLeft: optionalNumber(
-      config.radiusBL,
-      'material.radiusBL',
-      base ?? computed.bottomLeft,
-    ),
-  }, width, height);
-}
 
 /**
  * Measure and resolve a public material registration for the WebGL renderer.
@@ -93,7 +44,12 @@ export function resolveRendererMaterial(
     ? config.element.offsetHeight
     : rect.height;
   const parsedMatrix = parseCSSTransformMatrix(style.transform);
-  const radii = resolveRadii(config, style, logicalWidth, logicalHeight);
+  const glass = resolveMaterialGlassValues(
+    config,
+    style,
+    logicalWidth,
+    logicalHeight,
+  );
 
   return {
     id,
@@ -122,22 +78,13 @@ export function resolveRendererMaterial(
       0,
       0,
     ],
-    radii: toShaderCornerRadii(radii),
+    radii: toShaderCornerRadii(glass.borderRadius),
     opacity,
-    thickness: optionalNumber(config.thickness, 'material.thickness', 10),
-    refractIndex: optionalNumber(
-      config.refractIndex,
-      'material.refractIndex',
-      1.1,
-      Number.EPSILON,
-    ),
-    refractIntensity: optionalNumber(
-      config.refractIntensity,
-      'material.refractIntensity',
-      0.5,
-    ),
-    blur: optionalNumber(config.blur, 'material.blur', 0),
-    dispersion: optionalNumber(config.dispersion, 'material.dispersion', 0.01),
+    thickness: glass.thickness,
+    refractIndex: glass.refractIndex,
+    refractIntensity: glass.refractIntensity,
+    blur: glass.blur,
+    dispersion: glass.dispersion,
   };
 }
 

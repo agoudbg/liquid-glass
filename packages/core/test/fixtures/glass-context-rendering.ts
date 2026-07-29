@@ -28,7 +28,7 @@ export class FakeElement {
   private scrollSize: Pick<RectLike, 'height' | 'width'>;
 
   public constructor(
-    private readonly rect: RectLike,
+    private rect: RectLike,
     clientSize: Pick<RectLike, 'height' | 'width'> = rect,
     scrollSize: Pick<RectLike, 'height' | 'width'> = rect,
   ) {
@@ -101,6 +101,10 @@ export class FakeElement {
     this.scrollSize = size;
   }
 
+  public setClientRect(rect: RectLike): void {
+    this.rect = rect;
+  }
+
   private resolveVisibleCanvasDimension(
     dimension: 'height' | 'width',
   ): number {
@@ -171,6 +175,10 @@ export function createRuntimeHarness(
     },
     devicePixelRatio: () => devicePixelRatio,
     getComputedStyle: () => ({
+      borderBottomLeftRadius: '0px',
+      borderBottomRightRadius: '0px',
+      borderTopLeftRadius: '0px',
+      borderTopRightRadius: '0px',
       display: 'block',
       opacity: '1',
       transform: containerTransform,

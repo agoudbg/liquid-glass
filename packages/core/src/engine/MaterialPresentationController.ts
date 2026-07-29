@@ -8,9 +8,15 @@ import type {
   MaterialPresentationListener,
   MaterialPresentationState,
 } from '../types/context';
-import type { ProxyInterface } from '../types/external-material';
+import type {
+  ExternalMaterialFeedback,
+  ProxyInterface,
+} from '../types/external-material';
 import type { InteractionState } from '../types/interaction';
-import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
 import type { MaterialPresentationDiagnosticsState } from './diagnostics-internal';
 import { ExternalMaterialController } from './ExternalMaterialController';
 import { prepareMaterialUpdate } from './material-config';
@@ -18,6 +24,7 @@ import {
   restoreMaterialFallbackMode,
   setMaterialFallbackMode,
 } from './material-fallback';
+import { MaterialDelegationController } from './MaterialDelegationController';
 import { MaterialFrameCoordinator } from './MaterialFrameCoordinator';
 import { MaterialInteractionRuntime } from './MaterialInteractionRuntime';
 import { MaterialObserverRegistry } from './MaterialObserverRegistry';
@@ -46,6 +53,10 @@ export interface MaterialPresentationControllerCallbacks {
   onRemoved(registration: MaterialRegistration): void;
   /** Emit a material-updated event. */
   onUpdated(registration: MaterialRegistration, changes: MaterialChanges): void;
+  /** Emit target-derived theme feedback for a source material. */
+  onFeedback(materialId: string, feedback: ExternalMaterialFeedback): void;
+  /** Surface an asynchronous outgoing-delegation failure. */
+  onError(error: GlassError): void;
   /** Draw materials immediately for structural lifecycle changes. */
   renderImmediately(): void;
   /** Draw one coalesced material-only frame. */
@@ -58,6 +69,7 @@ export class MaterialPresentationController {
   private readonly frames: MaterialFrameCoordinator;
   private readonly observers: MaterialObserverRegistry;
   private readonly externalMaterials: ExternalMaterialController;
+  private readonly delegations: MaterialDelegationController;
   private latestCommittedRevision = 0;
   private destroyed = false;
   private fallbackMode = false;
@@ -81,6 +93,13 @@ export class MaterialPresentationController {
         this.callbacks.onUpdated(materialRuntime.registration, changes);
       },
       renderMaterials: () => this.callbacks.renderMaterials(),
+    });
+    this.delegations = new MaterialDelegationController(runtime, {
+      onError: (error) => this.callbacks.onError(error),
+      onFeedback: (registration, feedback) => (
+        this.applyDelegatedFeedback(registration, feedback)
+      ),
+      requestRender: () => this.requestRender(),
     });
     this.externalMaterials = new ExternalMaterialController(
       container,
@@ -107,7 +126,9 @@ export class MaterialPresentationController {
 
   /** Return live registrations in stable insertion order. */
   public values(): Iterable<MaterialRegistration> {
-    return [...this.registrations.values()].map(({ registration }) => registration);
+    return [...this.registrations.values()]
+      .map(({ registration }) => registration)
+      .filter((registration) => !this.delegations.isDelegated(registration));
   }
 
   /** Return the stable target interface used by delegated material owners. */
@@ -141,6 +162,7 @@ export class MaterialPresentationController {
         ({ interaction }) => interaction.hasPendingTimer(),
       ).length,
       frames: this.frames.getDiagnosticsState(),
+      delegation: this.delegations.getDiagnosticsState(),
       resources: this.observers.getDiagnosticsState(),
     };
   }
@@ -182,16 +204,19 @@ export class MaterialPresentationController {
       this.observers.track(registration);
       announced = true;
       this.callbacks.onAdded(registration);
+      this.delegations.track(registration, () => interaction.getPresentation());
       this.renderImmediately();
       return handle;
     } catch (error) {
-      this.observers.untrack(registration);
-      interaction.destroy();
-      restoreMaterialFallbackMode(registration);
       registration.destroyed = true;
       this.registrations.delete(registration.id);
-      if (announced) this.callbacks.onRemoved(registration);
-      throw error;
+      rethrowAfterRunningTasks(error, [
+        () => this.delegations.untrack(registration),
+        () => this.observers.untrack(registration),
+        () => interaction.destroy(),
+        () => restoreMaterialFallbackMode(registration),
+        ...announced ? [() => this.callbacks.onRemoved(registration)] : [],
+      ]);
     }
   }
 
@@ -252,6 +277,7 @@ export class MaterialPresentationController {
     }
     runTasksPreservingFirstFailure([
       () => this.observers.destroy(),
+      () => this.delegations.destroy(),
       () => this.externalMaterials.destroy(),
       () => this.frames.destroy(),
       ...materials.flatMap((materialRuntime) => [
@@ -282,6 +308,15 @@ export class MaterialPresentationController {
       materialRuntime.interaction.commitUpdate(interactionUpdate);
     } catch (error) {
       firstError = error;
+      failed = true;
+    }
+    try {
+      this.delegations.sync(
+        materialRuntime.registration,
+        () => materialRuntime.interaction.getPresentation(),
+      );
+    } catch (error) {
+      if (!failed) firstError = error;
       failed = true;
     }
     if (!this.destroyed && !materialRuntime.registration.destroyed) {
@@ -324,6 +359,10 @@ export class MaterialPresentationController {
 
   private refreshLayout(materialRuntime: MaterialRuntimeState): void {
     this.assertRegistration(materialRuntime);
+    this.delegations.sync(
+      materialRuntime.registration,
+      () => materialRuntime.interaction.getPresentation(),
+    );
     this.requestRender();
   }
 
@@ -358,27 +397,32 @@ export class MaterialPresentationController {
     if (materialRuntime.registration.destroyed) return;
     this.observers.untrack(materialRuntime.registration);
     this.frames.retire(materialRuntime.registration.id);
-    materialRuntime.interaction.destroy();
-    restoreMaterialFallbackMode(materialRuntime.registration);
     materialRuntime.registration.destroyed = true;
     this.registrations.delete(materialRuntime.registration.id);
-    let firstError: unknown;
-    let failed = false;
-    try {
-      this.callbacks.onRemoved(materialRuntime.registration);
-    } catch (error) {
-      firstError = error;
-      failed = true;
+    runTasksPreservingFirstFailure([
+      () => this.delegations.untrack(materialRuntime.registration),
+      () => materialRuntime.interaction.destroy(),
+      () => restoreMaterialFallbackMode(materialRuntime.registration),
+      () => this.callbacks.onRemoved(materialRuntime.registration),
+      ...this.destroyed ? [] : [() => this.renderImmediately()],
+    ]);
+  }
+
+  private applyDelegatedFeedback(
+    registration: MaterialRegistration,
+    feedback: ExternalMaterialFeedback,
+  ): void {
+    const materialRuntime = this.registrations.get(registration.id);
+    if (
+      !materialRuntime
+      || materialRuntime.registration !== registration
+      || registration.destroyed
+      || !materialRuntime.interaction.setTheme(feedback.themeColorMode)
+    ) {
+      return;
     }
-    if (!this.destroyed) {
-      try {
-        this.renderImmediately();
-      } catch (error) {
-        if (!failed) firstError = error;
-        failed = true;
-      }
-    }
-    if (failed) throw firstError;
+    materialRuntime.interaction.publish();
+    this.callbacks.onFeedback(registration.id, feedback);
   }
 
   private renderImmediately(): void {

@@ -132,6 +132,11 @@ describe('GlassContext diagnostics', () => {
           pendingUpdates: 0,
           renderRequested: false,
         },
+        delegation: {
+          pendingFrame: false,
+          pendingTimer: false,
+          activeMaterials: 0,
+        },
       },
       resources: {
         ownedCanvases: 0,

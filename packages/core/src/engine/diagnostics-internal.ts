@@ -36,12 +36,19 @@ export interface MaterialFrameDiagnosticsState extends ContextFrameDiagnosticsSt
   readonly renderRequested: boolean;
 }
 
+/** Internal state exposed by outgoing material delegation. */
+export interface MaterialDelegationDiagnosticsState {
+  readonly activeMaterials: number;
+  readonly frames: ContextFrameDiagnosticsState;
+}
+
 /** Internal aggregate exposed by the material presentation owner. */
 export interface MaterialPresentationDiagnosticsState {
   readonly materials: number;
   readonly materialsInViewport: number;
   readonly pendingIdleTimers: number;
   readonly frames: MaterialFrameDiagnosticsState;
+  readonly delegation: MaterialDelegationDiagnosticsState;
   readonly resources: ObserverResourceState;
 }
 

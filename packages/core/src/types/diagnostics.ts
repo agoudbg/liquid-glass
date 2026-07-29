@@ -94,6 +94,16 @@ export interface DiagnosticsMaterialSchedulerSnapshot {
   readonly renderRequested: boolean;
 }
 
+/** Current outgoing proxy-delegation scheduler state. */
+export interface DiagnosticsDelegationSchedulerSnapshot {
+  /** Whether continuous delegated-layout synchronization has a queued frame. */
+  readonly pendingFrame: boolean;
+  /** Whether a timer fallback owns the queued synchronization frame. */
+  readonly pendingTimer: boolean;
+  /** Number of source materials currently rendered by proxy targets. */
+  readonly activeMaterials: number;
+}
+
 /** Current context-owned scheduling state. */
 export interface DiagnosticsSchedulingSnapshot {
   /** Whether a layout or scroll frame is queued. */
@@ -102,6 +112,8 @@ export interface DiagnosticsSchedulingSnapshot {
   readonly capture: DiagnosticsCaptureSchedulerSnapshot;
   /** Current material scheduling state. */
   readonly material: DiagnosticsMaterialSchedulerSnapshot;
+  /** Current outgoing material delegation scheduling state. */
+  readonly delegation: DiagnosticsDelegationSchedulerSnapshot;
 }
 
 /** Live WebGL resource counts owned by one renderer. */

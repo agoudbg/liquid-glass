@@ -126,6 +126,7 @@ describe('GlassContext fallback lifecycle', () => {
     );
     const fallbackChanges = vi.fn();
     context.on('fallbackModeChanged', fallbackChanges);
+    context.on('fullCanvasRendered', () => undefined);
     const draw = vi.fn();
     const source = context.addBackdropSource({
       kind: 'canvas',

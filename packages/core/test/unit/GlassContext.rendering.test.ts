@@ -14,6 +14,35 @@ import {
 } from '../fixtures/glass-context-rendering';
 
 describe('GlassContext render ownership', () => {
+  it('defers off-screen frame copies until a render event is observed', () => {
+    const harness = createRuntimeHarness();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const presentationCanvas = harness.canvases[2];
+    const materialsCanvas = harness.canvases[3];
+    const fullCompositeCanvas = harness.canvases[4];
+    if (!presentationCanvas || !materialsCanvas || !fullCompositeCanvas) {
+      throw new Error('Missing context-owned canvas.');
+    }
+
+    context.refresh();
+
+    expect(presentationCanvas.context2d.calls).toHaveLength(2);
+    expect(materialsCanvas.context2d.calls).toEqual([]);
+    expect(fullCompositeCanvas.context2d.calls).toEqual([]);
+
+    const fullCanvasRendered = vi.fn();
+    context.on('fullCanvasRendered', fullCanvasRendered);
+    context.refresh();
+
+    expect(materialsCanvas.context2d.calls).toHaveLength(2);
+    expect(fullCompositeCanvas.context2d.calls).toHaveLength(2);
+    expect(fullCanvasRendered).toHaveBeenCalledOnce();
+    context.destroy();
+  });
+
   it('copies cleared WebGL frames into the sole visible canvas before events', () => {
     const harness = createRuntimeHarness(1.5);
     const container = new FakeElement({ x: 10, y: 20, width: 201, height: 99 });
@@ -309,6 +338,11 @@ describe('GlassContext render ownership', () => {
       );
       const errors = vi.fn();
       context.on('error', errors);
+      if (missingIndex === 3) {
+        context.on('materialsRendered', () => undefined);
+      } else {
+        context.on('fullCanvasRendered', () => undefined);
+      }
 
       expect(() => context.refresh()).toThrowError(expect.objectContaining({
         code: 'RENDER_FAILED',

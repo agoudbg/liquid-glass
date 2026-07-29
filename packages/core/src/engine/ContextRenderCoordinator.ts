@@ -62,6 +62,10 @@ export interface ContextRenderCoordinatorCallbacks {
   isViewportMode(): boolean;
   /** Report whether optional frame measurements are enabled. */
   isDiagnosticsEnabled(): boolean;
+  /** Report whether the complete nested-context frame has active observers. */
+  hasFullCanvasRenderedListeners(): boolean;
+  /** Report whether the complete material frame has active observers. */
+  hasMaterialsRenderedListeners(): boolean;
   /** Synchronize the visible canvas CSS box with logical renderer dimensions. */
   onPresentationSize(width: number, height: number): void;
   /** Emit metadata for a freshly drawn custom source. */
@@ -249,7 +253,6 @@ export class ContextRenderCoordinator {
           renderMode,
           source: this.canvases.rendererCanvas,
         });
-        this.canvases.captureMaterialFrame();
         this.emitRenderedFrame(
           undefined,
           false,
@@ -302,7 +305,6 @@ export class ContextRenderCoordinator {
         renderMode,
         source: this.canvases.rendererCanvas,
       });
-      this.canvases.captureMaterialFrame();
       this.emitRenderedFrame(
         themeColors,
         true,
@@ -438,24 +440,39 @@ export class ContextRenderCoordinator {
     viewportHeight: number = this.canvases.presentationCanvas.height,
     contentOffset: { x: number; y: number } = { x: 0, y: 0 },
   ): void {
+    const emitFullCanvas = this.callbacks.hasFullCanvasRenderedListeners();
+    const emitMaterials = this.callbacks.hasMaterialsRenderedListeners();
+    if (!emitFullCanvas && !emitMaterials) {
+      return;
+    }
+
+    if (!this.callbacks.isFallbackMode()) {
+      this.canvases.captureMaterialFrame();
+    }
     const scale = this.callbacks.getDeviceScale();
     const width = Math.max(1, Math.round(Math.max(1, viewportWidth) * scale));
     const height = Math.max(1, Math.round(Math.max(1, viewportHeight) * scale));
-    const fullCanvas = this.canvases.composeFullFrame({
-      hasBackdrop,
-      height,
-      sourceX: contentOffset.x * scale,
-      sourceY: contentOffset.y * scale,
-      width,
-    });
-    const payload = { canvas: this.canvases.materialsCanvas };
-    this.callbacks.onMaterialsRendered(themeColors === undefined
-      ? payload
-      : { ...payload, themeColors });
-    this.callbacks.onFullCanvasRendered({
-      canvas: fullCanvas,
-      width,
-      height,
-    });
+    const fullCanvas = emitFullCanvas
+      ? this.canvases.composeFullFrame({
+          hasBackdrop,
+          height,
+          sourceX: contentOffset.x * scale,
+          sourceY: contentOffset.y * scale,
+          width,
+        })
+      : null;
+    if (emitMaterials) {
+      const payload = { canvas: this.canvases.materialsCanvas };
+      this.callbacks.onMaterialsRendered(themeColors === undefined
+        ? payload
+        : { ...payload, themeColors });
+    }
+    if (fullCanvas) {
+      this.callbacks.onFullCanvasRendered({
+        canvas: fullCanvas,
+        width,
+        height,
+      });
+    }
   }
 }

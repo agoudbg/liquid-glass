@@ -109,6 +109,12 @@ export class GlassContextImpl implements GlassContext {
         getThemeColorThresholds: () => (
           this.optionsSnapshot.themeColorThresholds
         ),
+        hasFullCanvasRenderedListeners: () => (
+          this.emitter.listenerCount('fullCanvasRendered') > 0
+        ),
+        hasMaterialsRenderedListeners: () => (
+          this.emitter.listenerCount('materialsRendered') > 0
+        ),
         isDomCaptureActive: () => this.domCapture.active,
         isFallbackMode: () => this.fallbackMode,
         isScrollable: () => this.optionsSnapshot.scrollable ?? false,

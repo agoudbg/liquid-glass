@@ -24,7 +24,7 @@
     "pack:check": "node scripts/test-packed-consumers.mjs --pack-only",
     "test:watch": "pnpm --parallel --recursive --filter=!liquid-glass run test:watch",
     "verify:workspace": "pnpm typecheck && pnpm lint && pnpm test:unit && pnpm test:legacy:tooling && pnpm build && node scripts/test-packed-consumers.mjs --skip-build && pnpm test:browser",
-    "verify": "pnpm verify:workspace && pnpm test:visual:preflight && node scripts/test-runtime-acceptance.mjs --skip-candidate-build",
+    "verify": "pnpm verify:workspace && pnpm test:visual && node scripts/test-runtime-acceptance.mjs --skip-candidate-build",
     "ci": "pnpm verify:workspace && pnpm test:visual:preflight && node scripts/test-runtime-acceptance.mjs --skip-candidate-build"
   },
   "devDependencies": {

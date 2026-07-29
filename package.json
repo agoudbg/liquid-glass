@@ -15,7 +15,7 @@
     "test:legacy:promotion": "pwsh -NoProfile -File scripts/legacy/test-legacy-promotion-transaction.ps1",
     "test:browser": "playwright test --config playwright.config.ts --project=chrome --workers=1",
     "test:visual:preflight": "playwright test --config playwright.config.ts --project=visual-preflight --workers=1",
-    "test:visual:exact": "playwright test --config playwright.config.ts --project=visual-dpr-1 --project=visual-dpr-2 --workers=1",
+    "test:visual:exact": "pwsh -NoProfile -File scripts/visual/run-visual-parity.ps1",
     "test:visual": "pnpm test:visual:exact",
     "test:consumers": "node scripts/test-packed-consumers.mjs",
     "test:performance": "node scripts/test-runtime-acceptance.mjs --performance",

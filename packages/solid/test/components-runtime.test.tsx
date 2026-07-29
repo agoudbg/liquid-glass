@@ -1,4 +1,7 @@
-import type { CustomDrawCallback } from '@agou/liquid-glass-core';
+import type {
+  CustomDrawCallback,
+  ProxyTargetInterface,
+} from '@agou/liquid-glass-core';
 import { createSignal } from 'solid-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -136,6 +139,53 @@ describe('Solid adapter runtime behavior', () => {
     expect(consumerPointerDown).toHaveBeenCalledTimes(2);
     expect(contextHarness.material.setInteractionState).toHaveBeenCalledTimes(1);
     expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(expect.objectContaining({ isMoveable: true }));
+    expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves proxy target identity across reactive updates and clears it in place', async () => {
+    const firstTarget: ProxyTargetInterface = {
+      getContainerRect: () => null,
+      getScrollPosition: () => ({ x: 0, y: 0 }),
+      registerExternalMaterial: () => {
+        throw new Error('The adapter harness must not register proxy materials.');
+      },
+    };
+    const secondTarget: ProxyTargetInterface = {
+      ...firstTarget,
+      getScrollPosition: () => ({ x: 4, y: 8 }),
+    };
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    let setTarget: ((target: ProxyTargetInterface | undefined) => void) | undefined;
+    mountSolid(() => {
+      const [target, updateTarget] = createSignal<
+        ProxyTargetInterface | undefined
+      >(firstTarget);
+      setTarget = updateTarget;
+      return (
+        <LiquidGlass engine={engineHarness.engine}>
+          <LiquidGlassMaterial proxyTarget={target()} />
+        </LiquidGlass>
+      );
+    });
+    await Promise.resolve();
+    if (!setTarget) throw new Error('The proxy target setter was not initialized.');
+
+    expect(contextHarness.addMaterial).toHaveBeenCalledWith(
+      expect.objectContaining({ proxyTarget: firstTarget }),
+    );
+
+    setTarget(secondTarget);
+    await Promise.resolve();
+    expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({ proxyTarget: secondTarget }),
+    );
+
+    setTarget(undefined);
+    await Promise.resolve();
+    expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(
+      expect.objectContaining({ proxyTarget: undefined }),
+    );
     expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
   });
 

@@ -1,3 +1,4 @@
+import type { ProxyTargetInterface } from '@agou/liquid-glass-core';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { h, nextTick, shallowRef } from 'vue';
@@ -116,6 +117,53 @@ describe('Vue adapter runtime behavior', () => {
     expect(harness.addMaterial).toHaveBeenCalledTimes(1);
     expect(materialHandle.destroy).not.toHaveBeenCalled();
     wrapper.unmount();
+  });
+
+  it('preserves proxy target identity across reactive material updates', async () => {
+    const firstTarget: ProxyTargetInterface = {
+      getContainerRect: () => null,
+      getScrollPosition: () => ({ x: 0, y: 0 }),
+      registerExternalMaterial: () => {
+        throw new Error('The adapter harness must not register proxy materials.');
+      },
+    };
+    const secondTarget: ProxyTargetInterface = {
+      ...firstTarget,
+      getScrollPosition: () => ({ x: 4, y: 8 }),
+    };
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const wrapper = mount(LiquidGlassMaterial, {
+      props: { proxyTarget: firstTarget },
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    expect(harness.addMaterial).toHaveBeenCalledWith(expect.objectContaining({
+      proxyTarget: firstTarget,
+    }));
+
+    await wrapper.setProps({ proxyTarget: secondTarget });
+    await nextTick();
+    expect(materialHandle.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      proxyTarget: secondTarget,
+    }));
+
+    await wrapper.setProps({ proxyTarget: undefined });
+    await nextTick();
+    expect(materialHandle.update).toHaveBeenLastCalledWith(expect.objectContaining({
+      proxyTarget: undefined,
+    }));
+    expect(harness.addMaterial).toHaveBeenCalledTimes(1);
+
+    wrapper.unmount();
+    expect(materialHandle.destroy).toHaveBeenCalledTimes(1);
   });
 
   it('bridges pointer input and applies presentation snapshots without consuming child events', async () => {

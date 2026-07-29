@@ -4,6 +4,7 @@ import type {
   MaterialHandle,
   MaterialPresentationListener,
   MaterialPresentationState,
+  ProxyTargetInterface,
 } from '@agou/liquid-glass-core';
 import { InteractionEngine } from '@agou/liquid-glass-core';
 import { cleanup, render, waitFor } from '@testing-library/react';
@@ -151,6 +152,49 @@ describe('React material presentation', () => {
 
     expect(harness.context.addMaterial).toHaveBeenCalledTimes(1);
     expect(harness.material.destroy).not.toHaveBeenCalled();
+  });
+
+  it('preserves proxy target identity across rerenders and clears it in place', async () => {
+    const firstTarget: ProxyTargetInterface = {
+      getContainerRect: () => null,
+      getScrollPosition: () => ({ x: 0, y: 0 }),
+      registerExternalMaterial: () => {
+        throw new Error('The adapter harness must not register proxy materials.');
+      },
+    };
+    const secondTarget: ProxyTargetInterface = {
+      ...firstTarget,
+      getScrollPosition: () => ({ x: 4, y: 8 }),
+    };
+    const harness = createHarness();
+    const view = (proxyTarget?: ProxyTargetInterface) => (
+      <LiquidGlass engine={harness.engine}>
+        <LiquidGlassMaterial proxyTarget={proxyTarget}>
+          Glass content
+        </LiquidGlassMaterial>
+      </LiquidGlass>
+    );
+    const mounted = render(view(firstTarget));
+    await waitFor(() => {
+      expect(harness.context.addMaterial).toHaveBeenCalledWith(
+        expect.objectContaining({ proxyTarget: firstTarget }),
+      );
+    });
+
+    mounted.rerender(view(secondTarget));
+    await waitFor(() => {
+      expect(harness.material.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ proxyTarget: secondTarget }),
+      );
+    });
+
+    mounted.rerender(view());
+    await waitFor(() => {
+      expect(harness.material.update).toHaveBeenLastCalledWith(
+        expect.objectContaining({ proxyTarget: undefined }),
+      );
+    });
+    expect(harness.context.addMaterial).toHaveBeenCalledTimes(1);
   });
 
   it('forwards native pointer input without replacing consumer handlers', async () => {

@@ -159,6 +159,9 @@ async function inspectTarball(tarballPath, expectedName) {
   const manifest = JSON.parse(manifestText);
 
   assert.equal(manifest.name, expectedName);
+  assert.equal(manifest.license, 'MIT', `${expectedName} must declare the MIT license.`);
+  assert(members.has('package/LICENSE'), `${expectedName} is missing LICENSE.`);
+  assert(members.has('package/README.md'), `${expectedName} is missing README.md.`);
   assert(members.has('package/dist/index.js'), `${expectedName} is missing dist/index.js.`);
   assert(
     members.has('package/dist/index.d.ts'),

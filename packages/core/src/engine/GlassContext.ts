@@ -32,6 +32,7 @@ import { teardownContext } from './context-teardown';
 import { ContextDiagnosticsController } from './ContextDiagnosticsController';
 import { ContextEventController } from './ContextEventController';
 import { ContextRenderCoordinator } from './ContextRenderCoordinator';
+import { ContextRendererLifecycleController } from './ContextRendererLifecycleController';
 import {
   assertContextRendererOptions,
   createContextRenderer,
@@ -67,13 +68,13 @@ export class GlassContextImpl implements GlassContext {
   private readonly presentation: ContextPresentation;
   private readonly fallback: FallbackController;
   private readonly diagnostics: ContextDiagnosticsController;
+  private readonly rendererLifecycle: ContextRendererLifecycleController;
   private readonly content: HTMLElement;
   private optionsSnapshot: GlassContextOptions;
   private precision: number;
   private destroyStarted = false;
   private isDestroyed = false;
   private viewportMode = false;
-
   /**
    * Create one context with a core-owned uniform canvas.
    *
@@ -208,6 +209,18 @@ export class GlassContextImpl implements GlassContext {
         sourceUpdated: (registration) => this.domCapture.sourceUpdated(registration),
       },
     );
+    this.rendererLifecycle = new ContextRendererLifecycleController({
+      applyFallbackModeChange: () => this.applyFallbackModeChange(),
+      emitRestoreError: (error) => this.emitError(error.toContext()),
+      invalidateBackdropTexture: () => (
+        this.renderCoordinator.invalidateBackdropTexture()
+      ),
+      isDestroying: () => this.destroyStarted,
+      recordContextLoss: () => this.diagnostics.recordContextLoss(),
+      recordContextRestore: () => this.diagnostics.recordContextRestore(),
+      refreshFallback: () => this.refresh('fallback'),
+      setContextLost: (lost) => this.fallback.setContextLost(lost),
+    });
     let renderer: WebGLRenderer | null = null;
     try {
       renderer = createContextRenderer(
@@ -216,9 +229,11 @@ export class GlassContextImpl implements GlassContext {
         runtime,
         this.optionsSnapshot,
         {
-          onContextLost: () => this.handleRendererContextLost(),
-          onContextRestored: () => this.handleRendererContextRestored(),
-          onContextRestoreError: (error) => this.handleRendererRestoreError(error),
+          onContextLost: () => this.rendererLifecycle.handleLost(),
+          onContextRestored: () => this.rendererLifecycle.handleRestored(),
+          onContextRestoreError: (error) => (
+            this.rendererLifecycle.handleRestoreError(error)
+          ),
         },
       );
       this.fallback.setRendererUnavailable(renderer === null);
@@ -289,7 +304,6 @@ export class GlassContextImpl implements GlassContext {
       ]);
     }
   }
-
   /** Register a DOM source and schedule its first bounded capture. */
   public addBackdropSource(
     config: DomBackdropSourceConfig,
@@ -309,7 +323,6 @@ export class GlassContextImpl implements GlassContext {
     this.diagnostics.publish();
     return handle;
   }
-
   /** Register a measurable material and return its lifecycle handle. */
   public addMaterial(config: MaterialConfig): MaterialHandle {
     return this.materials.add(config);
@@ -318,6 +331,18 @@ export class GlassContextImpl implements GlassContext {
   /** Read detached diagnostics without requiring a live context. */
   public getDiagnostics(): DiagnosticsSnapshot {
     return this.diagnostics.getSnapshot();
+  }
+
+  /** Request diagnostic loss on the internal renderer context. */
+  public requestContextLoss(): boolean {
+    this.assertUsable();
+    return this.renderer?.requestContextLoss() ?? false;
+  }
+
+  /** Request diagnostic restoration on the internal renderer context. */
+  public requestContextRestore(): boolean {
+    this.assertUsable();
+    return this.renderer?.requestContextRestore() ?? false;
   }
 
   /** Replace context options in place and synchronously apply presentation changes. */
@@ -436,30 +461,6 @@ export class GlassContextImpl implements GlassContext {
     this.domCapture.setPaused(enabled);
     this.materials.setFallbackMode(enabled);
     this.emitter.emit('fallbackModeChanged', enabled);
-  }
-  private handleRendererContextLost(): void {
-    if (this.destroyStarted) return;
-    this.renderCoordinator.invalidateBackdropTexture();
-    const fallbackChanged = this.fallback.setContextLost(true);
-    this.diagnostics.recordContextLoss();
-    if (fallbackChanged) {
-      this.applyFallbackModeChange();
-      this.refresh('fallback');
-    }
-  }
-  private handleRendererContextRestored(): void {
-    if (this.destroyStarted) {
-      return;
-    }
-    if (this.fallback.setContextLost(false)) {
-      this.applyFallbackModeChange();
-    }
-    this.diagnostics.recordContextRestore();
-    this.refresh('fallback');
-  }
-  private handleRendererRestoreError(error: GlassError): void {
-    if (this.destroyStarted) return;
-    this.emitError(error.toContext());
   }
   private emitError(context: GlassErrorContext): void {
     this.diagnostics.recordError();

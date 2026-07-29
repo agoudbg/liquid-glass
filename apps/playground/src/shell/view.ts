@@ -4,6 +4,7 @@ import {
 } from '../shared/scene-backdrops';
 import { getSceneDefinition } from '../shared/scene-catalog';
 import type {
+  HostResourceAudit,
   HostRuntimeReport,
   PlaygroundState,
 } from '../shared/types';
@@ -73,6 +74,11 @@ export class PlaygroundShellView {
     status: 'error' | 'success' | 'idle',
   ): void {
     renderCopyStatus(this.app, message, status);
+  }
+
+  /** Expose whether a browser accepted the latest context diagnostic action. */
+  public setContextActionStatus(status: 'requested' | 'unsupported'): void {
+    this.app.dataset.contextActionStatus = status;
   }
 
   /** Render URL-addressable state without reading framework-host material nodes. */
@@ -160,6 +166,7 @@ export class PlaygroundShellView {
   public renderDiagnostics(
     state: PlaygroundState,
     report: HostRuntimeReport,
+    audit: HostResourceAudit,
   ): void {
     const ready = report.status === 'ready';
     const statusLabel = report.status === 'error'
@@ -184,6 +191,14 @@ export class PlaygroundShellView {
       `${String(report.canvasWidth)} × ${String(report.canvasHeight)}`,
     );
     this.setText(
+      '#diagnostic-contexts',
+      `${String(audit.activeContextCount)} live`,
+    );
+    this.setText(
+      '#diagnostic-resources',
+      `${String(audit.liveResourceCount)} live`,
+    );
+    this.setText(
       '#diagnostic-error',
       report.error ?? report.glError ?? 'NO_ERROR',
     );
@@ -201,6 +216,22 @@ export class PlaygroundShellView {
     this.app.dataset.captureHeight = String(viewport?.height ?? 0);
     this.app.dataset.captureBitmapWidth = String(report.lastCapture?.width ?? 0);
     this.app.dataset.captureBitmapHeight = String(report.lastCapture?.height ?? 0);
+    this.app.dataset.rendererState =
+      audit.primary?.presentation.rendererState ?? 'unavailable';
+    this.app.dataset.contextLossCount = String(
+      audit.primary?.metrics?.contextLossCount ?? 0,
+    );
+    this.app.dataset.contextRestoreCount = String(
+      audit.primary?.metrics?.contextRestoreCount ?? 0,
+    );
+    this.app.dataset.activeContexts = String(audit.activeContextCount);
+    this.app.dataset.liveResources = String(audit.liveResourceCount);
+    this.app.dataset.retiredContexts = String(audit.retiredContextCount);
+    this.app.dataset.retiredDestroyedContexts = String(
+      audit.retiredDestroyedContextCount,
+    );
+    this.app.dataset.retiredResources = String(audit.retiredResourceCount);
+    this.app.dataset.remountCount = String(audit.remountCount);
     this.frameworkHost.dataset.ready = String(ready);
     this.frameworkHost.dataset.fallback = report.fallbackMode ? 'on' : 'off';
     document.documentElement.dataset.playgroundReady = String(ready);

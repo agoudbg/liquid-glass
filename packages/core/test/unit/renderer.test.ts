@@ -171,6 +171,27 @@ describe('WebGLRenderer', () => {
     expect(callsNamed(canvas.gl, 'deleteTexture')).not.toHaveLength(0);
   });
 
+  it('requests diagnostic context loss and restoration without exposing WebGL', () => {
+    const canvas = new FakeCanvas();
+    const renderer = new WebGLRenderer(canvas as unknown as HTMLCanvasElement);
+
+    expect(renderer.requestContextLoss()).toBe(true);
+    expect(renderer.requestContextRestore()).toBe(true);
+    expect(callsNamed(canvas.gl, 'loseContext')).toHaveLength(1);
+    expect(callsNamed(canvas.gl, 'restoreContext')).toHaveLength(1);
+
+    renderer.destroy();
+
+    const unsupportedCanvas = new FakeCanvas();
+    unsupportedCanvas.gl.contextLossExtensionAvailable = false;
+    const unsupported = new WebGLRenderer(
+      unsupportedCanvas as unknown as HTMLCanvasElement,
+    );
+    expect(unsupported.requestContextLoss()).toBe(false);
+    expect(unsupported.requestContextRestore()).toBe(false);
+    unsupported.destroy();
+  });
+
   it('surfaces non-zero WebGL errors after a draw pass', () => {
     const canvas = new FakeCanvas();
     const renderer = new WebGLRenderer(canvas as unknown as HTMLCanvasElement);

@@ -1,4 +1,5 @@
 import type {
+  DiagnosticsSnapshot,
   GlassContext,
   InteractionPreset,
   PartialInteractionConfig,
@@ -148,6 +149,24 @@ export interface HostRuntimeReport {
   glError: string | null;
   /** Human-readable contextual failure, when present. */
   error: string | null;
+}
+
+/** Aggregated lifecycle evidence exposed by the framework-neutral shell. */
+export interface HostResourceAudit {
+  /** Diagnostics for the primary visible context. */
+  primary: DiagnosticsSnapshot | null;
+  /** Number of currently active primary and auxiliary contexts. */
+  activeContextCount: number;
+  /** Aggregate live browser and graphics resources across active contexts. */
+  liveResourceCount: number;
+  /** Number of contexts released by the most recent host replacement. */
+  retiredContextCount: number;
+  /** Number of those contexts reporting the destroyed lifecycle state. */
+  retiredDestroyedContextCount: number;
+  /** Aggregate resources retained after the most recent host replacement. */
+  retiredResourceCount: number;
+  /** Number of explicit same-framework remount actions. */
+  remountCount: number;
 }
 
 /** Serializable diagnostics for one completed backdrop capture. */

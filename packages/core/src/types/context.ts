@@ -333,6 +333,10 @@ export interface GlassContext {
   readonly fallbackMode: boolean;
   /** Read a detached diagnostics snapshot, including after destruction. */
   getDiagnostics(): DiagnosticsSnapshot;
+  /** Request diagnostic WebGL context loss when the browser extension is available. */
+  requestContextLoss(): boolean;
+  /** Request diagnostic WebGL context restoration when the browser extension is available. */
+  requestContextRestore(): boolean;
   /** Register a DOM capture source and return its lifecycle handle. */
   addBackdropSource(
     config: DomBackdropSourceConfig,

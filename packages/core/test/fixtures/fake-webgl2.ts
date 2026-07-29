@@ -46,6 +46,7 @@ export class FakeWebGL2Context {
   errorCode = this.NO_ERROR;
   drawingBufferWidth = 1;
   drawingBufferHeight = 1;
+  contextLossExtensionAvailable = true;
 
   private nextResourceId = 1;
 
@@ -55,6 +56,17 @@ export class FakeWebGL2Context {
 
   private resource(kind: string): FakeResource {
     return { id: this.nextResourceId++, kind };
+  }
+
+  getExtension(name: string): WEBGL_lose_context | null {
+    this.record('getExtension', name);
+    if (name !== 'WEBGL_lose_context' || !this.contextLossExtensionAvailable) {
+      return null;
+    }
+    return {
+      loseContext: () => this.record('loseContext'),
+      restoreContext: () => this.record('restoreContext'),
+    };
   }
 
   createShader(type: number): WebGLShader {

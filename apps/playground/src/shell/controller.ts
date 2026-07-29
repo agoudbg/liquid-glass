@@ -1,9 +1,15 @@
-import { observeGlassContext } from '../shared/diagnostics';
+import type { GlassContext } from '@agou/liquid-glass-core';
+
+import {
+  countDiagnosticsResources,
+  observeGlassContext,
+} from '../shared/diagnostics';
 import { isSceneId } from '../shared/scene-catalog';
 import type {
   FrameworkHostCallbacks,
   FrameworkHostController,
   FrameworkHostMount,
+  HostResourceAudit,
   HostRuntimeReport,
   PlaygroundState,
 } from '../shared/types';
@@ -51,11 +57,75 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
   let activeBackdropRefresh: (() => void) | null = null;
   let stopObservingContext: (() => void) | null = null;
   let runtimeReport = createInitializingReport();
+  const mountedContexts = new Set<GlassContext>();
+  const auditObserverDisposers = new Map<GlassContext, () => void>();
+  let retiredContextCount = 0;
+  let retiredDestroyedContextCount = 0;
+  let retiredResourceCount = 0;
+  let remountCount = 0;
   let destroyed = false;
   const listenerDisposers: Array<() => void> = [];
 
   const renderDiagnostics = (): void => {
-    view.renderDiagnostics(currentState, runtimeReport);
+    view.renderDiagnostics(currentState, runtimeReport, createResourceAudit());
+  };
+  const createResourceAudit = (): HostResourceAudit => {
+    const activeSnapshots = [...mountedContexts]
+      .map((context) => context.getDiagnostics())
+      .filter(({ lifecycle }) => lifecycle === 'active');
+    return {
+      primary: activeContext?.getDiagnostics() ?? null,
+      activeContextCount: activeSnapshots.length,
+      liveResourceCount: activeSnapshots.reduce(
+        (total, snapshot) => total + countDiagnosticsResources(snapshot),
+        0,
+      ),
+      retiredContextCount,
+      retiredDestroyedContextCount,
+      retiredResourceCount,
+      remountCount,
+    };
+  };
+  const trackMountedContext = (context: GlassContext): void => {
+    mountedContexts.add(context);
+    if (auditObserverDisposers.has(context)) return;
+    const publish = (): void => renderDiagnostics();
+    const stopDiagnostics = context.on('diagnosticsUpdated', publish);
+    let stopDestroyed = (): void => undefined;
+    const dispose = (): void => {
+      stopDiagnostics();
+      stopDestroyed();
+    };
+    stopDestroyed = context.on('destroyed', () => {
+      mountedContexts.delete(context);
+      auditObserverDisposers.delete(context);
+      if (activeContext === context) {
+        stopObservingContext?.();
+        stopObservingContext = null;
+        activeContext = null;
+      }
+      dispose();
+      renderDiagnostics();
+    });
+    auditObserverDisposers.set(context, dispose);
+    renderDiagnostics();
+  };
+  const retireMountedContexts = (): void => {
+    const retiring = [...mountedContexts];
+    for (const dispose of auditObserverDisposers.values()) dispose();
+    auditObserverDisposers.clear();
+    hostController?.destroy();
+    hostController = null;
+    const snapshots = retiring.map((context) => context.getDiagnostics());
+    retiredContextCount = snapshots.length;
+    retiredDestroyedContextCount = snapshots.filter(
+      ({ lifecycle }) => lifecycle === 'destroyed',
+    ).length;
+    retiredResourceCount = snapshots.reduce(
+      (total, snapshot) => total + countDiagnosticsResources(snapshot),
+      0,
+    );
+    mountedContexts.clear();
   };
   const backdropRefreshAvailable = (): boolean => (
     activeBackdropRefresh !== null || activeContext !== null
@@ -75,6 +145,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     onContextReady: (context) => {
       if (destroyed) return;
       activeContext = context;
+      trackMountedContext(context);
       view.setBackdropRefreshAvailable(true);
       stopObservingContext?.();
       stopObservingContext = observeGlassContext(context, (report) => {
@@ -83,6 +154,10 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       });
       context.setFallbackMode(currentState.fallbackEnabled);
       context.setViewportMode(currentState.viewportEnabled);
+    },
+    onAuxiliaryContextReady: (context) => {
+      if (destroyed) return;
+      trackMountedContext(context);
     },
     onBackdropRefreshReady: (refresh) => {
       if (destroyed) return;
@@ -106,7 +181,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     activeContext = null;
     activeBackdropRefresh = null;
     view.setBackdropRefreshAvailable(false);
-    hostController?.destroy();
+    retireMountedContexts();
     runtimeReport = createInitializingReport();
     view.frameworkHost.replaceChildren();
     hostController = mounts[currentState.framework](
@@ -193,6 +268,37 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     },
   );
   listen(
+    view.requireElement<HTMLButtonElement>('[data-action="remount-context"]'),
+    'click',
+    () => {
+      if (currentState.scene !== 'S012') return;
+      remountCount += 1;
+      runtimeReport = createInitializingReport();
+      mountFramework();
+      renderState();
+    },
+  );
+  listen(
+    view.requireElement<HTMLButtonElement>('[data-action="lose-context"]'),
+    'click',
+    () => {
+      if (currentState.scene !== 'S012') return;
+      view.setContextActionStatus(
+        activeContext?.requestContextLoss() === true ? 'requested' : 'unsupported',
+      );
+    },
+  );
+  listen(
+    view.requireElement<HTMLButtonElement>('[data-action="restore-context"]'),
+    'click',
+    () => {
+      if (currentState.scene !== 'S012') return;
+      view.setContextActionStatus(
+        activeContext?.requestContextRestore() === true ? 'requested' : 'unsupported',
+      );
+    },
+  );
+  listen(
     view.requireElement<HTMLButtonElement>('[data-action="refresh-backdrop"]'),
     'click',
     refreshActiveBackdrop,
@@ -251,8 +357,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       activeContext = null;
       activeBackdropRefresh = null;
       view.setBackdropRefreshAvailable(false);
-      hostController?.destroy();
-      hostController = null;
+      retireMountedContexts();
     },
   };
 }

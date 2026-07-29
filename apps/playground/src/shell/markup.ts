@@ -89,6 +89,12 @@ export const PLAYGROUND_MARKUP = `
               <button type="button" data-action="refresh-backdrop">Refresh capture</button>
             </div>
 
+            <div class="scene-action-panel lifecycle-actions" data-scene-actions="S012">
+              <button type="button" data-action="remount-context">Remount</button>
+              <button type="button" data-action="lose-context">Lose context</button>
+              <button type="button" data-action="restore-context">Restore</button>
+            </div>
+
             <div class="mode-control viewport-control" data-scene-controls="S006">
               <span>Capture</span>
               <div class="segment-control viewport-switcher" aria-label="Capture bounds">
@@ -152,6 +158,8 @@ export const PLAYGROUND_MARKUP = `
         <div><dt>Frames</dt><dd id="diagnostic-frames">0</dd></div>
         <div><dt>Captures</dt><dd id="diagnostic-captures">0</dd></div>
         <div><dt>Canvas</dt><dd id="diagnostic-canvas">0 &times; 0</dd></div>
+        <div><dt>Contexts</dt><dd id="diagnostic-contexts">0 live</dd></div>
+        <div><dt>Resources</dt><dd id="diagnostic-resources">0 live</dd></div>
         <div><dt>GL error</dt><dd id="diagnostic-error" data-testid="gl-error">&mdash;</dd></div>
       </dl>
     </footer>

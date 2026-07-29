@@ -356,4 +356,22 @@ describe('GlassContext fallback lifecycle', () => {
     )).toHaveLength(2);
     context.destroy();
   });
+
+  it('forwards diagnostic context actions to the internal renderer only', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+
+    expect(context.requestContextLoss()).toBe(true);
+    expect(context.requestContextRestore()).toBe(true);
+    expect(callsNamed(runtime.canvases[0]?.gl, 'loseContext')).toHaveLength(1);
+    expect(callsNamed(runtime.canvases[0]?.gl, 'restoreContext')).toHaveLength(1);
+    expect(callsNamed(
+      (context.canvas as unknown as FakeCanvas).gl,
+      'loseContext',
+    )).toHaveLength(0);
+    context.destroy();
+  });
 });

@@ -1,5 +1,6 @@
 import type {
   BackdropCapturedPayload,
+  DiagnosticsSnapshot,
   GlassContext,
   GlassErrorContext,
 } from '@agou/liquid-glass-core';
@@ -8,6 +9,26 @@ import type {
   BackdropCaptureReport,
   HostRuntimeReport,
 } from './types';
+
+/** Count one diagnostics snapshot's live browser and graphics resources. */
+export function countDiagnosticsResources(
+  snapshot: DiagnosticsSnapshot,
+): number {
+  const resources = snapshot.resources;
+  return resources.ownedCanvases
+    + resources.trackedEventListeners
+    + resources.resizeObservers
+    + resources.mutationObservers
+    + resources.intersectionObservers
+    + resources.pendingAnimationFrames
+    + resources.pendingTimers
+    + resources.activeCaptureTasks
+    + resources.webgl.shaders
+    + resources.webgl.programs
+    + resources.webgl.buffers
+    + resources.webgl.vertexArrays
+    + resources.webgl.textures;
+}
 
 /** Observe renderer frames and request one deterministic post-mount composite. */
 export function observeGlassContext(

@@ -6,6 +6,7 @@ import {
 import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
 import { validateFiniteNumber } from '../utils/validation';
 import { createQuadGeometry, type QuadGeometry } from './geometry';
+import { RendererContextLossController } from './RendererContextLossController';
 import { calculateMaterialScissor } from './scissor';
 import { createShaderProgram } from './shader-program';
 import type {
@@ -26,13 +27,11 @@ const CONTEXT_ATTRIBUTES: WebGLContextAttributes = {
   premultipliedAlpha: true,
   preserveDrawingBuffer: true,
 };
-
 function defaultDevicePixelRatio(): number {
   return typeof globalThis.devicePixelRatio === 'number'
     ? globalThis.devicePixelRatio
     : 1;
 }
-
 /** Framework-neutral owner of one liquid-glass WebGL2 rendering pipeline. */
 export class WebGLRenderer {
   /** Whether every owned listener and graphics resource has been released. */
@@ -53,6 +52,7 @@ export class WebGLRenderer {
   private backdrop: TexImageSource | null = null;
   private logicalWidth = 1;
   private logicalHeight = 1;
+  private readonly contextLoss: RendererContextLossController;
   private isContextLost = false;
   private isDestroyed = false;
 
@@ -104,6 +104,7 @@ export class WebGLRenderer {
     }
 
     this.gl = gl;
+    this.contextLoss = new RendererContextLossController(gl);
     this.renderScale = Number.isFinite(options.renderScale)
       ? Math.max(0.05, options.renderScale ?? 1)
       : 1;
@@ -392,6 +393,18 @@ export class WebGLRenderer {
       eventListeners: this.isDestroyed ? 0 : 2,
       resources: this.getResourceCounts(),
     };
+  }
+
+  /** Request browser-provided diagnostic WebGL context loss. */
+  public requestContextLoss(): boolean {
+    this.assertUsable();
+    return this.contextLoss.requestLoss();
+  }
+
+  /** Request browser-provided diagnostic WebGL context restoration. */
+  public requestContextRestore(): boolean {
+    this.assertUsable();
+    return this.contextLoss.requestRestore();
   }
 
   /** Idempotently release listeners, texture, geometry, and shader program. */

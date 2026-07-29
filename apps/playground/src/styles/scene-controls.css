@@ -22,6 +22,14 @@
   display: grid;
 }
 
+#app[data-scene="S012"] .scene-action-panel[data-scene-actions="S012"] {
+  display: grid;
+}
+
+.lifecycle-actions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .scene-action-panel button {
   min-height: 34px;
   padding: 0 10px;

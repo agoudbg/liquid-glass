@@ -319,7 +319,9 @@ export class ContextDiagnosticsController {
   private resolveFramesPerSecond(): number | null {
     if (this.frameCompletionTimes.length < 2) return null;
     const first = this.frameCompletionTimes[0] ?? 0;
-    const last = this.frameCompletionTimes.at(-1) ?? first;
+    const last = this.frameCompletionTimes[
+      this.frameCompletionTimes.length - 1
+    ] ?? first;
     const elapsed = last - first;
     return elapsed > 0
       ? ((this.frameCompletionTimes.length - 1) * 1_000) / elapsed

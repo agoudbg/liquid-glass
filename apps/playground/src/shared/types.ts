@@ -2,6 +2,7 @@ import type {
   GlassContext,
   InteractionPreset,
   PartialInteractionConfig,
+  RenderMode,
   ViewportCaptureRect,
 } from '@agou/liquid-glass-core';
 
@@ -104,7 +105,7 @@ export interface PlaygroundState {
   /** Active canonical scene. */
   scene: SceneId;
   /** Current core rendering strategy. */
-  renderMode: 'uniform';
+  renderMode: RenderMode;
   /** Global backing-canvas scale shared by every scene and framework host. */
   renderPrecision: number;
   /** Whether the core-owned presentation canvas is visible. */

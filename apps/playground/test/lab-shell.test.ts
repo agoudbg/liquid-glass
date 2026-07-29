@@ -65,6 +65,10 @@ describe('Lab shell controls', () => {
       root,
       '[data-render-precision-output]',
     ).value).toBe('1.00x');
+    expect(root.querySelector(
+      '[data-render-mode="uniform"]',
+    )?.getAttribute('aria-pressed')).toBe('true');
+    expect(root.querySelector('#render-mode-fact')?.textContent).toBe('Uniform');
     expect(root.querySelectorAll('[data-lab-boolean]')).toHaveLength(4);
     expect(root.querySelectorAll('[data-lab-color]')).toHaveLength(4);
     expect(root.querySelectorAll(

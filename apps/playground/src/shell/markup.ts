@@ -115,6 +115,14 @@ export const PLAYGROUND_MARKUP = `
             />
           </label>
 
+          <div class="mode-control shared-render-mode-control">
+            <span>Render mode</span>
+            <div class="segment-control render-mode-switcher" aria-label="Render mode">
+              <button type="button" data-render-mode="uniform">Uniform</button>
+              <button type="button" data-render-mode="dedicated">Dedicated</button>
+            </div>
+          </div>
+
           <div class="mode-control shared-renderer-control">
             <span>Renderer</span>
             <div class="segment-control fallback-switcher" aria-label="Renderer mode">
@@ -126,7 +134,7 @@ export const PLAYGROUND_MARKUP = `
 
         <dl class="scene-facts">
           <div><dt>Materials</dt><dd id="material-count">1</dd></div>
-          <div><dt>Render mode</dt><dd>Uniform</dd></div>
+          <div><dt>Render mode</dt><dd id="render-mode-fact">Uniform</dd></div>
           <div><dt>Presentation</dt><dd id="effective-renderer">WebGL2</dd></div>
           <div><dt>Backdrop</dt><dd id="backdrop-type">Canvas 2D</dd></div>
         </dl>

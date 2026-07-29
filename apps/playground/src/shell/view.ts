@@ -104,6 +104,13 @@ export class PlaygroundShellView {
       button.dataset.active = String(active);
       button.setAttribute('aria-pressed', String(active));
     }
+    for (const button of this.queryElements<HTMLButtonElement>(
+      '[data-render-mode]',
+    )) {
+      const active = button.dataset.renderMode === state.renderMode;
+      button.dataset.active = String(active);
+      button.setAttribute('aria-pressed', String(active));
+    }
 
     this.glassToggle.checked = state.glassEnabled;
     this.renderPrecisionInput.value = String(state.renderPrecision);
@@ -113,6 +120,7 @@ export class PlaygroundShellView {
     this.setText('#scene-kicker', `SCENE ${state.scene.slice(1)}`);
     this.setText('#scene-title', sceneDefinition.title);
     this.setText('#material-count', String(sceneDefinition.materialCount));
+    this.setText('#render-mode-fact', capitalize(state.renderMode));
     this.setText(
       '#backdrop-type',
       isDomCaptureState(state) ? 'Captured DOM' : 'Canvas 2D',
@@ -167,7 +175,7 @@ export class PlaygroundShellView {
       '#stage-pipeline',
       `${String(report.canvasWidth || window.innerWidth)} · ${
         report.fallbackMode ? 'CSS FILTER' : 'WEBGL2'
-      } · UNIFORM`,
+      } · ${state.renderMode.toUpperCase()}`,
     );
     this.setText('#diagnostic-frames', String(report.frameCount));
     this.setText('#diagnostic-captures', String(report.captureCount));

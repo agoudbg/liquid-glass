@@ -45,11 +45,13 @@
 }
 
 .fallback-switcher,
+.render-mode-switcher,
 .viewport-switcher {
   padding: 2px;
 }
 
 .fallback-switcher button,
+.render-mode-switcher button,
 .viewport-switcher button {
   min-height: 28px;
   padding-inline: 9px;

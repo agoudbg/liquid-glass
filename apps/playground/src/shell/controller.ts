@@ -208,6 +208,15 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       updateState({ viewportEnabled: button.dataset.viewportMode === 'bounded' });
     });
   }
+  for (const button of view.queryElements<HTMLButtonElement>('[data-render-mode]')) {
+    listen(button, 'click', () => {
+      updateState({
+        renderMode: button.dataset.renderMode === 'dedicated'
+          ? 'dedicated'
+          : 'uniform',
+      });
+    });
+  }
   listen(view.renderPrecisionInput, 'input', () => {
     const renderPrecision = Number(view.renderPrecisionInput.value);
     if (!Number.isFinite(renderPrecision)) return;

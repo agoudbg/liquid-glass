@@ -55,6 +55,7 @@ export function createInitialState(url: URL): PlaygroundState {
   const fallback = url.searchParams.get('fallback');
   const scroll = url.searchParams.get('scroll');
   const viewport = url.searchParams.get('viewport');
+  const mode = url.searchParams.get('mode');
   const sceneDefinition = getSceneDefinition(scene);
   const testMode = url.searchParams.get('test') === '1';
   const oracleMode = url.searchParams.get('oracle') === '1'
@@ -64,6 +65,7 @@ export function createInitialState(url: URL): PlaygroundState {
     ...defaults,
     framework: isFrameworkId(framework) ? framework : defaults.framework,
     scene,
+    renderMode: mode === 'dedicated' ? 'dedicated' : 'uniform',
     renderPrecision: parseRenderPrecision(url.searchParams.get('precision')),
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on'

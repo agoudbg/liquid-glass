@@ -7,6 +7,21 @@ import {
 } from '../src/shell/state';
 
 describe('playground URL state', () => {
+  it('parses and serializes the global render mode', () => {
+    const dedicated = createInitialState(new URL(
+      'https://example.test/?scene=S002&mode=dedicated',
+    ));
+    expect(dedicated.renderMode).toBe('dedicated');
+    expect(createInitialState(new URL(
+      'https://example.test/?mode=invalid',
+    )).renderMode).toBe('uniform');
+
+    window.history.replaceState(null, '', '/');
+    replacePlaygroundUrl(dedicated);
+    expect(new URL(window.location.href).searchParams.get('mode'))
+      .toBe('dedicated');
+  });
+
   it('parses and clamps the global render precision', () => {
     expect(createInitialState(new URL(
       'https://example.test/?scene=S004&precision=1.65',

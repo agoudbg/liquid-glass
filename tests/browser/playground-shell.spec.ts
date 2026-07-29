@@ -145,6 +145,38 @@ test('scrolls the inspector and applies global render precision everywhere', asy
   }
 });
 
+test('switches the global presentation mode through every adapter', async ({
+  page,
+}) => {
+  await page.goto('/?test=1&framework=vue&scene=S002&mode=uniform', {
+    waitUntil: 'domcontentloaded',
+  });
+  const shell = page.locator('#app');
+  await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+  await expect(page.locator('.liquid-glass-dedicated-canvas')).toHaveCount(0);
+
+  await page.locator('[data-render-mode="dedicated"]').click();
+  await expect(shell).toHaveAttribute('data-render-mode', 'dedicated');
+  await expect(page).toHaveURL(/mode=dedicated/);
+  await expect(page.locator('#render-mode-fact')).toHaveText('Dedicated');
+  await expect(page.locator('.liquid-glass-dedicated-canvas')).toHaveCount(3);
+
+  for (const framework of ['react', 'solid'] as const) {
+    await page.getByRole('button', {
+      exact: true,
+      name: framework === 'react' ? 'React' : 'Solid',
+    }).click();
+    await expect(shell).toHaveAttribute('data-framework', framework);
+    await expect(shell).toHaveAttribute('data-ready', 'true');
+    await expect(shell).toHaveAttribute('data-render-mode', 'dedicated');
+    await expect(page.locator('.liquid-glass-dedicated-canvas')).toHaveCount(3);
+  }
+
+  await page.locator('[data-render-mode="uniform"]').click();
+  await expect(shell).toHaveAttribute('data-render-mode', 'uniform');
+  await expect(page.locator('.liquid-glass-dedicated-canvas')).toHaveCount(0);
+});
+
 test('captures, mutates, and manually refreshes DOM through every adapter', async ({
   page,
 }) => {

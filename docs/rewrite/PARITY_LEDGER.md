@@ -121,22 +121,27 @@ mark the rewrite acceptance rows complete.
 
 ## Gate mapping
 
-| Scenario | Ledger coverage | Durable legacy evidence |
+The P7 workbench sweep reaches S001-S012 from one application and proves every
+scene remains usable without horizontal overflow at `1440x900`, `1024x768`,
+`390x844`, and `360x800`. Representative desktop, compact, and mobile
+screenshots are committed beside `tests/browser/workbench-visual.spec.ts`.
+
+| Scenario | Ledger coverage | Durable acceptance evidence |
 | --- | --- | --- |
-| S001 Static single material | OPT-001 through OPT-007, OPT-010 | DPR 1/2 on/off plus 20-run calibration |
-| S002 Multiple materials | CMP-001, CMP-003 | DPR 1/2 on/off plus 20-run calibration |
-| S003 DOM capture | CMP-004, CMP-005, CMP-008, CMP-009 | DPR 1/2 on/off plus 20-run calibration |
-| S004 Interaction presets | INT-001 through INT-009 | DPR 1/2 pressed-state on/off plus 20-run calibration |
-| S005 Body scroll | CMP-010 | DPR 1/2 scrolled on/off plus 20-run calibration |
-| S006 Internal scroll and sticky material | CMP-010, CMP-011 | DPR 1/2 scrolled on/off plus 20-run calibration |
-| S007 CSS fallback | CMP-014 | Pending |
-| S008 Dedicated mode | CMP-002 | Pending |
-| S009 Nested glass | CMP-012 | Pending |
-| S010 External proxy material | CMP-013 | Pending |
-| S011 Theme feedback | OPT-011, VUE-006 | Pending |
-| S012 Lifecycle stress | CMP-015 through CMP-019 | Pending |
-| S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending |
-| S014 Packed React/Solid consumers | PKG-003 through PKG-005 | Pending |
+| S001 Static single material | OPT-001 through OPT-007, OPT-010 | Legacy DPR 1/2 on/off calibration; `legacy-visual-parity.spec.ts`, `playground-shell.spec.ts`, `composition-scenes.spec.ts`, and `workbench-visual.spec.ts` |
+| S002 Multiple materials | CMP-001, CMP-003 | Legacy DPR 1/2 on/off calibration; `legacy-visual-parity.spec.ts`, `playground-shell.spec.ts`, and `workbench-visual.spec.ts` |
+| S003 DOM capture | CMP-004, CMP-005, CMP-008, CMP-009 | Legacy DPR 1/2 on/off calibration; `legacy-visual-parity.spec.ts`, `playground-shell.spec.ts`, and `workbench-visual.spec.ts` |
+| S004 Interaction presets | INT-001 through INT-009 | Legacy DPR 1/2 pressed-state calibration; `legacy-visual-parity.spec.ts`, `interaction-presets.spec.ts`, `interaction-policy.spec.ts`, and `workbench-visual.spec.ts` |
+| S005 Body scroll | CMP-010 | Legacy DPR 1/2 scrolled calibration; `legacy-visual-parity.spec.ts`, `scroll-capture.spec.ts`, and `workbench-visual.spec.ts` |
+| S006 Internal scroll and sticky material | CMP-010, CMP-011 | Legacy DPR 1/2 scrolled calibration; `legacy-visual-parity.spec.ts`, `scroll-capture.spec.ts`, and `workbench-visual.spec.ts` |
+| S007 CSS fallback | CMP-014 | `playground-shell.spec.ts` proves forced fallback and WebGL recovery through Vue, React, and Solid; `workbench-visual.spec.ts` proves responsive layout |
+| S008 Dedicated mode | CMP-002 | `composition-scenes.spec.ts` proves clipping plus uniform/dedicated pixel parity through every adapter; `workbench-visual.spec.ts` provides compact/mobile evidence |
+| S009 Nested glass | CMP-012 | `composition-scenes.spec.ts` proves nested rendering, resize, retirement, and remount through every adapter; `workbench-visual.spec.ts` proves responsive layout |
+| S010 External proxy material | CMP-013 | `composition-scenes.spec.ts` proves delegated rendering, update, resize, retirement, and remount through every adapter; `workbench-visual.spec.ts` proves responsive layout |
+| S011 Theme feedback | OPT-011, VUE-006 | `composition-scenes.spec.ts` proves all four feedback modes through every adapter; `workbench-visual.spec.ts` proves responsive layout |
+| S012 Lifecycle stress | CMP-015 through CMP-019 | `composition-scenes.spec.ts` proves context loss/restoration, 20 mode switches, 20 remounts, resource retirement, and diagnostics; `workbench-visual.spec.ts` provides mobile evidence |
+| S013 Packed Vue consumer | PKG-001, PKG-013, VUE-001 through VUE-014 | Pending P8 packed-consumer and SSR gates |
+| S014 Packed React/Solid consumers | PKG-003 through PKG-005 | Pending P8 packed-consumer and SSR gates |
 
 Every implementation phase must update this ledger when evidence changes. A
 green unit test does not close a visual row, and a non-empty canvas does not

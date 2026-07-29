@@ -29,6 +29,7 @@ import VueCompositionScene from './VueCompositionScene.vue';
 const props = defineProps<FrameworkHostProps>();
 const contextOptions = computed<GlassContextOptions>(() => ({
   canvasZIndex: props.state.oracleMode ? 10 : undefined,
+  debug: props.state.debugEnabled,
   renderMode: props.state.renderMode,
   renderPrecision: resolveSceneRenderPrecision(props.state),
   scrollable: props.state.scrollable,

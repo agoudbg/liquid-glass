@@ -201,6 +201,7 @@
   .lab-panel,
   .fixed-scene-panel,
   .global-render-precision,
+  .debug-toggle,
   .shared-renderer-control {
     grid-column: 1 / -1;
   }

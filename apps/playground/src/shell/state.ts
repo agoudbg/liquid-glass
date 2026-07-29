@@ -35,6 +35,7 @@ export function createDefaultPlaygroundState(): PlaygroundState {
     scene: 'S001',
     renderMode: 'uniform',
     renderPrecision: DEFAULT_RENDER_PRECISION,
+    debugEnabled: true,
     glassEnabled: true,
     fallbackEnabled: false,
     scrollable: false,
@@ -56,6 +57,7 @@ export function createInitialState(url: URL): PlaygroundState {
   const scroll = url.searchParams.get('scroll');
   const viewport = url.searchParams.get('viewport');
   const mode = url.searchParams.get('mode');
+  const debug = url.searchParams.get('debug');
   const sceneDefinition = getSceneDefinition(scene);
   const testMode = url.searchParams.get('test') === '1';
   const oracleMode = url.searchParams.get('oracle') === '1'
@@ -69,6 +71,7 @@ export function createInitialState(url: URL): PlaygroundState {
       ? mode
       : sceneDefinition.renderModeByDefault,
     renderPrecision: parseRenderPrecision(url.searchParams.get('precision')),
+    debugEnabled: debug !== 'off',
     glassEnabled: url.searchParams.get('glass') !== 'off',
     fallbackEnabled: fallback === 'on'
       || (fallback !== 'off' && sceneDefinition.fallbackByDefault),
@@ -138,6 +141,7 @@ export function replacePlaygroundUrl(state: PlaygroundState): void {
   url.searchParams.set('content', state.domVariant);
   writeLabUrlState(url.searchParams, state.lab);
   url.searchParams.set('precision', String(state.renderPrecision));
+  url.searchParams.set('debug', state.debugEnabled ? 'on' : 'off');
   if (state.testMode) {
     url.searchParams.set('test', '1');
   } else {

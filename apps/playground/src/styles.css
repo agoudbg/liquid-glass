@@ -70,7 +70,7 @@ select:focus-visible {
 
 .brand-lockup,
 .topbar-actions,
-.glass-toggle,
+.binary-toggle,
 .diagnostic-primary,
 .diagnostics dl,
 .diagnostics dl div {
@@ -213,7 +213,8 @@ select:focus-visible {
   min-width: 58px;
 }
 
-.glass-toggle {
+.binary-toggle {
+  position: relative;
   gap: 8px;
   color: #4d5a56;
   cursor: pointer;
@@ -221,7 +222,7 @@ select:focus-visible {
   font-weight: 650;
 }
 
-.glass-toggle input {
+.binary-toggle input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -251,16 +252,16 @@ select:focus-visible {
   transition: transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.glass-toggle input:checked + .toggle-track {
+.binary-toggle input:checked + .toggle-track {
   border-color: #167466;
   background: #167466;
 }
 
-.glass-toggle input:checked + .toggle-track span {
+.binary-toggle input:checked + .toggle-track span {
   transform: translateX(16px);
 }
 
-.glass-toggle input:focus-visible + .toggle-track {
+.binary-toggle input:focus-visible + .toggle-track {
   outline: 2px solid #167466;
   outline-offset: 2px;
 }

@@ -12,6 +12,13 @@
   .glass-toggle > span:first-child {
     display: none;
   }
+
+  .diagnostics dl div {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+  }
 }
 
 @media (max-width: 820px) {
@@ -116,8 +123,22 @@
   }
 
   .diagnostics {
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .diagnostic-primary {
     min-height: 38px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(237, 242, 239, 0.14);
+  }
+
+  .diagnostics dl {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .diagnostics dl div {
+    min-height: 36px;
   }
 }
 
@@ -249,7 +270,11 @@
   }
 
   .diagnostics {
-    grid-template-columns: 128px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .diagnostics dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .diagnostic-primary {

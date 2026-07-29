@@ -328,6 +328,9 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
     if (!Number.isFinite(renderPrecision)) return;
     updateState({ renderPrecision });
   });
+  listen(view.debugToggle, 'change', () => {
+    updateState({ debugEnabled: view.debugToggle.checked });
+  });
   listenerDisposers.push(bindLabControls({
     root: app,
     getState: () => currentState,

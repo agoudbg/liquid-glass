@@ -34,12 +34,12 @@ const scene = computed<CompositionSceneId>(() => {
   return props.state.scene;
 });
 const outerOptions = computed<GlassContextOptions>(() => ({
-  debug: true,
+  debug: props.state.debugEnabled,
   renderMode: props.state.renderMode,
   renderPrecision: resolveSceneRenderPrecision(props.state),
 }));
 const auxiliaryOptions = computed<GlassContextOptions>(() => ({
-  debug: true,
+  debug: props.state.debugEnabled,
   renderMode: 'uniform',
   renderPrecision: resolveSceneRenderPrecision(props.state),
 }));

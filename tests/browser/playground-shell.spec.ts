@@ -112,6 +112,17 @@ test('scrolls the inspector and applies global render precision everywhere', asy
   await expect(shell).toHaveAttribute('data-render-precision', '1.5');
   await expect(page).toHaveURL(/precision=1\.5/);
   await expect(page.locator('[data-render-precision-output]')).toHaveText('1.50x');
+  await expect(page.locator('#diagnostic-fps')).toContainText('fps');
+
+  const debugToggle = page.locator('[data-debug-toggle]');
+  await expect(debugToggle).toBeChecked();
+  await debugToggle.uncheck();
+  await expect(shell).toHaveAttribute('data-debug', 'off');
+  await expect(page).toHaveURL(/debug=off/);
+  await expect(page.locator('#diagnostic-fps')).toHaveText('--');
+  await debugToggle.check();
+  await expect(shell).toHaveAttribute('data-debug', 'on');
+  await expect(page).toHaveURL(/debug=on/);
 
   const expectPrecision = async (): Promise<void> => {
     await expect.poll(() => canvas.evaluate((element) => (
@@ -141,6 +152,7 @@ test('scrolls the inspector and applies global render precision everywhere', asy
     await expect(shell).toHaveAttribute('data-framework', framework);
     await expect(shell).toHaveAttribute('data-ready', 'true');
     await expect(shell).toHaveAttribute('data-render-precision', '1.5');
+    await expect(shell).toHaveAttribute('data-debug', 'on');
     await expectPrecision();
   }
 });
@@ -175,6 +187,49 @@ test('switches the global presentation mode through every adapter', async ({
   await page.locator('[data-render-mode="uniform"]').click();
   await expect(shell).toHaveAttribute('data-render-mode', 'uniform');
   await expect(page.locator('.liquid-glass-dedicated-canvas')).toHaveCount(0);
+});
+
+test('preserves Lab state through keyboard tabs and framework remounts', async ({
+  page,
+}) => {
+  await page.goto('/?test=1&framework=vue&scene=S001&thickness=36', {
+    waitUntil: 'domcontentloaded',
+  });
+  const shell = page.locator('#app');
+  await expect(shell).toHaveAttribute('data-ready', 'true', { timeout: 15_000 });
+  const thickness = page.locator('[data-lab-number="thickness"]');
+  await thickness.fill('62');
+  await thickness.dispatchEvent('input');
+  await expect(page).toHaveURL(/thickness=62/);
+
+  await page.getByRole('button', { exact: true, name: 'React' }).click();
+  await expect(shell).toHaveAttribute('data-framework', 'react');
+  await expect(shell).toHaveAttribute('data-ready', 'true');
+  await expect(thickness).toHaveValue('62');
+
+  const labTab = page.getByRole('tab', { name: 'Lab' });
+  await labTab.focus();
+  await labTab.press('ArrowRight');
+  const compositionTab = page.getByRole('tab', { name: 'Composition' });
+  await expect(compositionTab).toBeFocused();
+  await expect(compositionTab).toHaveAttribute('aria-selected', 'true');
+  await expect(shell).toHaveAttribute('data-scene', 'S008');
+
+  await compositionTab.press('ArrowLeft');
+  await expect(labTab).toBeFocused();
+  await expect(shell).toHaveAttribute('data-scene', 'S001');
+  await expect(thickness).toHaveValue('62');
+
+  await page.getByTestId('scene-select').selectOption('S012');
+  await expect(shell).toHaveAttribute('data-scene', 'S012');
+  for (const action of [
+    'Remount context',
+    'Lose WebGL context',
+    'Restore WebGL context',
+  ]) {
+    const button = page.getByRole('button', { name: action });
+    await expect(button).toHaveAttribute('title', action);
+  }
 });
 
 test('captures, mutates, and manually refreshes DOM through every adapter', async ({
@@ -215,6 +270,7 @@ test('captures, mutates, and manually refreshes DOM through every adapter', asyn
     await expect.poll(() => readNumericAttribute(shell, 'data-capture-count'), {
       timeout: 15_000,
     }).toBeGreaterThan(0);
+    await expect(page.locator('#diagnostic-capture')).toContainText('ms');
     await converter.evaluate((element) => {
       Reflect.set(window, '__liquidGlassBackdropProbe', element);
     });

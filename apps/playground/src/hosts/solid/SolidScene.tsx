@@ -95,6 +95,7 @@ export function SolidScene(props: FrameworkHostProps): import('solid-js').JSX.El
   let converterHandle: BackdropConverterHandle | null = null;
   const contextOptions = (): GlassContextOptions => ({
     canvasZIndex: props.state.oracleMode ? 10 : undefined,
+    debug: props.state.debugEnabled,
     renderMode: props.state.renderMode,
     renderPrecision: resolveSceneRenderPrecision(props.state),
     scrollable: props.state.scrollable,

@@ -65,6 +65,10 @@ describe('Lab shell controls', () => {
       root,
       '[data-render-precision-output]',
     ).value).toBe('1.00x');
+    expect(requireElement<HTMLInputElement>(
+      root,
+      '[data-debug-toggle]',
+    ).checked).toBe(true);
     expect(root.querySelector(
       '[data-render-mode="uniform"]',
     )?.getAttribute('aria-pressed')).toBe('true');

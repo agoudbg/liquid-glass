@@ -34,6 +34,7 @@ export function ReactScene({
 }: FrameworkHostProps): React.JSX.Element {
   const contextOptions: GlassContextOptions = {
     canvasZIndex: state.oracleMode ? 10 : undefined,
+    debug: state.debugEnabled,
     renderMode: state.renderMode,
     renderPrecision: resolveSceneRenderPrecision(state),
     scrollable: state.scrollable,

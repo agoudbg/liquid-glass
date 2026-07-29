@@ -49,6 +49,22 @@ describe('playground URL state', () => {
     )).renderPrecision).toBe(1);
   });
 
+  it('parses and serializes the global diagnostics policy', () => {
+    expect(createInitialState(new URL(
+      'https://example.test/?debug=off',
+    )).debugEnabled).toBe(false);
+    expect(createInitialState(new URL(
+      'https://example.test/?debug=invalid',
+    )).debugEnabled).toBe(true);
+
+    const state = createInitialState(new URL(
+      'https://example.test/?debug=off',
+    ));
+    window.history.replaceState(null, '', '/');
+    replacePlaygroundUrl(state);
+    expect(new URL(window.location.href).searchParams.get('debug')).toBe('off');
+  });
+
   it('defaults S007 to forced fallback while preserving explicit overrides', () => {
     expect(createInitialState(new URL('https://example.test/?scene=S007')))
       .toMatchObject({ scene: 'S007', fallbackEnabled: true });

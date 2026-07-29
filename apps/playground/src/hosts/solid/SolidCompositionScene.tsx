@@ -35,12 +35,12 @@ export function SolidCompositionScene(
 ): import('solid-js').JSX.Element {
   const [outerContext, setOuterContext] = createSignal<GlassContext | null>(null);
   const outerOptions = (): GlassContextOptions => ({
-    debug: true,
+    debug: props.state.debugEnabled,
     renderMode: props.state.renderMode,
     renderPrecision: resolveSceneRenderPrecision(props.state),
   });
   const auxiliaryOptions = (): GlassContextOptions => ({
-    debug: true,
+    debug: props.state.debugEnabled,
     renderMode: 'uniform',
     renderPrecision: resolveSceneRenderPrecision(props.state),
   });

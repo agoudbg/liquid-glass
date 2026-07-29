@@ -109,6 +109,8 @@ export interface PlaygroundState {
   renderMode: RenderMode;
   /** Global backing-canvas scale shared by every scene and framework host. */
   renderPrecision: number;
+  /** Whether core publishes optional frame and capture measurements. */
+  debugEnabled: boolean;
   /** Whether the core-owned presentation canvas is visible. */
   glassEnabled: boolean;
   /** Whether the shell requests forced CSS fallback from the core context. */

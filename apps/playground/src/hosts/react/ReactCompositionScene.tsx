@@ -37,15 +37,15 @@ export function ReactCompositionScene({
   const [outerContext, setOuterContext] = useState<GlassContext | null>(null);
   const renderPrecision = resolveSceneRenderPrecision(state);
   const outerOptions = useMemo<GlassContextOptions>(() => ({
-    debug: true,
+    debug: state.debugEnabled,
     renderMode: state.renderMode,
     renderPrecision,
-  }), [renderPrecision, state.renderMode]);
+  }), [renderPrecision, state.debugEnabled, state.renderMode]);
   const auxiliaryOptions = useMemo<GlassContextOptions>(() => ({
-    debug: true,
+    debug: state.debugEnabled,
     renderMode: 'uniform',
     renderPrecision,
-  }), [renderPrecision]);
+  }), [renderPrecision, state.debugEnabled]);
   const materials = resolveCompositionMaterials(scene);
   const proxyTarget = scene === 'S010'
     ? outerContext?.createProxyInterface()

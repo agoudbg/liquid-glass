@@ -54,7 +54,7 @@ export const PLAYGROUND_MARKUP = `
           <button type="button" data-framework="solid">Solid</button>
         </div>
 
-        <label class="glass-toggle">
+        <label class="binary-toggle glass-toggle">
           <span>Glass</span>
           <input type="checkbox" data-testid="glass-toggle" />
           <span class="toggle-track" aria-hidden="true"><span></span></span>
@@ -89,10 +89,29 @@ export const PLAYGROUND_MARKUP = `
               <button type="button" data-action="refresh-backdrop">Refresh capture</button>
             </div>
 
-            <div class="scene-action-panel lifecycle-actions" data-scene-actions="S012">
-              <button type="button" data-action="remount-context">Remount</button>
-              <button type="button" data-action="lose-context">Lose context</button>
-              <button type="button" data-action="restore-context">Restore</button>
+            <div
+              class="scene-action-panel lifecycle-actions"
+              data-scene-actions="S012"
+              aria-label="Context diagnostic actions"
+            >
+              <button
+                type="button"
+                data-action="remount-context"
+                title="Remount context"
+                aria-label="Remount context"
+              ><span aria-hidden="true">&#8634;</span></button>
+              <button
+                type="button"
+                data-action="lose-context"
+                title="Lose WebGL context"
+                aria-label="Lose WebGL context"
+              ><span aria-hidden="true">&#8722;</span></button>
+              <button
+                type="button"
+                data-action="restore-context"
+                title="Restore WebGL context"
+                aria-label="Restore WebGL context"
+              ><span aria-hidden="true">&#10227;</span></button>
             </div>
 
             <div class="mode-control viewport-control" data-scene-controls="S006">
@@ -119,6 +138,12 @@ export const PLAYGROUND_MARKUP = `
               value="${DEFAULT_RENDER_PRECISION}"
               data-render-precision-control
             />
+          </label>
+
+          <label class="binary-toggle debug-toggle">
+            <span>Live diagnostics</span>
+            <input type="checkbox" data-debug-toggle />
+            <span class="toggle-track" aria-hidden="true"><span></span></span>
           </label>
 
           <div class="mode-control shared-render-mode-control">
@@ -155,8 +180,8 @@ export const PLAYGROUND_MARKUP = `
       <dl>
         <div><dt>Host</dt><dd id="diagnostic-framework">Vue</dd></div>
         <div><dt>Scene</dt><dd id="diagnostic-scene">S001</dd></div>
-        <div><dt>Frames</dt><dd id="diagnostic-frames">0</dd></div>
-        <div><dt>Captures</dt><dd id="diagnostic-captures">0</dd></div>
+        <div><dt>FPS</dt><dd id="diagnostic-fps">--</dd></div>
+        <div><dt>Capture</dt><dd id="diagnostic-capture">--</dd></div>
         <div><dt>Canvas</dt><dd id="diagnostic-canvas">0 &times; 0</dd></div>
         <div><dt>Contexts</dt><dd id="diagnostic-contexts">0 live</dd></div>
         <div><dt>Resources</dt><dd id="diagnostic-resources">0 live</dd></div>

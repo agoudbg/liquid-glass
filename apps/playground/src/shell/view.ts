@@ -23,6 +23,8 @@ export class PlaygroundShellView {
   public readonly sceneSelect: HTMLSelectElement;
   /** Static global control for the backing-canvas render scale. */
   public readonly renderPrecisionInput: HTMLInputElement;
+  /** Static global toggle for optional core measurements. */
+  public readonly debugToggle: HTMLInputElement;
   private readonly renderPrecisionOutput: HTMLOutputElement;
   private readonly refreshBackdropButtons: HTMLButtonElement[];
 
@@ -37,6 +39,9 @@ export class PlaygroundShellView {
     );
     this.renderPrecisionInput = this.requireElement<HTMLInputElement>(
       '[data-render-precision-control]',
+    );
+    this.debugToggle = this.requireElement<HTMLInputElement>(
+      '[data-debug-toggle]',
     );
     this.renderPrecisionOutput = this.requireElement<HTMLOutputElement>(
       '[data-render-precision-output]',
@@ -119,6 +124,7 @@ export class PlaygroundShellView {
     }
 
     this.glassToggle.checked = state.glassEnabled;
+    this.debugToggle.checked = state.debugEnabled;
     this.renderPrecisionInput.value = String(state.renderPrecision);
     this.renderPrecisionOutput.value = `${state.renderPrecision.toFixed(2)}x`;
     renderLabWorkbench(this.app, state);
@@ -142,6 +148,7 @@ export class PlaygroundShellView {
     this.app.dataset.scene = state.scene;
     this.app.dataset.renderMode = state.renderMode;
     this.app.dataset.renderPrecision = String(state.renderPrecision);
+    this.app.dataset.debug = state.debugEnabled ? 'on' : 'off';
     this.app.dataset.glass = state.glassEnabled ? 'on' : 'off';
     this.app.dataset.fallbackRequest = state.fallbackEnabled ? 'on' : 'off';
     this.app.dataset.viewportRequest = state.viewportEnabled ? 'on' : 'off';
@@ -184,8 +191,14 @@ export class PlaygroundShellView {
         report.fallbackMode ? 'CSS FILTER' : 'WEBGL2'
       } · ${state.renderMode.toUpperCase()}`,
     );
-    this.setText('#diagnostic-frames', String(report.frameCount));
-    this.setText('#diagnostic-captures', String(report.captureCount));
+    this.setText(
+      '#diagnostic-fps',
+      formatMeasurement(audit.primary?.metrics?.framesPerSecond, 'fps'),
+    );
+    this.setText(
+      '#diagnostic-capture',
+      formatMeasurement(audit.primary?.metrics?.lastCaptureDurationMs, 'ms'),
+    );
     this.setText(
       '#diagnostic-canvas',
       `${String(report.canvasWidth)} × ${String(report.canvasHeight)}`,
@@ -244,4 +257,10 @@ export class PlaygroundShellView {
 
 function capitalize(value: string): string {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+}
+
+function formatMeasurement(value: number | null | undefined, unit: string): string {
+  return value === null || value === undefined
+    ? '--'
+    : `${value.toFixed(1)} ${unit}`;
 }

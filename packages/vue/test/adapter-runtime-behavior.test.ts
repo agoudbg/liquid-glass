@@ -166,6 +166,40 @@ describe('Vue adapter runtime behavior', () => {
     expect(materialHandle.destroy).toHaveBeenCalledTimes(1);
   });
 
+  it('emits background changes only when the sampled theme mode changes', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const wrapper = mount(LiquidGlassMaterial, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    expect(wrapper.emitted('backgroundColorChange')).toBeUndefined();
+    materialHandle.emitPresentation(createPresentation({ blurred: true }));
+    expect(wrapper.emitted('backgroundColorChange')).toBeUndefined();
+    materialHandle.emitPresentation(createPresentation({ themeColorMode: 'dark' }));
+    materialHandle.emitPresentation(createPresentation({
+      blurred: true,
+      themeColorMode: 'dark',
+    }));
+    materialHandle.emitPresentation(createPresentation({
+      themeColorMode: 'ultra_light',
+    }));
+
+    expect(wrapper.emitted('backgroundColorChange')).toEqual([
+      ['dark'],
+      ['ultra_light'],
+    ]);
+    wrapper.unmount();
+    expect(materialHandle.presentationUnsubscribed).toHaveBeenCalledTimes(2);
+  });
+
   it('bridges pointer input and applies presentation snapshots without consuming child events', async () => {
     const materialHandle = createMaterialHandle();
     const harness = createContextHarness(materialHandle);
@@ -238,6 +272,6 @@ describe('Vue adapter runtime behavior', () => {
     expect(wrapper.get('.liquid-glass-highlight').classes()).toContain('visible');
 
     wrapper.unmount();
-    expect(materialHandle.presentationUnsubscribed).toHaveBeenCalledTimes(1);
+    expect(materialHandle.presentationUnsubscribed).toHaveBeenCalledTimes(2);
   });
 });

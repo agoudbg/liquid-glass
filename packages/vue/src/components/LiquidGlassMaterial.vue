@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type {
+  AutomaticBackgroundColorMode,
   MaterialChanges,
   MaterialConfig,
   MaterialHandle,
@@ -32,6 +33,10 @@ const props = withDefaults(defineProps<LiquidGlassMaterialProps>(), {
   illuminationAngle: 45,
   illuminationIntensity: 0.5,
 });
+const emit = defineEmits<{
+  /** Emitted when backdrop sampling changes the effective material theme. */
+  backgroundColorChange: [themeColorMode: AutomaticBackgroundColorMode];
+}>();
 
 const { context } = useLiquidGlassContext();
 const materialElement = ref<HTMLElement | null>(null);
@@ -122,11 +127,22 @@ watch(
       registration,
       materialAppearance(),
     );
+    let themeColorMode: AutomaticBackgroundColorMode | null = null;
+    const stopThemeFeedback = registration.onPresentation((snapshot) => {
+      if (themeColorMode === null) {
+        themeColorMode = snapshot.themeColorMode;
+        return;
+      }
+      if (themeColorMode === snapshot.themeColorMode) return;
+      themeColorMode = snapshot.themeColorMode;
+      emit('backgroundColorChange', themeColorMode);
+    });
     handle.value = registration;
     pointerController = pointer;
     presentationController = presentation;
 
     onCleanup(() => {
+      stopThemeFeedback();
       presentation.destroy();
       unbindPointerEvents();
       pointer.destroy();

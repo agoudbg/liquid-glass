@@ -143,6 +143,24 @@ screenshots are committed beside `tests/browser/workbench-visual.spec.ts`.
 | S013 SSR imports | CMP-018, PKG-001, PKG-003 through PKG-005 | `test-packed-consumers.mjs` cold-imports every installed tarball entry point in Node without browser globals; the Solid package selects its dedicated `node` build |
 | S014 Packed consumers | PKG-001, PKG-003 through PKG-005, PKG-013, VUE-001 through VUE-014 | `test-packed-consumers.mjs` inspects all four tarballs, then installs, typechecks, builds, previews, and proves non-empty glass in isolated Vue, React, and Solid consumers |
 
+## P8 release evidence
+
+- `test-packed-consumers.mjs` builds and inspects all four tarballs, requires
+  declarations, styles, conditional exports, README, LICENSE, resolved
+  dependency protocols, and no source/test leakage, then runs isolated Vue,
+  React, and Solid consumers.
+- The formal Chrome 150 runtime comparison recorded candidate/legacy P95 frame
+  medians of `25.0 ms`/`25.1 ms`, capture medians of
+  `17.3 ms`/`64.9 ms`, and long-task medians of `0`/`11`.
+- The five-minute lifecycle soak ran for `302.1 s` across 139 alternating
+  scene/framework actions and ended with zero active contexts, live resources,
+  retired resources, or WebGL errors.
+- Root and package READMEs, API reference, migration guide, troubleshooting,
+  browser/SSR scope, visual baseline policy, release notes, and MIT license
+  define the supported release surface.
+- [Visual baseline policy](../VISUAL_BASELINES.md) separates committed
+  compatibility evidence from transient actual/diff/runtime artifacts.
+
 Every implementation phase must update this ledger when evidence changes. A
 green unit test does not close a visual row, and a non-empty canvas does not
 prove an optical row without a glass-on versus glass-off difference.

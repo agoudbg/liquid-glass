@@ -49,6 +49,15 @@ export default tseslint.config(
     },
   },
   {
+    files: ['scripts/runtime-acceptance/**/*.{js,mjs}'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+      },
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     extends: [...tseslint.configs.recommended],
     languageOptions: {
@@ -80,6 +89,7 @@ export default tseslint.config(
       'packages/vue/**/*.vue',
       'apps/playground/**/*.vue',
       'tests/consumers/vue/**/*.vue',
+      'tests/runtime/**/*.vue',
     ],
     languageOptions: {
       globals: globals.browser,

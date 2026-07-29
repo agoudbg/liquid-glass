@@ -21,4 +21,11 @@ if (!mountPoint) {
 }
 
 mountPoint.innerHTML = PLAYGROUND_MARKUP;
-bootstrapPlaygroundShell(mountPoint);
+const controller = bootstrapPlaygroundShell(mountPoint);
+if (controller.state.testMode) {
+  window.addEventListener(
+    'liquid-glass-playground-test-teardown',
+    () => controller.destroy(),
+    { once: true },
+  );
+}

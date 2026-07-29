@@ -208,6 +208,27 @@ test('releases every resource through 20 framework switches and remounts', async
   expect(runtimeErrors).toEqual([]);
 });
 
+test('returns every tracked resource to zero through the test teardown hook', async ({
+  page,
+}) => {
+  await page.goto('/?test=1&framework=vue&scene=S009', {
+    waitUntil: 'domcontentloaded',
+  });
+  const shell = page.locator('#app');
+  await waitForReady(page);
+  await expect(shell).toHaveAttribute('data-active-contexts', '2');
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('liquid-glass-playground-test-teardown'));
+  });
+
+  await expect(shell).toHaveAttribute('data-active-contexts', '0');
+  await expect(shell).toHaveAttribute('data-live-resources', '0');
+  await expect(shell).toHaveAttribute('data-retired-resources', '0');
+  await expect(shell).toHaveAttribute('data-retired-contexts', '2');
+  await expect(shell).toHaveAttribute('data-retired-destroyed-contexts', '2');
+});
+
 test('keeps nested and delegated scenes live across resize, removal, and remount', async ({
   page,
 }) => {

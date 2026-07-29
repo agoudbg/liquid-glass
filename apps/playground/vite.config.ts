@@ -42,5 +42,11 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      input: {
+        main: source('index.html'),
+        performance: source('performance.html'),
+      },
+    },
   },
 });

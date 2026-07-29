@@ -361,6 +361,7 @@ export function bootstrapPlaygroundShell(app: HTMLElement): PlaygroundShellContr
       activeBackdropRefresh = null;
       view.setBackdropRefreshAvailable(false);
       retireMountedContexts();
+      renderDiagnostics();
     },
   };
 }

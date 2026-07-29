@@ -1,0 +1,116 @@
+:root {
+  color-scheme: light;
+  background: #101a26;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  letter-spacing: 0;
+}
+
+html,
+body,
+#app,
+.oracle-root {
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow-x: hidden;
+}
+
+.oracle-root *,
+.oracle-root *::before,
+.oracle-root *::after {
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+}
+
+.scene-stage {
+  width: 100vw;
+  height: 100vh;
+  min-height: 720px;
+  padding: 42px;
+  background: #101a26;
+}
+
+.oracle-glass {
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.oracle-material {
+  position: absolute !important;
+  z-index: 20;
+  display: grid !important;
+  place-content: center;
+  gap: 8px;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.dom-backdrop {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  overflow: hidden;
+  background: #edf2f4;
+}
+
+.dom-stripe {
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.stripe-one {
+  background: #fca311;
+  color: #14213d;
+}
+
+.stripe-two {
+  background: #2a9d8f;
+  color: #f7fff7;
+}
+
+.stripe-three {
+  background: #d1495b;
+  color: #fff;
+}
+
+.dom-backdrop button {
+  position: absolute;
+  right: 36px;
+  bottom: 32px;
+}
+
+.s003-material {
+  top: 250px !important;
+  left: 475px !important;
+  width: 420px !important;
+  height: 220px !important;
+}
+
+.interaction-row {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 54px;
+}
+
+.interaction-material {
+  position: relative !important;
+  width: 270px !important;
+  height: 170px !important;
+}

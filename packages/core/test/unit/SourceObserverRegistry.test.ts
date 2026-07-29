@@ -289,16 +289,26 @@ describe('SourceObserverRegistry', () => {
     const canvas = {
       parentElement: null,
       getBoundingClientRect: () => domRect({
+        x: -100,
+        y: -100,
+        width: 1,
+        height: 1,
+      }),
+    } as unknown as HTMLCanvasElement;
+    const canvasBounds = {
+      parentElement: null,
+      getBoundingClientRect: () => domRect({
         x: canvasState.x,
         y: 0,
         width: 200,
         height: 100,
       }),
-    } as unknown as HTMLCanvasElement;
+    } as unknown as HTMLElement;
     const canvasRegistration: CanvasBackdropRegistration = {
       id: 'canvas-observed',
       canvas,
       config: {
+        boundsElement: canvasBounds,
         kind: 'canvas',
         draw: () => undefined,
         element: canvas,
@@ -309,7 +319,7 @@ describe('SourceObserverRegistry', () => {
       dirty: false,
     };
     registry.track(canvasRegistration);
-    expect(resizeRecords[1]?.observed).toEqual([canvas]);
+    expect(resizeRecords[1]?.observed).toEqual([canvasBounds]);
     canvasState.x = 25;
     mutationCallbacks[0]?.([], {} as MutationObserver);
     expect(onInvalidate).toHaveBeenLastCalledWith(

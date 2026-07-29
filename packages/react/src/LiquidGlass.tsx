@@ -1,7 +1,11 @@
 import type { GlassContext, GlassContextOptions } from '@agou/liquid-glass-core';
-import { GlassEngine } from '@agou/liquid-glass-core';
+import {
+  connectNestedGlassContexts,
+  GlassEngine,
+} from '@agou/liquid-glass-core';
 import {
   forwardRef,
+  useContext,
   useEffect,
   useImperativeHandle,
   useMemo,
@@ -28,6 +32,8 @@ export const LiquidGlass = forwardRef<LiquidGlassHandle, LiquidGlassProps>(
   ) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [context, setContext] = useState<GlassContext | null>(null);
+    const parentContextValue = useContext(LiquidGlassContext);
+    const parentContext = parentContextValue?.context ?? null;
     const onErrorRef = useRef(onError);
     const onReadyRef = useRef(onReady);
     const initialEngineRef = useRef(providedEngine);
@@ -111,6 +117,24 @@ export const LiquidGlass = forwardRef<LiquidGlassHandle, LiquidGlassProps>(
     useEffect(() => {
       context?.updateOptions(contextOptions);
     }, [context, contextOptions]);
+
+    useEffect(() => {
+      const childContainer = containerRef.current;
+      if (!parentContext || !context || !childContainer) {
+        return undefined;
+      }
+      try {
+        const connection = connectNestedGlassContexts(
+          parentContext,
+          context,
+          childContainer,
+        );
+        return () => connection.destroy();
+      } catch (error: unknown) {
+        onErrorRef.current?.(error);
+        return undefined;
+      }
+    }, [context, parentContext]);
 
     useImperativeHandle(forwardedRef, () => ({
       getContext: () => context,

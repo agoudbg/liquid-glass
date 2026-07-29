@@ -14,6 +14,7 @@ interface ContextHarness {
   addBackdropSource: ReturnType<typeof vi.fn>;
   addMaterial: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
+  refresh: ReturnType<typeof vi.fn>;
   updateOptions: ReturnType<typeof vi.fn>;
 }
 
@@ -107,6 +108,7 @@ export function createContextHarness(
   const addBackdropSource = vi.fn(() => backdropHandle);
   const addMaterial = vi.fn(() => materialHandle);
   const destroy = vi.fn();
+  const refresh = vi.fn();
   const updateOptions = vi.fn();
   const context = {
     addBackdropSource,
@@ -116,7 +118,7 @@ export function createContextHarness(
     destroy,
     off: vi.fn(),
     on: vi.fn(() => vi.fn()),
-    refresh: vi.fn(),
+    refresh,
     setFallbackMode: vi.fn(),
     setViewportMode: vi.fn(),
     updateOptions,
@@ -127,6 +129,7 @@ export function createContextHarness(
     addBackdropSource,
     addMaterial,
     destroy,
+    refresh,
     updateOptions,
   };
 }

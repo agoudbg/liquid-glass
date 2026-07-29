@@ -28,6 +28,10 @@ describe('public core contract', () => {
 
     expectTypeOf<CanvasBackdropSourceConfig['element']>()
       .toEqualTypeOf<HTMLCanvasElement>();
+    expectTypeOf<CanvasBackdropSourceConfig['boundsElement']>()
+      .toEqualTypeOf<HTMLElement | undefined>();
+    expectTypeOf<CanvasBackdropSourceConfig['mirrorToElement']>()
+      .toEqualTypeOf<boolean | undefined>();
 
     expectTypeOf<ReturnType<ProxyInterface['registerExternalMaterial']>>().toMatchTypeOf<{
       readonly id: string;

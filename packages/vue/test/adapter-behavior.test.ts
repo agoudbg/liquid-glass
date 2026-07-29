@@ -10,6 +10,7 @@ import {
 import LiquidGlass from '../src/components/LiquidGlass.vue';
 import LiquidGlassMaterial from '../src/components/LiquidGlassMaterial.vue';
 import {
+  createBackdropHandle,
   createContextHarness,
   createEngine,
   createMaterialHandle,
@@ -20,6 +21,45 @@ afterEach(() => {
 });
 
 describe('Vue adapter behavior', () => {
+  it('samples a nested context through the nearest parent lifecycle', async () => {
+    const parentBackdrop = createBackdropHandle();
+    const parentHarness = createContextHarness(
+      createMaterialHandle('parent-material'),
+      parentBackdrop,
+    );
+    const childHarness = createContextHarness(
+      createMaterialHandle('child-material'),
+    );
+    const parentEngine = createEngine(parentHarness.context);
+    const childEngine = createEngine(childHarness.context);
+    const wrapper = mount(LiquidGlass, {
+      props: { engine: parentEngine.engine },
+      slots: {
+        default: () => h(LiquidGlass, {
+          engine: childEngine.engine,
+        }),
+      },
+    });
+
+    await nextTick();
+    await nextTick();
+
+    expect(parentHarness.addBackdropSource).toHaveBeenCalledTimes(1);
+    const containers = wrapper.findAll('.liquid-glass-container');
+    expect(parentHarness.addBackdropSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boundsElement: containers[1]?.element,
+        kind: 'canvas',
+        watchPositionChanges: true,
+        watchResize: true,
+      }),
+    );
+    expect(childHarness.refresh).toHaveBeenCalledWith('structural');
+
+    wrapper.unmount();
+    expect(parentBackdrop.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a direct scrollable content layer for core ownership', async () => {
     const harness = createContextHarness();
     const engine = createEngine(harness.context);

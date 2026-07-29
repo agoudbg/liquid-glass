@@ -83,6 +83,7 @@ function createContextHarness() {
   const addMaterial = vi.fn((_config: Parameters<GlassContext['addMaterial']>[0]) => material.handle);
   const addBackdropSource = vi.fn((_config: CanvasBackdropSourceConfig) => backdrop.handle);
   const destroy = vi.fn<GlassContext['destroy']>();
+  const refresh = vi.fn<GlassContext['refresh']>();
   const updateOptions = vi.fn<(options: GlassContextOptions) => void>();
   const context = {
     addBackdropSource,
@@ -93,7 +94,7 @@ function createContextHarness() {
     destroyed: false,
     off: vi.fn(),
     on: vi.fn(() => vi.fn()),
-    refresh: vi.fn(),
+    refresh,
     setFallbackMode: vi.fn(),
     setViewportMode: vi.fn(),
     updateOptions,
@@ -105,6 +106,7 @@ function createContextHarness() {
     context,
     destroy,
     material,
+    refresh,
     updateOptions,
   };
 }
@@ -129,6 +131,37 @@ afterEach(() => {
 });
 
 describe('React adapter lifecycle', () => {
+  it('samples a nested context through the nearest parent lifecycle', async () => {
+    const parentHarness = createContextHarness();
+    const childHarness = createContextHarness();
+    const parentEngine = createEngineHarness(parentHarness.context);
+    const childEngine = createEngineHarness(childHarness.context);
+    const mounted = render(
+      <LiquidGlass engine={parentEngine.engine}>
+        <LiquidGlass engine={childEngine.engine} />
+      </LiquidGlass>,
+    );
+
+    await waitFor(() => {
+      expect(parentHarness.addBackdropSource).toHaveBeenCalledTimes(1);
+    });
+    const containers = mounted.container.querySelectorAll(
+      '.liquid-glass-container',
+    );
+    expect(parentHarness.addBackdropSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boundsElement: containers[1],
+        kind: 'canvas',
+        watchPositionChanges: true,
+        watchResize: true,
+      }),
+    );
+    expect(childHarness.refresh).toHaveBeenCalledWith('structural');
+
+    mounted.unmount();
+    expect(parentHarness.backdrop.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a direct scrollable content layer for core ownership', async () => {
     const contextHarness = createContextHarness();
     const engineHarness = createEngineHarness(contextHarness.context);

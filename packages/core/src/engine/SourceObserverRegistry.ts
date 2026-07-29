@@ -6,7 +6,10 @@ import {
 import { findClippingAncestors } from './capture-viewport-policy';
 import type { ObserverResourceState } from './diagnostics-internal';
 import type { BackdropRegistration } from './registrations';
-import { isDomBackdropRegistration } from './registrations';
+import {
+  getBackdropBoundsElement,
+  isDomBackdropRegistration,
+} from './registrations';
 import type { GlassEngineRuntime } from './runtime';
 
 interface SourceObservation {
@@ -44,7 +47,7 @@ export class SourceObserverRegistry {
   /** Start observing a newly registered backdrop source. */
   public track(registration: BackdropRegistration): void {
     this.untrack(registration);
-    const rect = registration.config.element.getBoundingClientRect();
+    const rect = getBackdropBoundsElement(registration).getBoundingClientRect();
     const observation: SourceObservation = {
       imageCleanups: [],
       lastPosition: { x: rect.x, y: rect.y },
@@ -128,7 +131,7 @@ export class SourceObserverRegistry {
     }
     observation.resizeObserver = observer;
     if (watchSource) {
-      observer.observe(registration.config.element);
+      observer.observe(getBackdropBoundsElement(registration));
       if (isDomBackdropRegistration(registration)) {
         const firstChild = registration.config.element.firstElementChild;
         if (firstChild) {
@@ -181,15 +184,15 @@ export class SourceObserverRegistry {
       if (registration.destroyed) {
         return;
       }
-      const rect = registration.config.element.getBoundingClientRect();
+      const boundsElement = getBackdropBoundsElement(registration);
+      const rect = boundsElement.getBoundingClientRect();
       const moved = Math.abs(rect.x - observation.lastPosition.x) > 0.5
         || Math.abs(rect.y - observation.lastPosition.y) > 0.5;
       observation.lastPosition = { x: rect.x, y: rect.y };
       if (moved) {
         this.onInvalidate(registration, 'layout', false);
       }
-      const nextTarget = registration.config.element.parentElement
-        ?? registration.config.element;
+      const nextTarget = boundsElement.parentElement ?? boundsElement;
       if (nextTarget !== observation.positionTarget) {
         observation.positionObserver?.disconnect();
         observation.positionObserver = null;
@@ -201,8 +204,8 @@ export class SourceObserverRegistry {
       return;
     }
     observation.positionObserver = observer;
-    observation.positionTarget = registration.config.element.parentElement
-      ?? registration.config.element;
+    const boundsElement = getBackdropBoundsElement(registration);
+    observation.positionTarget = boundsElement.parentElement ?? boundsElement;
     observer.observe(observation.positionTarget, {
       attributes: true,
       characterData: true,

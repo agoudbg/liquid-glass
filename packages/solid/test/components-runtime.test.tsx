@@ -20,6 +20,36 @@ afterEach(() => {
 });
 
 describe('Solid adapter runtime behavior', () => {
+  it('samples a nested context through the nearest parent lifecycle', async () => {
+    const parentHarness = createContextHarness();
+    const childHarness = createContextHarness();
+    const parentEngine = createEngineHarness(parentHarness.context);
+    const childEngine = createEngineHarness(childHarness.context);
+    const dispose = mountSolid(() => (
+      <LiquidGlass engine={parentEngine.engine}>
+        <LiquidGlass engine={childEngine.engine} />
+      </LiquidGlass>
+    ));
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(parentHarness.addBackdropSource).toHaveBeenCalledTimes(1);
+    const containers = document.querySelectorAll('.liquid-glass-container');
+    expect(parentHarness.addBackdropSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        boundsElement: containers[1],
+        kind: 'canvas',
+        watchPositionChanges: true,
+        watchResize: true,
+      }),
+    );
+    expect(childHarness.refresh).toHaveBeenCalledWith('structural');
+
+    dispose();
+    expect(parentHarness.backdrop.destroy).toHaveBeenCalledTimes(1);
+  });
+
   it('updates a backdrop draw callback without an additional explicit refresh', async () => {
     const drawingContext = {
       setTransform: vi.fn(),

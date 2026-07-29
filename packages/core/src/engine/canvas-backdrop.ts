@@ -4,6 +4,7 @@ import type {
   CanvasBackdropRegistration,
 } from './registrations';
 import {
+  getBackdropBoundsElement,
   isCanvasBackdropRegistration,
   isDomBackdropRegistration,
 } from './registrations';
@@ -110,7 +111,7 @@ export function drawBackdropComposite(
   );
 
   for (const source of orderedSources) {
-    const sourceRect = source.config.element.getBoundingClientRect();
+    const sourceRect = getBackdropBoundsElement(source).getBoundingClientRect();
     if (isCanvasBackdropRegistration(source)) {
       const configuredScale = source.config.scale ?? 1;
       const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
@@ -129,7 +130,9 @@ export function drawBackdropComposite(
           sourceRect.height,
           effectiveScale,
         );
-        mirrorToVisibleCanvas(source);
+        if (source.config.mirrorToElement !== false) {
+          mirrorToVisibleCanvas(source);
+        }
         source.dirty = false;
         captures.push({
           id: source.id,

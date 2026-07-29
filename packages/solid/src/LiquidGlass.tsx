@@ -1,5 +1,8 @@
 import type { GlassContextOptions } from '@agou/liquid-glass-core';
-import { GlassEngine } from '@agou/liquid-glass-core';
+import {
+  connectNestedGlassContexts,
+  GlassEngine,
+} from '@agou/liquid-glass-core';
 import {
   createEffect,
   createSignal,
@@ -7,6 +10,7 @@ import {
   onMount,
   splitProps,
   untrack,
+  useContext,
 } from 'solid-js';
 
 import { LiquidGlassContext } from './LiquidGlassContext';
@@ -26,6 +30,7 @@ export function LiquidGlass(props: LiquidGlassProps): import('solid-js').JSX.Ele
   const [context, setContext] = createSignal<
     import('@agou/liquid-glass-core').GlassContext | null
   >(null);
+  const parentContextValue = useContext(LiquidGlassContext);
   let container: HTMLDivElement | undefined;
   let ownedEngine: GlassEngine | null = null;
 
@@ -79,6 +84,24 @@ export function LiquidGlass(props: LiquidGlassProps): import('solid-js').JSX.Ele
       return;
     }
     mountedContext.updateOptions(readOptions());
+  });
+
+  createEffect(() => {
+    const parentContext = parentContextValue?.context() ?? null;
+    const childContext = context();
+    if (!parentContext || !childContext || !container) {
+      return;
+    }
+    try {
+      const connection = connectNestedGlassContexts(
+        parentContext,
+        childContext,
+        container,
+      );
+      onCleanup(() => connection.destroy());
+    } catch (error: unknown) {
+      local.onError?.(error);
+    }
   });
 
   onCleanup(() => {

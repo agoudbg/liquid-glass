@@ -102,6 +102,7 @@ export function createContextHarness(
   const addMaterial = vi.fn((_config: Parameters<GlassContext['addMaterial']>[0]) => material.handle);
   const addBackdropSource = vi.fn((_config: CanvasBackdropSourceConfig) => backdrop.handle);
   const destroy = vi.fn<GlassContext['destroy']>();
+  const refresh = vi.fn<GlassContext['refresh']>();
   const updateOptions = vi.fn<(options: GlassContextOptions) => void>();
   const context = {
     addBackdropSource,
@@ -112,7 +113,7 @@ export function createContextHarness(
     destroyed: false,
     off: vi.fn(),
     on: vi.fn(() => vi.fn()),
-    refresh: vi.fn(),
+    refresh,
     setFallbackMode: vi.fn(),
     setViewportMode: vi.fn(),
     updateOptions,
@@ -124,6 +125,7 @@ export function createContextHarness(
     context,
     destroy,
     material,
+    refresh,
     updateOptions,
   };
 }

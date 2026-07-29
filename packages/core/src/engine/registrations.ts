@@ -56,6 +56,20 @@ export function isCanvasBackdropRegistration(
   return registration.config.kind === 'canvas';
 }
 
+/**
+ * Resolve the DOM element that positions one backdrop inside its context.
+ *
+ * @param registration - Backdrop registration being measured.
+ * @returns The explicit canvas bounds element or the source element itself.
+ */
+export function getBackdropBoundsElement(
+  registration: BackdropRegistration,
+): HTMLElement {
+  return isCanvasBackdropRegistration(registration)
+    ? registration.config.boundsElement ?? registration.config.element
+    : registration.config.element;
+}
+
 /** Narrow a backdrop registration to a DOM capture source. */
 export function isDomBackdropRegistration(
   registration: BackdropRegistration,

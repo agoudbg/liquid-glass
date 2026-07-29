@@ -154,6 +154,10 @@ export interface CanvasBackdropSourceConfig extends BaseBackdropSourceConfig {
   kind: 'canvas';
   /** Visible canvas receiving a copy of the core-owned authoritative bitmap. */
   element: HTMLCanvasElement;
+  /** Optional element whose layout bounds position the canvas in the context. */
+  boundsElement?: HTMLElement;
+  /** Whether the authoritative bitmap is copied back into `element`. */
+  mirrorToElement?: boolean;
   /** Callback invoked whenever the source needs to be redrawn. */
   draw: CustomDrawCallback;
 }

@@ -117,7 +117,13 @@ describe('GlassContext render ownership', () => {
     const harness = createRuntimeHarness(1.5);
     const container = new FakeElement({ x: 10, y: 20, width: 201, height: 99 });
     const backdrop = new FakeCanvas();
-    backdrop.setClientRect(domRect({ x: 10, y: 20, width: 201, height: 99 }));
+    backdrop.setClientRect(domRect({ x: 0, y: 0, width: 0, height: 0 }));
+    const backdropBounds = new FakeElement({
+      x: 10,
+      y: 20,
+      width: 201,
+      height: 99,
+    });
     const context = new GlassEngine(harness.runtime).createContext(
       container as unknown as HTMLElement,
     );
@@ -154,11 +160,13 @@ describe('GlassContext render ownership', () => {
     });
 
     context.addBackdropSource({
+      boundsElement: backdropBounds as unknown as HTMLElement,
       draw: () => undefined,
       element: backdrop as unknown as HTMLCanvasElement,
       kind: 'canvas',
     });
 
+    expect(backdrop).toMatchObject({ width: 302, height: 149 });
     expect(eventOrder).toEqual([
       'compositeRequested',
       'backdropCaptured',
@@ -208,6 +216,34 @@ describe('GlassContext render ownership', () => {
         ],
       },
     ]);
+    context.destroy();
+  });
+
+  it('keeps non-presented canvas sources off their identity element', () => {
+    const harness = createRuntimeHarness(2);
+    const container = new FakeElement({ x: 0, y: 0, width: 120, height: 60 });
+    const identityCanvas = new FakeCanvas();
+    identityCanvas.setClientRect(domRect({
+      x: 0,
+      y: 0,
+      width: 120,
+      height: 60,
+    }));
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+
+    context.addBackdropSource({
+      draw: () => undefined,
+      element: identityCanvas as unknown as HTMLCanvasElement,
+      kind: 'canvas',
+      mirrorToElement: false,
+    });
+
+    const authoritativeCanvas = harness.canvases[5];
+    expect(authoritativeCanvas).toMatchObject({ width: 240, height: 120 });
+    expect(identityCanvas).toMatchObject({ width: 1, height: 1 });
+    expect(identityCanvas.context2d.calls).toEqual([]);
     context.destroy();
   });
 

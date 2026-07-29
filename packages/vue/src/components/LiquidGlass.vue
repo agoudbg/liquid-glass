@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import type { GlassContext, GlassContextOptions } from '@agou/liquid-glass-core';
-import { GlassEngine } from '@agou/liquid-glass-core';
+import type {
+  GlassContext,
+  GlassContextOptions,
+  NestedContextHandle,
+} from '@agou/liquid-glass-core';
+import {
+  connectNestedGlassContexts,
+  GlassEngine,
+} from '@agou/liquid-glass-core';
 import {
   computed,
+  inject,
   onBeforeUnmount,
   onMounted,
   provide,
@@ -33,8 +41,10 @@ const emit = defineEmits<{
 
 const container = ref<HTMLElement | null>(null);
 const context = shallowRef<GlassContext | null>(null);
+const nestedContext = shallowRef<NestedContextHandle | null>(null);
 let ownedEngine: GlassEngine | null = null;
 
+const parentInjection = inject(LIQUID_GLASS_CONTEXT_KEY, null);
 provide(LIQUID_GLASS_CONTEXT_KEY, { context });
 
 const contextOptions = computed<GlassContextOptions>(() => {
@@ -86,7 +96,37 @@ watch(contextOptions, (options) => {
   context.value?.updateOptions(options);
 }, { deep: true });
 
+watch(
+  [
+    () => parentInjection?.context.value ?? null,
+    context,
+    container,
+  ],
+  ([parentContext, childContext, childContainer], _previous, onCleanup) => {
+    if (!parentContext || !childContext || !childContainer) return;
+    try {
+      const connection = connectNestedGlassContexts(
+        parentContext,
+        childContext,
+        childContainer,
+      );
+      nestedContext.value = connection;
+      onCleanup(() => {
+        connection.destroy();
+        if (nestedContext.value === connection) {
+          nestedContext.value = null;
+        }
+      });
+    } catch (error: unknown) {
+      emit('error', error);
+    }
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(() => {
+  nestedContext.value?.destroy();
+  nestedContext.value = null;
   context.value?.destroy();
   context.value = null;
   ownedEngine?.destroy();

@@ -123,10 +123,11 @@ An isolated copy of the oracle commit completed `pnpm build:demo` with Vite.
 The legacy `vue-tsc` project-reference configuration fails with TS6310, so its
 type-check result is not a quality baseline.
 
-The durable visual oracle was captured in installed Google Chrome
-`150.0.7871.129`, headless and isolated, with a 1440 by 900 CSS viewport at DPR
-1 and DPR 2. Physical screenshots are 1440 by 900 and 2880 by 1800
-respectively. All scenarios recorded zero `console.error` and `pageerror`
+The durable visual oracle was captured in the official Chrome for Testing
+`150.0.7871.129` distribution, headless and isolated, with a 1440 by 900 CSS
+viewport at DPR 1 and DPR 2. Its archive and runtime distribution files are
+content-addressed in the gate. Physical screenshots are 1440 by 900 and 2880 by
+1800 respectively. All scenarios recorded zero `console.error` and `pageerror`
 events.
 
 | Scenario | Legacy capability | Runs per DPR | Max self-diff | Glass-on/off diff |
@@ -213,5 +214,15 @@ Always reconstruct the legacy app from the Git commit, never from the active
 rewrite tree. Run `scripts/legacy/capture-legacy-oracle.ps1`; it exports the
 commit into an isolated temporary copy, installs with a separate Codex pnpm
 store, builds `dist-demo`, rejects an occupied preview port, and uses the global
-`playwright-cli` with the installed Chrome channel. Do not modify, merge, or
-depend on `dev`, and do not make `.plan/reference` a production or CI input.
+`playwright-cli` with an explicitly selected browser.
+
+Prepare and select the calibrated browser before a publishable recapture:
+
+```powershell
+$chromePath = & .\scripts\visual\run-visual-parity.ps1 -PrepareOnly
+$env:LIQUID_GLASS_VISUAL_CHROME_PATH = $chromePath
+& .\scripts\legacy\capture-legacy-oracle.ps1
+```
+
+Do not modify, merge, or depend on `dev`, and do not make `.plan/reference` a
+production or CI input.

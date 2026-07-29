@@ -230,6 +230,11 @@ pnpm test:runtime
 new build with the fixed legacy commit and then executes a five-minute
 lifecycle soak.
 
+On Windows, `pnpm test:visual` resolves the exact Chrome for Testing
+`150.0.7871.129` distribution used by the committed oracle. The first run
+downloads the official archive into a versioned local cache after verifying its
+SHA-256; later runs revalidate the calibrated distribution files before reuse.
+
 ## Documentation
 
 - [API reference](docs/API.md)

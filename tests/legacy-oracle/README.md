@@ -17,10 +17,11 @@ The six scenarios correspond to the first six rewrite acceptance scenarios:
 | S005 | Body scrolling with a fixed material |
 | S006 | Internal scrolling, sticky material, and viewport capture |
 
-Capture is performed in installed Google Chrome at 1440 by 900 CSS pixels with
-explicit DPR 1 and DPR 2 contexts. Each scene is reconstructed and captured 20
-times. The analyzer ignores RGB channel deltas of three or less, records the
-maximum self-diff, and computes the threshold as
+Capture is performed in the pinned Chrome for Testing `150.0.7871.129`
+distribution at 1440 by 900 CSS pixels with explicit DPR 1 and DPR 2 contexts.
+Each scene is reconstructed and captured 20 times. The analyzer ignores RGB
+channel deltas of three or less, records the maximum self-diff, and computes the
+threshold as
 `min(0.5%, max(0.1%, 3 * selfDiff))`.
 
 The legacy ready flag only confirms that the fixture mounted; it does not prove
@@ -52,6 +53,8 @@ schema 3 calibration report with content-addressed artifact paths.
 Run from the repository root:
 
 ```powershell
+$chromePath = & .\scripts\visual\run-visual-parity.ps1 -PrepareOnly
+$env:LIQUID_GLASS_VISUAL_CHROME_PATH = $chromePath
 & .\scripts\legacy\capture-legacy-oracle.ps1
 ```
 
@@ -80,9 +83,11 @@ browser metadata in the isolated capture directory:
 
 The script installs JavaScript dependencies only inside its isolated temporary
 copy and uses a separate Codex pnpm store. It uses the globally installed
-`playwright-cli` and installed Chrome channel; it never downloads a browser.
-Set `LIQUID_GLASS_VISUAL_CHROME_PATH` when Chrome must be selected explicitly;
-`LIQUID_GLASS_VISUAL_CHROME_EXECUTABLE` remains a compatibility alias.
+`playwright-cli` and the explicitly selected browser; the capture script itself
+never downloads a browser. The preparation command downloads the official
+archive once, verifies its SHA-256, and revalidates the calibrated distribution
+files on reuse. `LIQUID_GLASS_VISUAL_CHROME_EXECUTABLE` remains a compatibility
+alias for `LIQUID_GLASS_VISUAL_CHROME_PATH`.
 All screenshots, raw canvases, metadata, and the generated calibration report
 are written to a same-volume staging directory first. The script verifies the
 exact 38 visual artifacts and 240 calibration screenshots, runs the analyzer

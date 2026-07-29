@@ -52,6 +52,8 @@
 - Active shader sources match the legacy SHA-256 hashes byte-for-byte.
 - Interaction physics traces match deterministic legacy outputs at `1e-9`.
 - Six calibrated legacy scenarios pass at DPR 1 and DPR 2.
+- Exact visual parity uses a SHA-256-verified Chrome for Testing
+  `150.0.7871.129` distribution instead of an auto-updated system installation.
 - S001-S012 run through Vue, React, and Solid.
 - Packed tarballs typecheck, build, SSR-import, preview, and render non-empty
   glass outside the monorepo.

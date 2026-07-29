@@ -18,18 +18,27 @@ fallback remains enabled.
 
 ## Tested Browser
 
-Release-blocking browser, visual, packed-consumer, performance, and stability
-tests run in installed Google Chrome on Windows using isolated contexts.
+Release-blocking browser, packed-consumer, performance, and stability tests run
+in installed Google Chrome on Windows using isolated contexts. Exact pixel
+parity runs in a content-verified Chrome for Testing distribution so an
+auto-update cannot invalidate or silently change the oracle.
 
 The `0.1.0` evidence was captured with Chrome 150:
 
-- legacy visual oracle: `150.0.7871.129`;
+- legacy visual oracle and exact gate: Chrome for Testing `150.0.7871.129`;
 - final relative performance and stability run: `150.0.7871.184`;
 - viewports include `1440x900`, `1024x768`, `390x844`, and `360x800`;
 - visual baselines include DPR 1 and DPR 2.
 
 Other Chromium browsers are expected to work when they expose the same WebGL2
 and DOM features, but they are not release-blocking targets yet.
+
+`pnpm test:visual` downloads the official pinned archive on first use, verifies
+its SHA-256, and builds an installed-layout cache under
+`%LOCALAPPDATA%\liquid-glass\visual-chrome`. Set
+`LIQUID_GLASS_VISUAL_CHROME_CACHE` to relocate that cache or
+`LIQUID_GLASS_VISUAL_CHROME_ARCHIVE_PATH` to use an already downloaded archive;
+the same integrity checks still apply.
 
 Firefox and Safari have not completed the calibrated visual matrix for
 `0.1.0`. Treat them as unverified rather than claiming parity. Applications

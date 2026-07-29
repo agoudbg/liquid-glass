@@ -42,7 +42,8 @@ A publishable legacy update requires:
 
 1. one uninterrupted full capture at DPR 1 and DPR 2;
 2. the fixed source commit;
-3. the installed Chrome channel and recorded browser identity;
+3. the pinned Chrome for Testing archive, its verified SHA-256, and recorded
+   browser identity;
 4. all expected screenshots, raw canvas PNGs, and metadata;
 5. successful self-diff calibration and glass-on/off checks;
 6. transactional promotion through the repository script;
@@ -50,6 +51,11 @@ A publishable legacy update requires:
 
 Partial and glass-off-only runs are diagnostic and cannot update committed
 baselines.
+
+The exact gate prepares Chrome for Testing `150.0.7871.129` through
+`scripts/visual/run-visual-parity.ps1`. The versioned cache is rejected when any
+calibrated distribution file changes. An auto-updated system Chrome is not a
+substitute for the pinned visual runtime.
 
 ## Why Glass-Off Images Are Kept
 

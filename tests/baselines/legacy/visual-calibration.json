@@ -1,9 +1,9 @@
 {
   "schemaVersion": 3,
-  "generatedAt": "2026-07-26T13:32:57.459Z",
+  "generatedAt": "2026-07-29T22:04:29.295Z",
   "sourceCommit": "345a9be6906bcc8a801208054e7fe134c6bfe641",
   "captureEvidence": {
-    "captureId": "20260726-211211-001008dd",
+    "captureId": "20260730-053939-61f374cd",
     "captureMode": "full",
     "contract": {
       "schemaVersion": 1,
@@ -20,19 +20,19 @@
         "distributionFiles": [
           {
             "path": "150.0.7871.129/chrome.dll",
-            "sha256": "616736277d485b18046ac2d2eb669417879061e0676f5da7319aeab24de0af68"
+            "sha256": "a063468a67d1681f5163b857fd753694c9c0a3cf0c8349dcadf242efe7019fd7"
           },
           {
             "path": "150.0.7871.129/libEGL.dll",
-            "sha256": "e92ee6a33fe01569249493369060ecc54d15fe5581c49bb3f7db71c18e254e77"
+            "sha256": "03f9322c60ab3fccd66b68358c7eda747daa254a1e998fc8a4705c8cc8317075"
           },
           {
             "path": "150.0.7871.129/libGLESv2.dll",
-            "sha256": "37b2d79e32f5695c786427756472c57653e9d7abe0d80886a890fc1e43b119a6"
+            "sha256": "67a86e2d5976cebc6b286fdc68e685b675217f92b95969d2c22ff66785cecfb3"
           },
           {
             "path": "150.0.7871.129/vk_swiftshader.dll",
-            "sha256": "ab418c0c43e60274d4ecb5fc13db10c65aa3c13dfe50d1dc45b63977e0b1e8f4"
+            "sha256": "14056fda2b2ccb3e3afd373b0ab327681f0bb4e2ef408092423e51077c4f89ad"
           },
           {
             "path": "150.0.7871.129/vk_swiftshader_icd.json",
@@ -40,11 +40,11 @@
           },
           {
             "path": "150.0.7871.129/vulkan-1.dll",
-            "sha256": "b1c23c637b32ac152405a73d5c827e18e82e3516c1b03d211cd8b4d98f690d90"
+            "sha256": "5a9ef88ca81a11783b780fbe9a5cdd9f136469c76c7c791a540d2991ac193a8f"
           },
           {
             "path": "chrome.exe",
-            "sha256": "4bcaff4cd5b5e33105bcd9ec4208a10dbf86e143cafbfda6def5493c4c9244ee"
+            "sha256": "fb14772807d9b4a18d87336fb112fd96fb05b2c80410aab78f74c7030751880e"
           }
         ],
         "effectiveArguments": [
@@ -237,7 +237,7 @@
         "pnpmVersion": "10.32.0"
       }
     },
-    "contractSha256": "c20458bf7a2f0cce3d3dc08ca51a1804caaa228ef357baa51badaa189fa5cb2c",
+    "contractSha256": "c535b13539db03c6a30e82036658a2db1e75da9731aa15c903318284d9d30704",
     "capturedDevicePixelRatios": [
       1,
       2
@@ -246,7 +246,7 @@
       {
         "browserName": "Google Chrome",
         "browserVersion": "150.0.7871.129",
-        "capturedAt": "2026-07-26T13:21:00.554Z",
+        "capturedAt": "2026-07-29T21:49:45.404Z",
         "devicePixelRatio": 1,
         "runtimeErrorCount": 0,
         "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
@@ -266,7 +266,7 @@
       {
         "browserName": "Google Chrome",
         "browserVersion": "150.0.7871.129",
-        "capturedAt": "2026-07-26T13:32:53.903Z",
+        "capturedAt": "2026-07-29T22:03:57.799Z",
         "devicePixelRatio": 2,
         "runtimeErrorCount": 0,
         "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/150.0.0.0 Safari/537.36",
@@ -1587,14 +1587,14 @@
             {
               "id": "s004-button",
               "rect": {
-                "x": 254.24996948242188,
+                "x": 254.24998474121094,
                 "y": 360.75,
-                "width": 283.5000305175781,
+                "width": 283.5,
                 "height": 178.5,
                 "top": 360.75,
-                "right": 537.75,
+                "right": 537.7499847412109,
                 "bottom": 539.25,
-                "left": 254.24996948242188
+                "left": 254.24998474121094
               }
             },
             {
@@ -1829,7 +1829,7 @@
               "materialId": "s004-button",
               "probe": "upperLeftQuarter",
               "cssPosition": {
-                "x": 325.1249771118164,
+                "x": 325.12498474121094,
                 "y": 405.375
               },
               "physicalPosition": {
@@ -1858,7 +1858,7 @@
               "materialId": "s004-button",
               "probe": "lowerRightQuarter",
               "cssPosition": {
-                "x": 466.87499237060547,
+                "x": 466.87498474121094,
                 "y": 494.625
               },
               "physicalPosition": {
@@ -2904,8 +2904,8 @@
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000012,
-                "maxChannelDelta": 1
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 11,
@@ -3774,8 +3774,8 @@
                 "changedPixels": 0,
                 "comparedPixels": 5184000,
                 "diffRatio": 0,
-                "meanAbsoluteChannelDelta": 0.000012,
-                "maxChannelDelta": 1
+                "meanAbsoluteChannelDelta": 0,
+                "maxChannelDelta": 0
               },
               {
                 "run": 11,

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "capturedOn": "2026-07-26",
+  "capturedOn": "2026-07-29",
   "status": "complete-legacy-visual-oracle",
   "oracle": {
     "branch": "dev",
@@ -129,7 +129,7 @@
       "vendor": "WebKit",
       "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
     },
-    "captureContractSha256": "c20458bf7a2f0cce3d3dc08ca51a1804caaa228ef357baa51badaa189fa5cb2c"
+    "captureContractSha256": "c535b13539db03c6a30e82036658a2db1e75da9731aa15c903318284d9d30704"
   },
   "physicsEvidence": {
     "path": "tests/baselines/legacy/physics-traces.json",

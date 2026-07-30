@@ -333,24 +333,20 @@ export class GlassContextImpl implements GlassContext {
   public addMaterial(config: MaterialConfig): MaterialHandle {
     return this.materials.add(config);
   }
-
   /** Read detached diagnostics without requiring a live context. */
   public getDiagnostics(): DiagnosticsSnapshot {
     return this.diagnostics.getSnapshot();
   }
-
   /** Request diagnostic loss on the internal renderer context. */
   public requestContextLoss(): boolean {
     this.assertUsable();
     return this.renderer?.requestContextLoss() ?? false;
   }
-
   /** Request diagnostic restoration on the internal renderer context. */
   public requestContextRestore(): boolean {
     this.assertUsable();
     return this.renderer?.requestContextRestore() ?? false;
   }
-
   /** Replace context options in place and synchronously apply presentation changes. */
   public updateOptions(options: GlassContextOptions): void {
     this.assertUsable();
@@ -374,12 +370,10 @@ export class GlassContextImpl implements GlassContext {
     this.diagnostics.setEnabled(nextSnapshot.debug ?? false);
     this.refresh('structural');
   }
-
   /** Return the stable target-side external material registration surface. */
   public createProxyInterface(): ProxyInterface {
     return this.materials.createProxyInterface();
   }
-
   /** Force or release CSS fallback presentation. */
   public setFallbackMode(enabled: boolean): void {
     this.assertUsable();
@@ -388,7 +382,6 @@ export class GlassContextImpl implements GlassContext {
       this.refresh('fallback');
     }
   }
-
   /** Toggle viewport-limited mode; bounded capture is completed in P4. */
   public setViewportMode(enabled: boolean): void {
     this.assertUsable();
@@ -400,7 +393,6 @@ export class GlassContextImpl implements GlassContext {
       this.refresh('viewport');
     }
   }
-
   /** Request capture, composition, and material rendering for one dirty reason. */
   public refresh(reason: TextureDirtyReason = 'external'): void {
     this.assertUsable();
@@ -413,7 +405,6 @@ export class GlassContextImpl implements GlassContext {
       this.renderCoordinator.renderFrame();
     }
   }
-
   /** Subscribe to a typed context event and return an unsubscribe callback. */
   public on<Event extends keyof GlassEventMap>(
     event: Event,
@@ -423,7 +414,6 @@ export class GlassContextImpl implements GlassContext {
     this.emitter.on(event, handler);
     return () => this.emitter.off(event, handler);
   }
-
   /** Unsubscribe a typed context event handler. */
   public off<Event extends keyof GlassEventMap>(
     event: Event,
@@ -431,7 +421,6 @@ export class GlassContextImpl implements GlassContext {
   ): void {
     this.emitter.off(event, handler);
   }
-
   /** Idempotently release registrations, graphics resources, and the canvas. */
   public destroy(): void {
     if (this.destroyStarted) {
@@ -456,7 +445,6 @@ export class GlassContextImpl implements GlassContext {
       sources: this.sources,
     });
   }
-
   private applyFallbackModeChange(): void {
     const enabled = this.fallbackMode;
     if (!enabled && this.renderer) {
@@ -487,7 +475,6 @@ export class GlassContextImpl implements GlassContext {
       this.renderCoordinator.renderFrame();
     }
   }
-
   private removeSource(registration: BackdropRegistration): void {
     if (registration.destroyed) {
       return;
@@ -499,7 +486,6 @@ export class GlassContextImpl implements GlassContext {
       this.refresh('structural');
     }
   }
-
   private assertUsable(): void {
     assertContextUsable(this.destroyStarted);
   }

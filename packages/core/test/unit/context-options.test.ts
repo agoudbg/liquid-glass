@@ -1,11 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { GlassEngine } from '../../src/engine';
 import {
   resolveContextPrecision,
   snapshotContextOptions,
 } from '../../src/engine/context-options';
-import type { GlassContextOptions } from '../../src/types';
+import type { GlassContextOptions, TextureDirtyReason } from '../../src/types';
 import { createRuntime, FakeElement } from '../fixtures/glass-engine';
 
 describe('context options', () => {
@@ -68,6 +68,47 @@ describe('context options', () => {
     )).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
     expect(runtime.canvases).toHaveLength(0);
     expect(container.children).toHaveLength(0);
+  });
+
+  it('rejects an invalid container before allocating rendering resources', () => {
+    const runtime = createRuntime();
+
+    expect(() => new GlassEngine(runtime).createContext(
+      {} as HTMLElement,
+    )).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
+    expect(runtime.canvases).toHaveLength(0);
+  });
+
+  it('rejects invalid imperative inputs without changing context state', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 120, height: 80 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const fallbackChanged = vi.fn();
+    const viewportChanged = vi.fn();
+    const compositeRequested = vi.fn();
+    context.on('fallbackModeChanged', fallbackChanged);
+    context.on('viewportModeChanged', viewportChanged);
+    context.on('compositeRequested', compositeRequested);
+
+    expect(() => context.setFallbackMode(
+      'false' as unknown as boolean,
+    )).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
+    expect(() => context.setViewportMode(
+      'false' as unknown as boolean,
+    )).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
+    expect(() => context.refresh(
+      'animation' as unknown as TextureDirtyReason,
+    )).toThrowError(expect.objectContaining({ code: 'INVALID_CONFIG' }));
+
+    expect(context.fallbackMode).toBe(false);
+    expect(container.getAttribute('data-lg-fallback')).toBe('false');
+    expect(context.canvas.className).toBe('liquid-glass-canvas');
+    expect(fallbackChanged).not.toHaveBeenCalled();
+    expect(viewportChanged).not.toHaveBeenCalled();
+    expect(compositeRequested).not.toHaveBeenCalled();
+    context.destroy();
   });
 
   it('leaves a live context unchanged after an invalid update', () => {

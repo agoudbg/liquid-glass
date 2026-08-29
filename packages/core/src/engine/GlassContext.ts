@@ -34,6 +34,7 @@ import {
   snapshotContextOptions,
 } from './context-options';
 import { ContextPresentation } from './context-presentation';
+import { assertContextContainer, validateContextBoolean, validateTextureDirtyReason } from './context-public-input';
 import { ContextRefreshController } from './context-refresh';
 import { teardownContext } from './context-teardown';
 import { ContextDiagnosticsController } from './ContextDiagnosticsController';
@@ -97,6 +98,7 @@ export class GlassContextImpl implements GlassContext {
     private readonly runtime: GlassEngineRuntime,
     private readonly onDestroyed: () => void,
   ) {
+    assertContextContainer(container);
     this.content = resolveContextContent(container);
     this.optionsSnapshot = snapshotContextOptions(options);
     this.precision = resolveContextPrecision(this.optionsSnapshot);
@@ -394,14 +396,14 @@ export class GlassContextImpl implements GlassContext {
     this.assertUsable();
     transitionForcedContextFallback(
       this.fallback,
-      enabled,
+      validateContextBoolean(enabled, 'context.setFallbackMode.enabled'),
       this.getFallbackTransitionCallbacks(),
     );
   }
   /** Toggle viewport-limited mode; bounded capture is completed in P4. */
   public setViewportMode(enabled: boolean): void {
     this.assertUsable();
-    if (this.viewportMode !== enabled) {
+    if (this.viewportMode !== validateContextBoolean(enabled, 'context.setViewportMode.enabled')) {
       this.viewportMode = enabled;
       this.presentation.setViewportMode(enabled);
       this.domCapture.markAllDirty();
@@ -414,7 +416,7 @@ export class GlassContextImpl implements GlassContext {
   /** Request capture, composition, and material rendering for one dirty reason. */
   public refresh(reason: TextureDirtyReason = 'external'): void {
     this.assertUsable();
-    this.refreshController.refresh(reason);
+    this.refreshController.refresh(validateTextureDirtyReason(reason));
   }
   /** Subscribe to a typed context event and return an unsubscribe callback. */
   public on<Event extends keyof GlassEventMap>(

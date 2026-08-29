@@ -95,6 +95,10 @@ Both creation and updates reject unknown fields or incorrect runtime types with
 | `off(event, handler)` | Remove a specific subscription. |
 | `destroy()` | Release registrations, observers, tasks, canvases, and WebGL resources. |
 
+Context creation validates the container before allocating rendering resources.
+Imperative mode setters and `refresh(reason)` also reject invalid runtime values
+with `INVALID_CONFIG` before changing state or publishing events.
+
 ## Backdrop Sources
 
 ### Canvas

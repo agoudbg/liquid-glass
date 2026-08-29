@@ -142,6 +142,20 @@ function assertNoWorkspaceProtocols(manifest) {
   }
 }
 
+function assertCoreCaptureDependencies(manifest, expectedName) {
+  if (expectedName !== '@agou/liquid-glass-core') return;
+  assert.equal(
+    manifest.dependencies?.html2canvas,
+    '1.4.1',
+    'Core must install the lazy html2canvas rasterizer for every consumer.',
+  );
+  assert.equal(
+    manifest.optionalDependencies?.html2canvas,
+    undefined,
+    'Core must not make a statically resolved rasterizer optional.',
+  );
+}
+
 function assertUniqueDependencyFields(manifestText, manifestName) {
   for (const field of dependencyFields) {
     const occurrences = manifestText.match(
@@ -201,6 +215,7 @@ async function inspectTarball(tarballPath, expectedName) {
   }
 
   assertNoWorkspaceProtocols(manifest);
+  assertCoreCaptureDependencies(manifest, expectedName);
 }
 
 async function packPackages(tarballDirectory) {

@@ -14,7 +14,7 @@
   "include": [
     "src/**/*.ts",
     "test/**/*.ts",
-    "../../packages/core/src/backdrop/optional-html2canvas.d.ts",
+    "../../packages/core/src/backdrop/html2canvas.d.ts",
     "vite.config.ts",
     "vitest.config.ts"
   ],

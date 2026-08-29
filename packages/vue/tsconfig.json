@@ -11,7 +11,7 @@
     "src/**/*.ts",
     "src/**/*.vue",
     "test/**/*.ts",
-    "../core/src/backdrop/optional-html2canvas.d.ts",
+    "../core/src/backdrop/html2canvas.d.ts",
     "../core/src/shaders/raw-shader.d.ts",
     "vite.config.ts",
     "vitest.config.ts"

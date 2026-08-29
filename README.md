@@ -192,13 +192,8 @@ owns canvas positioning and material appearance; application CSS owns layout.
 
 Use `LgBackdropConverter` in Vue or `BackdropConverter` in React and Solid to
 capture existing DOM. `html-to-image` is the default and is included by core.
-`html2canvas` is an optional core dependency and is loaded only when selected.
-Package managers normally install it; applications that omit optional
-dependencies can add it explicitly:
-
-```bash
-pnpm add html2canvas
-```
+`html2canvas` is also installed by core, but remains a lazy secondary rasterizer
+that bundlers load only when selected.
 
 Cross-origin images must provide usable CORS headers. A tainted canvas or failed
 rasterizer is reported as a typed `CAPTURE_FAILED` error.

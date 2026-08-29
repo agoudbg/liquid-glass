@@ -133,9 +133,10 @@ const handle = context.addBackdropSource({
 });
 ```
 
-`captureLibrary` accepts `html-to-image` or `html2canvas`. `html2canvas` is an
-optional package dependency loaded only when selected. Capture has a
-five-second owned timeout and reports errors through the context error boundary.
+`captureLibrary` accepts `html-to-image` or `html2canvas`. Core installs both
+rasterizers, while `html2canvas` remains dynamically loaded only when selected.
+Capture has a five-second owned timeout and reports errors through the context
+error boundary.
 
 Backdrop handles expose `id`, `destroyed`, `update(changes)`, `refresh()`, and
 idempotent `destroy()`. `element` and `kind` cannot be replaced in place.

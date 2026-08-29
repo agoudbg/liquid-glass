@@ -12,7 +12,7 @@
 - Vue 3, React 19, and Solid adapters using real public core APIs.
 - Uniform and dedicated presentation.
 - DOM capture through bundled `html-to-image`.
-- Lazy optional `html2canvas` capture.
+- Lazy secondary `html2canvas` capture.
 - Custom canvas backdrops.
 - Multiple materials, ordering, asymmetric radii, and complete optical values.
 - Button, context-menu, slider, and custom interaction configurations.

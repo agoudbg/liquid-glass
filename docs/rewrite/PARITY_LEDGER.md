@@ -53,7 +53,7 @@ mark the rewrite acceptance rows complete.
 | CMP-002 | Per-material `dedicated` canvases | Material extraction path | Preserve | Dedicated and uniform scenes are visually equivalent within threshold. |
 | CMP-003 | DOM-derived and explicit `renderOrder` | Manager material sort | Preserve | Automatic materials follow CSS z-index and live DOM order; every finite explicit order renders above the automatic group with deterministic tie handling. |
 | CMP-004 | DOM capture with `html-to-image` | `LgBackdropConverter` default | Preserve | Primary capture path handles text, images, colors, mutation, and manual refresh. |
-| CMP-005 | Selectable `html2canvas` capture | `captureLib` prop | Preserve as optional fallback | The fallback is lazy and tested; absence produces a contextual setup error rather than a silent failure. |
+| CMP-005 | Selectable `html2canvas` capture | `captureLib` prop | Preserve as a lazy secondary rasterizer | The package is always resolvable while bundlers load its code only when selected. |
 | CMP-006 | Custom canvas backdrop | `LgBackdropCanvas` | Preserve | Draw callback receives physical backing-store dimensions at DPR 1 and DPR 2, updates the refracted texture, and releases temporary resources. |
 | CMP-007 | Backdrop `zIndex` | Both backdrop components | Preserve | Backdrop composition order follows numeric z-index. |
 | CMP-008 | `watchResize` and `watchNodeChanges` props documented in README | Converter hardcodes both to true and declares neither prop | Add | Vue exposes both options with default `true`; equivalent core capture policy is available to all adapters. |

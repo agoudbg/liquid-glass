@@ -119,6 +119,9 @@ importers:
       html-to-image:
         specifier: 1.11.13
         version: 1.11.13
+      html2canvas:
+        specifier: 1.4.1
+        version: 1.4.1
     devDependencies:
       '@types/web':
         specifier: 0.0.150
@@ -135,11 +138,6 @@ importers:
       vitest:
         specifier: 3.2.7
         version: 3.2.7(@types/node@22.20.1)(jiti@2.7.0)(jsdom@25.0.1)
-    optionalDependencies:
-      html2canvas:
-        specifier: 1.4.1
-        version: 1.4.1
-
   packages/react:
     dependencies:
       '@agou/liquid-glass-core':

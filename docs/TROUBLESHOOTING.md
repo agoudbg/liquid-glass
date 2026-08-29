@@ -33,15 +33,10 @@ Common causes:
 - a cross-origin image lacks CORS headers;
 - a canvas is tainted;
 - the source contains browser features unsupported by the selected rasterizer;
-- the capture exceeds the five-second timeout;
-- `html2canvas` was selected after optional dependencies were omitted.
+- the capture exceeds the five-second timeout.
 
-The default `html-to-image` path is bundled. Package managers normally install
-the optional fallback; add it explicitly when optional dependencies were omitted:
-
-```bash
-pnpm add html2canvas
-```
+Core installs both rasterizers. The default `html-to-image` path loads eagerly,
+while the secondary `html2canvas` path remains lazy until selected.
 
 Handle `CAPTURE_FAILED` errors and inspect the retained `cause` and `backdropId`.
 Do not retry continuously without changing the failing source.

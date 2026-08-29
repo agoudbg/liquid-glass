@@ -24,6 +24,8 @@ export interface CanvasBackdropRegistration {
   canvas: HTMLCanvasElement;
   /** Whether the drawing callback must replace the cached bitmap. */
   dirty: boolean;
+  /** Monotonic draw version used to reject reentrant callback results. */
+  drawVersion: number;
   /** Whether the registration has been released. */
   destroyed: boolean;
 }

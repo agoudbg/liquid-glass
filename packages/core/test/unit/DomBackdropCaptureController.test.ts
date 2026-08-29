@@ -332,6 +332,7 @@ describe('DomBackdropCaptureController', () => {
       },
       destroyed: false,
       dirty: false,
+      drawVersion: 0,
     };
     const sources = new Map<string, BackdropRegistration>([[
       registration.id,

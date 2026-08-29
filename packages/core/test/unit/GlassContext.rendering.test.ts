@@ -4,7 +4,7 @@ import {
   GlassEngine,
   type GlassEngineRuntime,
 } from '../../src/engine';
-import type { CanvasLike } from '../../src/types';
+import type { CanvasLike, CustomDrawCallback } from '../../src/types';
 import { callsNamed, FakeCanvas } from '../fixtures/fake-webgl2';
 import {
   createRuntimeHarness,
@@ -273,6 +273,89 @@ describe('GlassContext render ownership', () => {
     expect(authoritativeCanvas).toMatchObject({ width: 240, height: 120 });
     expect(identityCanvas).toMatchObject({ width: 1, height: 1 });
     expect(identityCanvas.context2d.calls).toEqual([]);
+    context.destroy();
+  });
+
+  it('does not present a canvas source destroyed by its draw callback', () => {
+    const harness = createRuntimeHarness();
+    const container = new FakeElement({ x: 0, y: 0, width: 120, height: 60 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 0, y: 0, width: 120, height: 60 }));
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const captured = vi.fn();
+    let destroyOnDraw = false;
+    context.on('backdropCaptured', captured);
+    const handle = context.addBackdropSource({
+      draw: () => {
+        if (destroyOnDraw) handle.destroy();
+      },
+      element: backdrop as unknown as HTMLCanvasElement,
+      kind: 'canvas',
+    });
+    captured.mockClear();
+    const presentation = harness.canvases[2];
+    if (!presentation) throw new Error('Missing presentation canvas.');
+    const copiesBeforeDestroy = presentation.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    ).length;
+
+    destroyOnDraw = true;
+    handle.refresh();
+
+    expect(handle.destroyed).toBe(true);
+    expect(context.getDiagnostics().registrations.backdrops).toBe(0);
+    expect(captured).not.toHaveBeenCalled();
+    expect(presentation.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    )).toHaveLength(copiesBeforeDestroy + 1);
+    context.destroy();
+  });
+
+  it('redraws with the newest config after a reentrant draw update', () => {
+    const harness = createRuntimeHarness();
+    const container = new FakeElement({ x: 0, y: 0, width: 120, height: 60 });
+    const backdrop = new FakeCanvas();
+    backdrop.setClientRect(domRect({ x: 0, y: 0, width: 120, height: 60 }));
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const captured = vi.fn();
+    const latestDraw = vi.fn<CustomDrawCallback>((drawingContext) => {
+      drawingContext.fillRect(2, 0, 10, 10);
+    });
+    let updateOnDraw = false;
+    context.on('backdropCaptured', captured);
+    const handle = context.addBackdropSource({
+      draw: (drawingContext) => {
+        if (updateOnDraw) handle.update({ draw: latestDraw });
+        drawingContext.fillRect(1, 0, 10, 10);
+      },
+      element: backdrop as unknown as HTMLCanvasElement,
+      kind: 'canvas',
+    });
+    captured.mockClear();
+    const presentation = harness.canvases[2];
+    const authoritative = harness.canvases[5];
+    if (!presentation || !authoritative) {
+      throw new Error('Missing canvas backdrop pipeline.');
+    }
+    const copiesBeforeUpdate = presentation.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    ).length;
+
+    updateOnDraw = true;
+    handle.refresh();
+
+    expect(latestDraw).toHaveBeenCalledOnce();
+    expect(captured).toHaveBeenCalledOnce();
+    expect(presentation.context2d.calls.filter(
+      ({ name }) => name === 'drawImage',
+    )).toHaveLength(copiesBeforeUpdate + 1);
+    expect(authoritative.context2d.calls.filter(
+      ({ name }) => name === 'fillRect',
+    ).at(-1)).toEqual({ name: 'fillRect', args: [2, 0, 10, 10] });
     context.destroy();
   });
 

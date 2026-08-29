@@ -317,6 +317,7 @@ describe('SourceObserverRegistry', () => {
       },
       destroyed: false,
       dirty: false,
+      drawVersion: 0,
     };
     registry.track(canvasRegistration);
     expect(resizeRecords[1]?.observed).toEqual([canvasBounds]);
@@ -467,6 +468,7 @@ describe('SourceObserverRegistry', () => {
         },
         destroyed: false,
         dirty: false,
+        drawVersion: 0,
       });
     }
 

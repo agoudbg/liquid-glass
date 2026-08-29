@@ -23,6 +23,7 @@ import { type ContextBackdropCapture, ContextBackdropComposite } from './Context
 import { ContextCanvasPipeline } from './ContextCanvasPipeline';
 import type { DiagnosticsFrameMeasurement } from './ContextDiagnosticsController';
 import { ContextMaterialRenderController } from './ContextMaterialRenderController';
+import { ContextRenderReentryController } from './ContextRenderReentryController';
 import {
   type ContextRenderDiagnosticsState,
   readDiagnosticsTimestamp,
@@ -96,6 +97,7 @@ export class ContextRenderCoordinator {
   private readonly canvases: ContextCanvasPipeline;
   private readonly backdropComposite: ContextBackdropComposite;
   private readonly materialRenderer: ContextMaterialRenderController;
+  private readonly reentry = new ContextRenderReentryController();
   private backdropPixels: BackdropPixelData | null = null;
   private backdropTextureReady = false;
   private destroyed = false;
@@ -160,6 +162,13 @@ export class ContextRenderCoordinator {
 
   /** Render one frame, optionally reusing the last uploaded backdrop texture. */
   public renderFrame(refreshBackdrop: boolean = true): void {
+    this.reentry.run(
+      refreshBackdrop,
+      (refresh) => this.renderFrameOnce(refresh),
+    );
+  }
+
+  private renderFrameOnce(refreshBackdrop: boolean): void {
     const startedAt = this.callbacks.isDiagnosticsEnabled()
       ? readDiagnosticsTimestamp(this.runtime)
       : null;
@@ -270,11 +279,15 @@ export class ContextRenderCoordinator {
 
       if (refreshBackdrop || !this.backdropTextureReady) {
         this.backdropTextureReady = false;
-        this.backdropComposite.draw(
+        const stableComposite = this.backdropComposite.draw(
           containerRect,
           this.callbacks.getDeviceScale(),
           contentOffset,
         );
+        if (!stableComposite || this.sources.size === 0) {
+          this.backdropPixels = null;
+          return;
+        }
         renderer.uploadBackdrop(this.canvases.compositeCanvas);
         this.captureThemePixels();
         this.backdropTextureReady = true;

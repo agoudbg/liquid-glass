@@ -1,5 +1,6 @@
 import { drawBackdropComposite } from './canvas-backdrop';
 import type { BackdropRegistration } from './registrations';
+import { isCanvasBackdropRegistration } from './registrations';
 
 /** Metadata emitted after one custom source is redrawn and mirrored. */
 export interface ContextBackdropCapture {
@@ -28,7 +29,7 @@ export class ContextBackdropComposite {
     containerRect: DOMRectReadOnly,
     deviceScale: number,
     contentOffset: { x: number; y: number } = { x: 0, y: 0 },
-  ): void {
+  ): boolean {
     const captures = drawBackdropComposite(
       this.compositeCanvas,
       this.presentationCanvas.width,
@@ -41,5 +42,8 @@ export class ContextBackdropComposite {
     for (const capture of captures) {
       this.onCaptured(capture);
     }
+    return ![...this.sources.values()].some((source) => (
+      isCanvasBackdropRegistration(source) && source.dirty
+    ));
   }
 }

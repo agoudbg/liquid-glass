@@ -129,12 +129,18 @@ export function drawBackdropComposite(
         || source.canvas.width !== expectedWidth
         || source.canvas.height !== expectedHeight;
       if (needsDraw) {
+        const drawVersion = source.drawVersion;
         drawAuthoritativeSource(
           source,
           sourceRect.width,
           sourceRect.height,
           effectiveScale,
         );
+        if (source.destroyed) continue;
+        if (source.drawVersion !== drawVersion) {
+          source.dirty = true;
+          continue;
+        }
         if (source.config.mirrorToElement !== false) {
           mirrorToVisibleCanvas(source);
         }

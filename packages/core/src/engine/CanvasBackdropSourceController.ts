@@ -52,6 +52,7 @@ export class CanvasBackdropSourceController {
       config: snapshotCanvasBackdropSourceConfig(config),
       canvas: this.runtime.createCanvas(),
       dirty: true,
+      drawVersion: 0,
       destroyed: false,
     };
     this.sources.set(registration.id, registration);
@@ -93,12 +94,14 @@ export class CanvasBackdropSourceController {
       ]);
     }
     registration.dirty = true;
+    registration.drawVersion += 1;
     this.callbacks.requestComposite('external');
   }
 
   private refresh(registration: CanvasBackdropRegistration): void {
     this.callbacks.assertRegistration(registration);
     registration.dirty = true;
+    registration.drawVersion += 1;
     this.callbacks.requestComposite('external');
   }
 

@@ -11,6 +11,12 @@
     },
     "types": ["vite/client", "vitest/globals"]
   },
-  "include": ["src/**/*.ts", "test/**/*.ts", "vite.config.ts", "vitest.config.ts"],
+  "include": [
+    "src/**/*.ts",
+    "test/**/*.ts",
+    "../../packages/core/src/backdrop/optional-html2canvas.d.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ],
   "exclude": ["src/hosts", "src/performance", "dist", "node_modules"]
 }

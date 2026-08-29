@@ -13,6 +13,7 @@
     "src/**/*.tsx",
     "test/**/*.ts",
     "test/**/*.tsx",
+    "../core/src/backdrop/optional-html2canvas.d.ts",
     "../core/src/shaders/raw-shader.d.ts",
     "vite.config.ts",
     "vitest.config.ts"

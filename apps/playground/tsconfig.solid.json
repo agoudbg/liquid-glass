@@ -8,6 +8,7 @@
     "src/hosts/solid/**/*.ts",
     "src/hosts/solid/**/*.tsx",
     "src/shared/**/*.ts",
+    "../../packages/core/src/backdrop/optional-html2canvas.d.ts",
     "../../packages/core/src/shaders/raw-shader.d.ts"
   ],
   "exclude": ["dist", "node_modules"]

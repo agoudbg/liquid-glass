@@ -38,6 +38,9 @@
   "dependencies": {
     "html-to-image": "1.11.13"
   },
+  "optionalDependencies": {
+    "html2canvas": "1.4.1"
+  },
   "devDependencies": {
     "@types/web": "0.0.150",
     "typescript": "5.6.3",

@@ -9,6 +9,7 @@
     "src/performance/**/*.ts",
     "src/performance/**/*.vue",
     "src/shared/**/*.ts",
+    "../../packages/core/src/backdrop/optional-html2canvas.d.ts",
     "../../packages/core/src/shaders/raw-shader.d.ts"
   ],
   "exclude": ["dist", "node_modules"]

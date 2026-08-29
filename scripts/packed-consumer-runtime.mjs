@@ -148,25 +148,31 @@ export async function verifyPackedConsumerBrowserRuntime(
     await page.getByRole('heading', { name: consumer.heading }).waitFor();
     await page.locator('.liquid-glass-material').waitFor();
     await page.locator('.liquid-glass-canvas').waitFor();
-    const evidence = await page.locator('.liquid-glass-canvas').evaluate(
-      (element) => {
-        if (!(element instanceof globalThis.HTMLCanvasElement)) {
-          throw new Error('Packed consumer did not create a presentation canvas.');
-        }
-        const context = element.getContext('2d');
-        if (!context) throw new Error('Packed consumer presentation is not a 2D canvas.');
-        const pixels = context.getImageData(0, 0, element.width, element.height).data;
-        let nonTransparentPixels = 0;
-        for (let index = 3; index < pixels.length; index += 4) {
-          if (pixels[index] !== 0) nonTransparentPixels += 1;
-        }
-        return {
-          height: element.height,
-          nonTransparentPixels,
-          width: element.width,
-        };
-      },
-    );
+    let evidence;
+    const deadline = Date.now() + 15_000;
+    do {
+      evidence = await page.locator('.liquid-glass-canvas').evaluate(
+        (element) => {
+          if (!(element instanceof globalThis.HTMLCanvasElement)) {
+            throw new Error('Packed consumer did not create a presentation canvas.');
+          }
+          const context = element.getContext('2d');
+          if (!context) throw new Error('Packed consumer presentation is not a 2D canvas.');
+          const pixels = context.getImageData(0, 0, element.width, element.height).data;
+          let nonTransparentPixels = 0;
+          for (let index = 3; index < pixels.length; index += 4) {
+            if (pixels[index] !== 0) nonTransparentPixels += 1;
+          }
+          return {
+            height: element.height,
+            nonTransparentPixels,
+            width: element.width,
+          };
+        },
+      );
+      if (evidence.nonTransparentPixels > 1_000) break;
+      await page.waitForTimeout(100);
+    } while (Date.now() < deadline);
     assert(evidence.width > 0 && evidence.height > 0, 'Packed canvas has no size.');
     assert(
       evidence.nonTransparentPixels > 1_000,

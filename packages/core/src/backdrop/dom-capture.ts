@@ -81,8 +81,7 @@ function isHtml2CanvasCapture(value: unknown): value is Html2CanvasCapture {
 }
 
 async function loadHtml2Canvas(): Promise<Html2CanvasCapture> {
-  const moduleName = 'html2canvas';
-  const loaded: unknown = await import(/* @vite-ignore */ moduleName);
+  const loaded: unknown = await import('html2canvas');
   const candidate = typeof loaded === 'object' && loaded !== null && 'default' in loaded
     ? (loaded as { default: unknown }).default
     : loaded;

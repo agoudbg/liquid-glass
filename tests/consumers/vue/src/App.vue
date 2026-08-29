@@ -1,31 +1,13 @@
 <script setup lang="ts">
-import type { CustomDrawCallback } from '@agou/liquid-glass-core';
 import {
   CORE_VERSION,
-  LgBackdropCanvas,
+  LgBackdropConverter,
   LiquidGlass,
   LiquidGlassMaterial,
   VUE_ADAPTER_VERSION,
 } from '@agou/liquid-glass-vue';
 
 const resolvedVersions = `adapter ${VUE_ADAPTER_VERSION}, core ${CORE_VERSION}`;
-
-const drawBackdrop: CustomDrawCallback = (context, width, height) => {
-  const gradient = context.createLinearGradient(0, 0, width, height);
-  gradient.addColorStop(0, '#d8e9e2');
-  gradient.addColorStop(0.52, '#f4d45f');
-  gradient.addColorStop(1, '#e8816d');
-  context.fillStyle = gradient;
-  context.fillRect(0, 0, width, height);
-  context.strokeStyle = 'rgba(24, 83, 74, 0.32)';
-  context.lineWidth = Math.max(1, width / 480);
-  for (let x = 0; x < width; x += width / 8) {
-    context.beginPath();
-    context.moveTo(x, 0);
-    context.lineTo(x, height);
-    context.stroke();
-  }
-};
 </script>
 
 <template>
@@ -34,7 +16,16 @@ const drawBackdrop: CustomDrawCallback = (context, width, height) => {
     :debug="true"
     :render-precision="1"
   >
-    <LgBackdropCanvas :draw="drawBackdrop" />
+    <LgBackdropConverter
+      class="consumer-backdrop"
+      capture-library="html2canvas"
+      :watch-node-changes="false"
+      :watch-position-changes="false"
+      :watch-resize="false"
+    >
+      <div class="consumer-backdrop-shape consumer-backdrop-shape-a" />
+      <div class="consumer-backdrop-shape consumer-backdrop-shape-b" />
+    </LgBackdropConverter>
     <LiquidGlassMaterial
       class="consumer-material"
       :radius="32"

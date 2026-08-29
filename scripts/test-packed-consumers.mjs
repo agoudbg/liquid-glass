@@ -18,6 +18,12 @@ const requestedArguments = new Set(process.argv.slice(2));
 const packOnly = requestedArguments.has('--pack-only');
 const skipBuild = requestedArguments.has('--skip-build');
 const supportedArguments = new Set(['--pack-only', '--skip-build']);
+const dependencyFields = [
+  'dependencies',
+  'devDependencies',
+  'optionalDependencies',
+  'peerDependencies',
+];
 
 for (const argument of requestedArguments) {
   assert(supportedArguments.has(argument), `Unsupported argument: ${argument}`);
@@ -120,13 +126,6 @@ function memberMatchesTarget(members, target) {
 }
 
 function assertNoWorkspaceProtocols(manifest) {
-  const dependencyFields = [
-    'dependencies',
-    'devDependencies',
-    'optionalDependencies',
-    'peerDependencies',
-  ];
-
   for (const field of dependencyFields) {
     const dependencies = manifest[field];
     if (!dependencies || typeof dependencies !== 'object') {
@@ -143,6 +142,18 @@ function assertNoWorkspaceProtocols(manifest) {
   }
 }
 
+function assertUniqueDependencyFields(manifestText, manifestName) {
+  for (const field of dependencyFields) {
+    const occurrences = manifestText.match(
+      new RegExp(`"${field}"\\s*:`, 'gu'),
+    )?.length ?? 0;
+    assert(
+      occurrences <= 1,
+      `${manifestName} declares ${field} more than once.`,
+    );
+  }
+}
+
 async function inspectTarball(tarballPath, expectedName) {
   const listing = await run('tar', ['-tf', tarballPath], { capture: true });
   const members = new Set(
@@ -156,6 +167,7 @@ async function inspectTarball(tarballPath, expectedName) {
     ['-xOf', tarballPath, 'package/package.json'],
     { capture: true },
   );
+  assertUniqueDependencyFields(manifestText, expectedName);
   const manifest = JSON.parse(manifestText);
 
   assert.equal(manifest.name, expectedName);
@@ -196,6 +208,11 @@ async function packPackages(tarballDirectory) {
 
   for (const packageDefinition of packages) {
     const packageDirectory = join(repositoryRoot, packageDefinition.directory);
+    const sourceManifestText = await readFile(
+      join(packageDirectory, 'package.json'),
+      'utf8',
+    );
+    assertUniqueDependencyFields(sourceManifestText, packageDefinition.name);
     if (!skipBuild) {
       await runPnpm(['run', 'build'], packageDirectory);
     }

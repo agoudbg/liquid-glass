@@ -129,13 +129,15 @@ The rewrite implements previously documented lifecycle controls:
 - `backgroundColor`
 - `scale`
 
-`html-to-image` remains the default. The `html2canvas` path is lazy and optional:
+`html-to-image` remains the default. The `html2canvas` path is lazy and declared
+as an optional core dependency. Applications using `--omit=optional` can add it
+explicitly:
 
 ```bash
 pnpm add html2canvas
 ```
 
-If selected without the package installed, capture fails with contextual
+If selected without the package available, capture fails with contextual
 `CAPTURE_FAILED` data instead of silently changing rasterizers.
 
 ## Nested And Delegated Glass

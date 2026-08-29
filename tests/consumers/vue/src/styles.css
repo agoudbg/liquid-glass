@@ -30,6 +30,32 @@ body {
   background: #d8e9e2;
 }
 
+.consumer-backdrop {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: linear-gradient(135deg, #d8e9e2, #f4d45f 52%, #e8816d);
+}
+
+.consumer-backdrop-shape {
+  position: absolute;
+  width: 180px;
+  height: 180px;
+  border: 18px solid rgb(255 255 255 / 45%);
+}
+
+.consumer-backdrop-shape-a {
+  top: 40px;
+  left: 80px;
+  border-radius: 50%;
+}
+
+.consumer-backdrop-shape-b {
+  right: 70px;
+  bottom: 30px;
+  transform: rotate(24deg);
+}
+
 .consumer-material {
   position: absolute;
   top: 26%;

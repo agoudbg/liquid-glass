@@ -67,7 +67,8 @@ client code.
 ## Capture Compatibility
 
 `html-to-image` is the included primary DOM rasterizer. `html2canvas` is a lazy
-optional path supplied by the consuming application.
+optional package dependency; applications that omit optional dependencies must
+install it explicitly before selecting that path.
 
 Rasterizer support can be narrower than browser support. Cross-origin images,
 tainted canvases, embedded documents, video, and complex CSS may require

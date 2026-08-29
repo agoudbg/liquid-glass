@@ -40,8 +40,9 @@ context.destroy();
 engine.destroy();
 ```
 
-The package includes `html-to-image` for DOM capture. Install `html2canvas`
-separately only when selecting `captureLibrary: 'html2canvas'`.
+The package includes `html-to-image` for DOM capture and declares `html2canvas`
+as an optional dependency loaded only when selected. Install `html2canvas`
+explicitly only when the application omits optional dependencies.
 
 Imports are SSR-safe. Creating a context requires a client DOM, Canvas2D, and
 WebGL2. Keep fallback enabled when CSS `backdrop-filter` is an acceptable

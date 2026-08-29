@@ -8,7 +8,9 @@ import dts from 'vite-plugin-dts';
  *   - dist/index.js (ESM)
  *   - dist/index.d.ts (rolled-up type declarations)
  *
- * No externals — core package bundles html-to-image as a regular dependency.
+ * Externals:
+ *   - html-to-image (regular runtime dependency)
+ *   - html2canvas (optional package dependency loaded only when selected)
  */
 export default defineConfig({
   plugins: [
@@ -30,7 +32,7 @@ export default defineConfig({
     sourcemap: true,
     minify: false,
     rollupOptions: {
-      external: ['html-to-image'],
+      external: ['html-to-image', 'html2canvas'],
     },
   },
 });

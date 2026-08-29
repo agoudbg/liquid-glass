@@ -171,6 +171,44 @@ describe('WebGLRenderer', () => {
     expect(callsNamed(canvas.gl, 'deleteTexture')).not.toHaveLength(0);
   });
 
+  it('keeps restored resources when a post-restore observer throws', () => {
+    const canvas = new FakeCanvas();
+    const failure = new Error('post-restore observer failed');
+    const resourcesRestored = vi.fn();
+    const restoreError = vi.fn();
+    const renderer = new WebGLRenderer(
+      canvas as unknown as HTMLCanvasElement,
+      {
+        onContextResourcesRestored: resourcesRestored,
+        onContextRestored: () => {
+          throw failure;
+        },
+        onContextRestoreError: restoreError,
+      },
+    );
+    renderer.resize(100, 50);
+    renderer.uploadBackdrop({ width: 100, height: 50 } as unknown as TexImageSource);
+    canvas.dispatch('webglcontextlost', {
+      preventDefault: vi.fn(),
+    } as unknown as Event);
+
+    expect(() => canvas.dispatch('webglcontextrestored', {} as Event))
+      .toThrow(failure);
+    expect(resourcesRestored).toHaveBeenCalledOnce();
+    expect(restoreError).not.toHaveBeenCalled();
+    expect(renderer.getDiagnosticsState()).toMatchObject({
+      state: 'ready',
+      resources: {
+        buffers: 1,
+        programs: 1,
+        textures: 1,
+        vertexArrays: 1,
+      },
+    });
+    expect(renderer.render([material]).drawCalls).toBe(1);
+    renderer.destroy();
+  });
+
   it('requests diagnostic context loss and restoration without exposing WebGL', () => {
     const canvas = new FakeCanvas();
     const renderer = new WebGLRenderer(canvas as unknown as HTMLCanvasElement);

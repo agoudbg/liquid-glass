@@ -37,7 +37,9 @@ export interface WebGLRendererOptions {
   devicePixelRatio?: () => number;
   /** Callback invoked after a WebGL context is lost. */
   onContextLost?: () => void;
-  /** Callback invoked after resources are rebuilt on context restoration. */
+  /** Callback that commits owner state inside the resource-rebuild transaction. */
+  onContextResourcesRestored?: () => void;
+  /** Callback invoked after resources and owner state are restored successfully. */
   onContextRestored?: () => void;
   /** Callback invoked when WebGL resources cannot be rebuilt after restoration. */
   onContextRestoreError?: (error: GlassError) => void;

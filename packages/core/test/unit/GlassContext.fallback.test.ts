@@ -389,6 +389,45 @@ describe('GlassContext fallback lifecycle', () => {
     context.destroy();
   });
 
+  it('retains restored resources when a post-restore listener throws', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const failure = new Error('post-restore listener failed');
+    let failRefresh = false;
+    context.on('compositeRequested', (reason) => {
+      if (failRefresh && reason === 'fallback') throw failure;
+    });
+    runtime.canvases[0].dispatch('webglcontextlost', {
+      preventDefault: vi.fn(),
+    } as unknown as Event);
+    expect(context.fallbackMode).toBe(true);
+    failRefresh = true;
+
+    expect(() => runtime.canvases[0].dispatch(
+      'webglcontextrestored',
+      {} as Event,
+    )).toThrow(failure);
+
+    expect(context.fallbackMode).toBe(false);
+    expect(container.getAttribute('data-lg-fallback')).toBe('false');
+    expect(context.getDiagnostics()).toMatchObject({
+      presentation: { rendererState: 'ready' },
+      resources: {
+        webgl: {
+          buffers: 1,
+          programs: 1,
+          vertexArrays: 1,
+        },
+      },
+    });
+    failRefresh = false;
+    expect(() => context.refresh()).not.toThrow();
+    context.destroy();
+  });
+
   it('handles WebGL context loss only on the internal renderer canvas', () => {
     const runtime = createRuntime();
     const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });

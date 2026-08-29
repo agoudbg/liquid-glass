@@ -38,14 +38,10 @@ export class ContextRendererLifecycleController {
     this.callbacks.recordContextLoss();
   }
 
-  /** Leave automatic fallback and rebuild the first restored frame. */
-  public handleRestored(): void {
+  /** Commit restored presentation while renderer resources can still roll back. */
+  public handleResourcesRestored(): void {
     if (this.callbacks.isDestroying()) return;
-    if (!this.callbacks.setContextLost(false)) {
-      this.callbacks.recordContextRestore();
-      this.callbacks.refreshFallback();
-      return;
-    }
+    if (!this.callbacks.setContextLost(false)) return;
     try {
       this.callbacks.applyFallbackModeChange();
     } catch (error) {
@@ -54,6 +50,11 @@ export class ContextRendererLifecycleController {
         () => this.callbacks.applyFallbackModeChange(),
       ]);
     }
+  }
+
+  /** Publish successful restoration after renderer rollback is no longer allowed. */
+  public handleRestored(): void {
+    if (this.callbacks.isDestroying()) return;
     runTasksPreservingFirstFailure([
       () => this.callbacks.recordContextRestore(),
       () => this.callbacks.refreshFallback(),

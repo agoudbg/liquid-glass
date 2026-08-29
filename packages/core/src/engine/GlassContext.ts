@@ -252,6 +252,9 @@ export class GlassContextImpl implements GlassContext {
         this.optionsSnapshot,
         {
           onContextLost: () => this.rendererLifecycle.handleLost(),
+          onContextResourcesRestored: () => (
+            this.rendererLifecycle.handleResourcesRestored()
+          ),
           onContextRestored: () => this.rendererLifecycle.handleRestored(),
           onContextRestoreError: (error) => (
             this.rendererLifecycle.handleRestoreError(error)

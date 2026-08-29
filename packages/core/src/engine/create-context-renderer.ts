@@ -7,7 +7,9 @@ import type { GlassEngineRuntime } from './runtime';
 export interface ContextRendererCallbacks {
   /** Notify the context immediately after WebGL is lost. */
   onContextLost(): void;
-  /** Notify the context after WebGL resources are recreated. */
+  /** Commit context presentation while renderer resources can still roll back. */
+  onContextResourcesRestored(): void;
+  /** Notify the context after renderer resources and presentation are committed. */
   onContextRestored(): void;
   /** Surface a typed failure when WebGL resources cannot be recreated. */
   onContextRestoreError(error: GlassError): void;
@@ -45,6 +47,7 @@ export function createContextRenderer(
       renderScale,
       devicePixelRatio: runtime.devicePixelRatio,
       onContextLost: callbacks.onContextLost,
+      onContextResourcesRestored: callbacks.onContextResourcesRestored,
       onContextRestored: callbacks.onContextRestored,
       onContextRestoreError: callbacks.onContextRestoreError,
     });

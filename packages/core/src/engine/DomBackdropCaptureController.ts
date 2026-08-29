@@ -5,7 +5,7 @@ import {
   type DomCaptureResult,
 } from '../backdrop/dom-capture';
 import { calculateViewportCaptureRect } from '../backdrop/viewport';
-import { GlassError, type GlassErrorContext } from '../errors/GlassError';
+import type { GlassErrorContext } from '../errors/GlassError';
 import type {
   BackdropSourceChanges,
   BackdropSourceHandle,
@@ -37,6 +37,7 @@ import {
   createBackdropSourceCaptureError,
   createScheduledCaptureError,
 } from './dom-capture-errors';
+import { requireDomCaptureFrameRuntime } from './dom-capture-frame-runtime';
 import type {
   BackdropRegistration,
   DomBackdropRegistration,
@@ -268,33 +269,10 @@ export class DomBackdropCaptureController {
     if (this.paused || this.scheduler) {
       return;
     }
-    const requestFrame = this.runtime.requestAnimationFrame
-      ?? (
-        typeof globalThis.requestAnimationFrame === 'function'
-          ? globalThis.requestAnimationFrame.bind(globalThis)
-          : null
-      );
-    const cancelFrame = this.runtime.cancelAnimationFrame
-      ?? (
-        typeof globalThis.cancelAnimationFrame === 'function'
-          ? globalThis.cancelAnimationFrame.bind(globalThis)
-          : null
-      );
-    if (!requestFrame || !cancelFrame) {
-      throw new GlassError(
-        'LIFECYCLE_FAILED',
-        'Animation frame APIs are required for DOM backdrop capture.',
-        { phase: 'lifecycle' },
-      );
-    }
-
     const generation = this.schedulerGeneration + 1;
     this.schedulerGeneration = generation;
     this.scheduler = new DirtyFrameScheduler(
-      {
-        cancelAnimationFrame: (handle) => cancelFrame(handle),
-        requestAnimationFrame: (callback) => requestFrame(callback),
-      },
+      requireDomCaptureFrameRuntime(this.runtime),
       async () => {
         const abortController = new AbortController();
         this.captureAbortController = abortController;

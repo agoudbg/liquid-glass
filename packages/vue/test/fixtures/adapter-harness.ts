@@ -75,7 +75,12 @@ export function createMaterialHandle(id = 'material-1'): TestMaterialHandle {
     getPresentation: vi.fn(() => currentPresentation),
     onPresentation: vi.fn((listener) => {
       listeners.add(listener);
-      listener(currentPresentation);
+      try {
+        listener(currentPresentation);
+      } catch (error) {
+        listeners.delete(listener);
+        throw error;
+      }
       return () => {
         listeners.delete(listener);
         presentationUnsubscribed();

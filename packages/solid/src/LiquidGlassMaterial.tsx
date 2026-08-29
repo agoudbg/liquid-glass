@@ -27,6 +27,34 @@ import type {
   MaterialRenderControls,
 } from './types';
 
+function runMaterialCleanupTasks(tasks: readonly (() => void)[]): void {
+  let failed = false;
+  let firstFailure: unknown;
+  for (const task of tasks) {
+    try {
+      task();
+    } catch (error) {
+      if (!failed) {
+        failed = true;
+        firstFailure = error;
+      }
+    }
+  }
+  if (failed) throw firstFailure;
+}
+
+function rollbackMaterialSetup(
+  failure: unknown,
+  tasks: readonly (() => void)[],
+): never {
+  try {
+    runMaterialCleanupTasks(tasks);
+  } catch {
+    // The setup failure remains authoritative after every acquired resource is released.
+  }
+  throw failure;
+}
+
 /** Solid material registered with the nearest `LiquidGlass` container. */
 export function LiquidGlassMaterial(
   sourceProps: LiquidGlassMaterialProps,
@@ -127,37 +155,45 @@ export function LiquidGlassMaterial(
       ...untrack(readChanges),
     };
     const registration = currentContext.addMaterial(config);
-    const pointer = new MaterialPointerController(
-      materialElement,
-      registration,
-      untrack(readInteractionPolicy),
-    );
-    const unbindPointerEvents = bindMaterialPointerEvents(materialElement, pointer);
-    const presentation = new MaterialDomPresentationController(
-      materialElement,
-      highlightElement,
-      registration,
-      untrack(readAppearance),
-    );
-    if (untrack(updating)) registration.startLayoutUpdates();
-    handle = registration;
-    pointerController = pointer;
-    presentationController = presentation;
-    onCleanup(() => {
-      presentation.destroy();
-      unbindPointerEvents();
-      pointer.destroy();
-      registration.destroy();
-      if (handle === registration) {
-        handle = null;
-      }
-      if (pointerController === pointer) {
-        pointerController = null;
-      }
-      if (presentationController === presentation) {
-        presentationController = null;
-      }
-    });
+    const cleanupTasks: Array<() => void> = [() => registration.destroy()];
+    try {
+      const pointer = new MaterialPointerController(
+        materialElement,
+        registration,
+        untrack(readInteractionPolicy),
+      );
+      cleanupTasks.unshift(() => pointer.destroy());
+      const unbindPointerEvents = bindMaterialPointerEvents(materialElement, pointer);
+      cleanupTasks.unshift(unbindPointerEvents);
+      const presentation = new MaterialDomPresentationController(
+        materialElement,
+        highlightElement,
+        registration,
+        untrack(readAppearance),
+      );
+      cleanupTasks.unshift(() => presentation.destroy());
+      if (untrack(updating)) registration.startLayoutUpdates();
+      handle = registration;
+      pointerController = pointer;
+      presentationController = presentation;
+      onCleanup(() => {
+        try {
+          runMaterialCleanupTasks(cleanupTasks);
+        } finally {
+          if (handle === registration) {
+            handle = null;
+          }
+          if (pointerController === pointer) {
+            pointerController = null;
+          }
+          if (presentationController === presentation) {
+            presentationController = null;
+          }
+        }
+      });
+    } catch (error) {
+      rollbackMaterialSetup(error, cleanupTasks);
+    }
   });
 
   createEffect(() => {

@@ -46,7 +46,12 @@ function createHarness(initialPresentation = createPresentation()) {
     getPresentation: vi.fn(() => presentation),
     onPresentation: vi.fn((nextListener) => {
       listener = nextListener;
-      nextListener(presentation);
+      try {
+        nextListener(presentation);
+      } catch (error) {
+        listener = null;
+        throw error;
+      }
       return unsubscribe;
     }),
     refreshLayout: vi.fn(),
@@ -346,6 +351,43 @@ describe('React material presentation', () => {
     expect(highlight?.classList.contains('visible')).toBe(false);
     dispatchPointer(material as HTMLElement, 'pointerdown');
     expect(harness.setInteractionState).toHaveBeenCalledTimes(pointerCalls);
+  });
+
+  it('rolls back material ownership when initial presentation setup fails', () => {
+    const harness = createHarness();
+    const removeEventListener = vi.spyOn(
+      HTMLElement.prototype,
+      'removeEventListener',
+    );
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    let thrown: unknown;
+
+    try {
+      render(
+        <LiquidGlass engine={harness.engine}>
+          <LiquidGlassMaterial illuminationIntensity={2} />
+        </LiquidGlass>,
+      );
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(thrown).toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(harness.material.destroy).toHaveBeenCalledTimes(1);
+    for (const event of [
+      'lostpointercapture',
+      'pointercancel',
+      'pointerdown',
+      'pointerenter',
+      'pointerleave',
+      'pointermove',
+      'pointerup',
+    ]) {
+      expect(removeEventListener).toHaveBeenCalledWith(
+        event,
+        expect.any(Function),
+      );
+    }
   });
 
   it('does not re-render function children for continuous presentation updates', async () => {

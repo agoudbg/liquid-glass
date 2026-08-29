@@ -2,7 +2,7 @@ import type {
   CustomDrawCallback,
   ProxyTargetInterface,
 } from '@agou/liquid-glass-core';
-import { createSignal } from 'solid-js';
+import { createSignal, ErrorBoundary } from 'solid-js';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { BackdropCanvas } from '../src/BackdropCanvas';
@@ -289,5 +289,49 @@ describe('Solid adapter runtime behavior', () => {
     expect(contextHarness.material.destroy).toHaveBeenCalledTimes(1);
     expect(material.hasAttribute('is-blurred')).toBe(false);
     expect(highlight.classList.contains('visible')).toBe(false);
+  });
+
+  it('rolls back material ownership when initial presentation setup fails', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    const removeEventListener = vi.spyOn(
+      HTMLElement.prototype,
+      'removeEventListener',
+    );
+    let capturedError: unknown;
+    const dispose = mountSolid(() => (
+      <LiquidGlass engine={engineHarness.engine}>
+        <ErrorBoundary fallback={(error) => {
+          capturedError = error;
+          return <span data-material-setup-failed />;
+        }}>
+          <LiquidGlassMaterial illuminationIntensity={2} />
+        </ErrorBoundary>
+      </LiquidGlass>
+    ));
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(capturedError).toMatchObject({ code: 'INVALID_CONFIG' });
+    expect(contextHarness.material.destroy).toHaveBeenCalledTimes(1);
+    expect(contextHarness.material.listenerCount()).toBe(0);
+    for (const event of [
+      'lostpointercapture',
+      'pointercancel',
+      'pointerdown',
+      'pointerenter',
+      'pointerleave',
+      'pointermove',
+      'pointerup',
+    ]) {
+      expect(removeEventListener).toHaveBeenCalledWith(
+        event,
+        expect.any(Function),
+      );
+    }
+
+    dispose();
+    expect(contextHarness.material.destroy).toHaveBeenCalledTimes(1);
   });
 });

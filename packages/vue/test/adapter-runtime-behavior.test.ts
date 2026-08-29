@@ -1,7 +1,13 @@
 import type { ProxyTargetInterface } from '@agou/liquid-glass-core';
 import { mount } from '@vue/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { h, nextTick, shallowRef } from 'vue';
+import {
+  defineComponent,
+  h,
+  nextTick,
+  onErrorCaptured,
+  shallowRef,
+} from 'vue';
 
 import LgBackdropCanvas from '../src/components/LgBackdropCanvas.vue';
 import LiquidGlassMaterial from '../src/components/LiquidGlassMaterial.vue';
@@ -238,6 +244,58 @@ describe('Vue adapter runtime behavior', () => {
     ]);
     wrapper.unmount();
     expect(materialHandle.presentationUnsubscribed).toHaveBeenCalledTimes(2);
+  });
+
+  it('rolls back material ownership when initial presentation setup fails', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const capturedErrors: unknown[] = [];
+    const removeEventListener = vi.spyOn(
+      HTMLElement.prototype,
+      'removeEventListener',
+    );
+    const ErrorBoundary = defineComponent({
+      setup() {
+        onErrorCaptured((error) => {
+          capturedErrors.push(error);
+          return false;
+        });
+        return () => h(LiquidGlassMaterial, { illuminationIntensity: 2 });
+      },
+    });
+    const wrapper = mount(ErrorBoundary, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+
+    await nextTick();
+
+    expect(capturedErrors).toEqual([
+      expect.objectContaining({ code: 'INVALID_CONFIG' }),
+    ]);
+    expect(materialHandle.destroy).toHaveBeenCalledTimes(1);
+    for (const event of [
+      'lostpointercapture',
+      'pointercancel',
+      'pointerdown',
+      'pointerenter',
+      'pointerleave',
+      'pointermove',
+      'pointerup',
+    ]) {
+      expect(removeEventListener).toHaveBeenCalledWith(
+        event,
+        expect.any(Function),
+      );
+    }
+
+    wrapper.unmount();
+    expect(materialHandle.destroy).toHaveBeenCalledTimes(1);
   });
 
   it('bridges pointer input and applies presentation snapshots without consuming child events', async () => {

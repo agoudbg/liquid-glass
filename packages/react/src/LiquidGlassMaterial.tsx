@@ -28,6 +28,34 @@ import type {
   MaterialRenderControls,
 } from './types';
 
+function runMaterialCleanupTasks(tasks: readonly (() => void)[]): void {
+  let failed = false;
+  let firstFailure: unknown;
+  for (const task of tasks) {
+    try {
+      task();
+    } catch (error) {
+      if (!failed) {
+        failed = true;
+        firstFailure = error;
+      }
+    }
+  }
+  if (failed) throw firstFailure;
+}
+
+function rollbackMaterialSetup(
+  failure: unknown,
+  tasks: readonly (() => void)[],
+): never {
+  try {
+    runMaterialCleanupTasks(tasks);
+  } catch {
+    // The setup failure remains authoritative after every acquired resource is released.
+  }
+  throw failure;
+}
+
 /** React material registered with the nearest `LiquidGlass` container. */
 export const LiquidGlassMaterial = forwardRef<
   LiquidGlassMaterialHandle,
@@ -155,37 +183,45 @@ export const LiquidGlassMaterial = forwardRef<
 
     const config: MaterialConfig = { element, ...changesRef.current };
     const registration = context.addMaterial(config);
-    const pointerController = new MaterialPointerController(
-      element,
-      registration,
-      pointerPolicyRef.current,
-    );
-    const unbindPointerEvents = bindMaterialPointerEvents(element, pointerController);
-    const presentationController = new MaterialDomPresentationController(
-      element,
-      highlight,
-      registration,
-      appearanceRef.current,
-    );
-    if (updatingRef.current) registration.startLayoutUpdates();
-    handleRef.current = registration;
-    pointerControllerRef.current = pointerController;
-    presentationControllerRef.current = presentationController;
-    return () => {
-      unbindPointerEvents();
-      pointerController.destroy();
-      presentationController.destroy();
-      registration.destroy();
-      if (handleRef.current === registration) {
-        handleRef.current = null;
-      }
-      if (pointerControllerRef.current === pointerController) {
-        pointerControllerRef.current = null;
-      }
-      if (presentationControllerRef.current === presentationController) {
-        presentationControllerRef.current = null;
-      }
-    };
+    const cleanupTasks: Array<() => void> = [() => registration.destroy()];
+    try {
+      const pointerController = new MaterialPointerController(
+        element,
+        registration,
+        pointerPolicyRef.current,
+      );
+      cleanupTasks.unshift(() => pointerController.destroy());
+      const unbindPointerEvents = bindMaterialPointerEvents(element, pointerController);
+      cleanupTasks.unshift(unbindPointerEvents);
+      const presentationController = new MaterialDomPresentationController(
+        element,
+        highlight,
+        registration,
+        appearanceRef.current,
+      );
+      cleanupTasks.unshift(() => presentationController.destroy());
+      if (updatingRef.current) registration.startLayoutUpdates();
+      handleRef.current = registration;
+      pointerControllerRef.current = pointerController;
+      presentationControllerRef.current = presentationController;
+      return () => {
+        try {
+          runMaterialCleanupTasks(cleanupTasks);
+        } finally {
+          if (handleRef.current === registration) {
+            handleRef.current = null;
+          }
+          if (pointerControllerRef.current === pointerController) {
+            pointerControllerRef.current = null;
+          }
+          if (presentationControllerRef.current === presentationController) {
+            presentationControllerRef.current = null;
+          }
+        }
+      };
+    } catch (error) {
+      return rollbackMaterialSetup(error, cleanupTasks);
+    }
   }, [context]);
 
   useEffect(() => {

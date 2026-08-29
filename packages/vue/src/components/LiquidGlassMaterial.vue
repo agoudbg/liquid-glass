@@ -19,6 +19,34 @@ import type {
   LiquidGlassMaterialProps,
 } from '../types';
 
+function runMaterialCleanupTasks(tasks: readonly (() => void)[]): void {
+  let failed = false;
+  let firstFailure: unknown;
+  for (const task of tasks) {
+    try {
+      task();
+    } catch (error) {
+      if (!failed) {
+        failed = true;
+        firstFailure = error;
+      }
+    }
+  }
+  if (failed) throw firstFailure;
+}
+
+function rollbackMaterialSetup(
+  failure: unknown,
+  tasks: readonly (() => void)[],
+): never {
+  try {
+    runMaterialCleanupTasks(tasks);
+  } catch {
+    // The setup failure remains authoritative after every acquired resource is released.
+  }
+  throw failure;
+}
+
 defineOptions({
   name: 'LiquidGlassMaterial',
   inheritAttrs: false,
@@ -115,45 +143,53 @@ watch(
       ...materialChanges.value,
     };
     const registration = currentContext.addMaterial(config);
-    const pointer = new MaterialPointerController(
-      element,
-      registration,
-      interactionPolicy(),
-    );
-    const unbindPointerEvents = bindMaterialPointerEvents(element, pointer);
-    const presentation = new MaterialDomPresentationController(
-      element,
-      highlight,
-      registration,
-      materialAppearance(),
-    );
-    if (updating.value) registration.startLayoutUpdates();
-    let themeColorMode: AutomaticBackgroundColorMode | null = null;
-    const stopThemeFeedback = registration.onPresentation((snapshot) => {
-      if (themeColorMode === null) {
+    const cleanupTasks: Array<() => void> = [() => registration.destroy()];
+    try {
+      const pointer = new MaterialPointerController(
+        element,
+        registration,
+        interactionPolicy(),
+      );
+      cleanupTasks.unshift(() => pointer.destroy());
+      const unbindPointerEvents = bindMaterialPointerEvents(element, pointer);
+      cleanupTasks.unshift(unbindPointerEvents);
+      const presentation = new MaterialDomPresentationController(
+        element,
+        highlight,
+        registration,
+        materialAppearance(),
+      );
+      cleanupTasks.unshift(() => presentation.destroy());
+      if (updating.value) registration.startLayoutUpdates();
+      let themeColorMode: AutomaticBackgroundColorMode | null = null;
+      const stopThemeFeedback = registration.onPresentation((snapshot) => {
+        if (themeColorMode === null) {
+          themeColorMode = snapshot.themeColorMode;
+          return;
+        }
+        if (themeColorMode === snapshot.themeColorMode) return;
         themeColorMode = snapshot.themeColorMode;
-        return;
-      }
-      if (themeColorMode === snapshot.themeColorMode) return;
-      themeColorMode = snapshot.themeColorMode;
-      emit('backgroundColorChange', themeColorMode);
-    });
-    handle.value = registration;
-    pointerController = pointer;
-    presentationController = presentation;
+        emit('backgroundColorChange', themeColorMode);
+      });
+      cleanupTasks.unshift(stopThemeFeedback);
+      handle.value = registration;
+      pointerController = pointer;
+      presentationController = presentation;
 
-    onCleanup(() => {
-      stopThemeFeedback();
-      presentation.destroy();
-      unbindPointerEvents();
-      pointer.destroy();
-      registration.destroy();
-      if (handle.value === registration) {
-        handle.value = null;
-      }
-      if (pointerController === pointer) pointerController = null;
-      if (presentationController === presentation) presentationController = null;
-    });
+      onCleanup(() => {
+        try {
+          runMaterialCleanupTasks(cleanupTasks);
+        } finally {
+          if (handle.value === registration) {
+            handle.value = null;
+          }
+          if (pointerController === pointer) pointerController = null;
+          if (presentationController === presentation) presentationController = null;
+        }
+      });
+    } catch (error) {
+      rollbackMaterialSetup(error, cleanupTasks);
+    }
   },
   { immediate: true, flush: 'post' },
 );

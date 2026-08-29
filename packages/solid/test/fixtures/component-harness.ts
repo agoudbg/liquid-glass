@@ -48,7 +48,12 @@ function createMaterialHarness(
     getPresentation: vi.fn<MaterialHandle['getPresentation']>(() => presentation),
     onPresentation: vi.fn<MaterialHandle['onPresentation']>((listener) => {
       listeners.add(listener);
-      listener(presentation);
+      try {
+        listener(presentation);
+      } catch (error) {
+        listeners.delete(listener);
+        throw error;
+      }
       let subscribed = true;
       return () => {
         if (!subscribed) return;

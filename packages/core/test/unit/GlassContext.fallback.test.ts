@@ -250,6 +250,50 @@ describe('GlassContext fallback lifecycle', () => {
     context.destroy();
   });
 
+  it('rolls back forced fallback when the pre-reveal render fails', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    context.setFallbackMode(true);
+    runtime.canvases[0].gl.errorCode = 0x0502;
+
+    expect(() => context.setFallbackMode(false)).toThrowError(
+      expect.objectContaining({ code: 'RENDER_FAILED' }),
+    );
+    expect(context.fallbackMode).toBe(true);
+    expect(container.getAttribute('data-lg-fallback')).toBe('true');
+    expect(context.canvas.style.visibility).toBe('hidden');
+
+    runtime.canvases[0].gl.errorCode = 0;
+    expect(() => context.setFallbackMode(false)).not.toThrow();
+    expect(context.fallbackMode).toBe(false);
+    expect(container.getAttribute('data-lg-fallback')).toBe('false');
+    expect(context.canvas.style.visibility).toBe('visible');
+    context.destroy();
+  });
+
+  it('refreshes committed fallback state after a mode listener throws', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const failure = new Error('fallback listener failed');
+    const compositeRequested = vi.fn();
+    context.on('compositeRequested', compositeRequested);
+    context.on('fallbackModeChanged', () => {
+      throw failure;
+    });
+
+    expect(() => context.setFallbackMode(true)).toThrow(failure);
+    expect(context.fallbackMode).toBe(true);
+    expect(context.canvas.style.visibility).toBe('hidden');
+    expect(compositeRequested).toHaveBeenCalledWith('fallback', 'high');
+    context.destroy();
+  });
+
   it('rejects disabling automatic fallback when no renderer exists', () => {
     const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
     const runtime: GlassEngineRuntime = {
@@ -312,6 +356,36 @@ describe('GlassContext fallback lifecycle', () => {
     runtime.canvases[0].gl.shaderCompileSucceeds = true;
     runtime.canvases[0].dispatch('webglcontextrestored', {} as Event);
     expect(context.fallbackMode).toBe(false);
+    context.destroy();
+  });
+
+  it('restores fallback when the first post-restore frame fails', () => {
+    const runtime = createRuntime();
+    const container = new FakeElement({ x: 0, y: 0, width: 240, height: 120 });
+    const context = new GlassEngine(runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const errors = vi.fn();
+    context.on('error', errors);
+    runtime.canvases[0].dispatch('webglcontextlost', {
+      preventDefault: vi.fn(),
+    } as unknown as Event);
+    runtime.canvases[0].gl.errorCode = 0x0502;
+
+    runtime.canvases[0].dispatch('webglcontextrestored', {} as Event);
+
+    expect(context.fallbackMode).toBe(true);
+    expect(container.getAttribute('data-lg-fallback')).toBe('true');
+    expect(context.canvas.style.visibility).toBe('hidden');
+    expect(errors).toHaveBeenCalledWith(expect.objectContaining({
+      code: 'RENDER_FAILED',
+      phase: 'render',
+    }));
+
+    runtime.canvases[0].gl.errorCode = 0;
+    runtime.canvases[0].dispatch('webglcontextrestored', {} as Event);
+    expect(context.fallbackMode).toBe(false);
+    expect(context.canvas.style.visibility).toBe('visible');
     context.destroy();
   });
 

@@ -22,7 +22,9 @@ import {
 import { readBackdropSourceKind } from './backdrop-config';
 import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import { resolveContextContent } from './context-content';
+import { resolveContextDeviceScale } from './context-device-scale';
 import { createDiagnosticsListenerError } from './context-diagnostics-error';
+import { applyCurrentContextFallback, type ContextFallbackTransitionCallbacks, transitionForcedContextFallback } from './context-fallback-transition';
 import {
   assertContextRegistrationUsable,
   assertContextUsable,
@@ -32,6 +34,7 @@ import {
   snapshotContextOptions,
 } from './context-options';
 import { ContextPresentation } from './context-presentation';
+import { ContextRefreshController } from './context-refresh';
 import { teardownContext } from './context-teardown';
 import { ContextDiagnosticsController } from './ContextDiagnosticsController';
 import { ContextEventController } from './ContextEventController';
@@ -71,6 +74,7 @@ export class GlassContextImpl implements GlassContext {
   private readonly contextEvents: ContextEventController;
   private readonly presentation: ContextPresentation;
   private readonly fallback: FallbackController;
+  private readonly refreshController: ContextRefreshController;
   private readonly diagnostics: ContextDiagnosticsController;
   private readonly rendererLifecycle: ContextRendererLifecycleController;
   private readonly content: HTMLElement;
@@ -103,7 +107,7 @@ export class GlassContextImpl implements GlassContext {
       this.sources,
       runtime,
       {
-        getDeviceScale: () => this.getDeviceScale(),
+        getDeviceScale: () => resolveContextDeviceScale(this.runtime, this.precision),
         getExternalMaterials: (containerRect, contentOffset) => (
           this.materials.resolveExternalMaterials(containerRect, contentOffset)
         ),
@@ -190,7 +194,7 @@ export class GlassContextImpl implements GlassContext {
           this.destroyStarted,
           registration,
         ),
-        getDeviceScale: () => this.getDeviceScale(),
+        getDeviceScale: () => resolveContextDeviceScale(this.runtime, this.precision),
         getOptions: () => this.optionsSnapshot,
         getViewportMode: () => this.viewportMode,
         isContextDestroyed: () => this.destroyStarted,
@@ -204,6 +208,12 @@ export class GlassContextImpl implements GlassContext {
         renderFrame: () => this.renderCoordinator.renderFrame(),
         requestComposite: (reason) => this.requestCompositeWithoutDomCapture(reason),
       },
+    );
+    this.refreshController = new ContextRefreshController(
+      this.emitter,
+      this.domCapture,
+      this.renderCoordinator,
+      () => this.fallbackMode,
     );
     this.canvasSources = new CanvasBackdropSourceController(
       this.sources,
@@ -382,10 +392,11 @@ export class GlassContextImpl implements GlassContext {
   /** Force or release CSS fallback presentation. */
   public setFallbackMode(enabled: boolean): void {
     this.assertUsable();
-    if (this.fallback.setForced(enabled)) {
-      this.applyFallbackModeChange();
-      this.refresh('fallback');
-    }
+    transitionForcedContextFallback(
+      this.fallback,
+      enabled,
+      this.getFallbackTransitionCallbacks(),
+    );
   }
   /** Toggle viewport-limited mode; bounded capture is completed in P4. */
   public setViewportMode(enabled: boolean): void {
@@ -394,21 +405,16 @@ export class GlassContextImpl implements GlassContext {
       this.viewportMode = enabled;
       this.presentation.setViewportMode(enabled);
       this.domCapture.markAllDirty();
-      this.emitter.emit('viewportModeChanged', enabled);
-      this.refresh('viewport');
+      runTasksPreservingFirstFailure([
+        () => this.emitter.emit('viewportModeChanged', enabled),
+        () => this.refresh('viewport'),
+      ]);
     }
   }
   /** Request capture, composition, and material rendering for one dirty reason. */
   public refresh(reason: TextureDirtyReason = 'external'): void {
     this.assertUsable();
-    this.emitter.emit('compositeRequested', reason, 'high');
-    if (this.fallbackMode) {
-      this.renderCoordinator.renderFrame();
-      return;
-    }
-    if (!this.domCapture.request(reason)) {
-      this.renderCoordinator.renderFrame();
-    }
+    this.refreshController.refresh(reason);
   }
   /** Subscribe to a typed context event and return an unsubscribe callback. */
   public on<Event extends keyof GlassEventMap>(
@@ -451,34 +457,29 @@ export class GlassContextImpl implements GlassContext {
     });
   }
   private applyFallbackModeChange(): void {
-    const enabled = this.fallbackMode;
-    if (!enabled && this.renderer) {
-      this.renderCoordinator.renderFrame();
-    }
-    this.renderCoordinator.setFallbackMode(enabled);
-    this.presentation.setFallbackMode(enabled);
-    this.domCapture.setPaused(enabled);
-    this.materials.setFallbackMode(enabled);
-    this.emitter.emit('fallbackModeChanged', enabled);
+    applyCurrentContextFallback(
+      this.fallback,
+      this.getFallbackTransitionCallbacks(),
+    );
   }
   private emitError(context: GlassErrorContext): void {
     this.diagnostics.recordError();
     this.emitter.emit('error', context);
   }
-  private getDeviceScale(): number {
-    const ratio = this.runtime.devicePixelRatio();
-    const safeRatio = Number.isFinite(ratio) && ratio > 0 ? ratio : 1;
-    return safeRatio * this.precision;
-  }
   private requestCompositeWithoutDomCapture(reason: TextureDirtyReason): void {
-    this.emitter.emit('compositeRequested', reason, 'high');
-    if (this.fallbackMode) {
-      this.renderCoordinator.renderFrame();
-      return;
-    }
-    if (!this.domCapture.requestComposite(reason)) {
-      this.renderCoordinator.renderFrame();
-    }
+    this.refreshController.composite(reason);
+  }
+  private getFallbackTransitionCallbacks(): ContextFallbackTransitionCallbacks {
+    return {
+      preRevealRender: () => this.renderer && this.renderCoordinator.renderFrame(),
+      publishMaterials: () => this.materials.publishPresentations(),
+      publishMode: (enabled) => this.emitter.emit('fallbackModeChanged', enabled),
+      refresh: () => this.refresh('fallback'),
+      setCapturePaused: (enabled) => this.domCapture.setPaused(enabled),
+      setMaterialMode: (enabled) => this.materials.setFallbackMode(enabled, false),
+      setPresentationMode: (enabled) => this.presentation.setFallbackMode(enabled),
+      setRenderMode: (enabled) => this.renderCoordinator.setFallbackMode(enabled),
+    };
   }
   private removeSource(registration: BackdropRegistration): void {
     if (registration.destroyed) {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   GlassEngine,
@@ -192,6 +192,28 @@ describe('GlassContext viewport presentation', () => {
         ],
       },
     ]);
+    context.destroy();
+  });
+
+  it('refreshes committed viewport state after a mode listener throws', () => {
+    const harness = createRuntimeHarness();
+    const container = new FakeElement({ x: 0, y: 0, width: 320, height: 180 });
+    const context = new GlassEngine(harness.runtime).createContext(
+      container as unknown as HTMLElement,
+    );
+    const failure = new Error('viewport listener failed');
+    const compositeRequested = vi.fn();
+    context.on('compositeRequested', compositeRequested);
+    context.on('viewportModeChanged', () => {
+      throw failure;
+    });
+
+    expect(() => context.setViewportMode(true)).toThrow(failure);
+    expect(context.getDiagnostics().mode.viewportMode).toBe(true);
+    expect(context.canvas.className).toContain('viewport-mode');
+    expect(compositeRequested).toHaveBeenCalledWith('viewport', 'high');
+    expect(() => context.setViewportMode(true)).not.toThrow();
+    expect(compositeRequested).toHaveBeenCalledOnce();
     context.destroy();
   });
 

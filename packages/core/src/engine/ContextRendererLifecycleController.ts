@@ -1,4 +1,8 @@
 import type { GlassError } from '../errors/GlassError';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
 
 interface ContextRendererLifecycleCallbacks {
   applyFallbackModeChange(): void;
@@ -23,21 +27,37 @@ export class ContextRendererLifecycleController {
     if (this.callbacks.isDestroying()) return;
     this.callbacks.invalidateBackdropTexture();
     const fallbackChanged = this.callbacks.setContextLost(true);
-    this.callbacks.recordContextLoss();
     if (fallbackChanged) {
-      this.callbacks.applyFallbackModeChange();
-      this.callbacks.refreshFallback();
+      runTasksPreservingFirstFailure([
+        () => this.callbacks.applyFallbackModeChange(),
+        () => this.callbacks.recordContextLoss(),
+        () => this.callbacks.refreshFallback(),
+      ]);
+      return;
     }
+    this.callbacks.recordContextLoss();
   }
 
   /** Leave automatic fallback and rebuild the first restored frame. */
   public handleRestored(): void {
     if (this.callbacks.isDestroying()) return;
-    if (this.callbacks.setContextLost(false)) {
-      this.callbacks.applyFallbackModeChange();
+    if (!this.callbacks.setContextLost(false)) {
+      this.callbacks.recordContextRestore();
+      this.callbacks.refreshFallback();
+      return;
     }
-    this.callbacks.recordContextRestore();
-    this.callbacks.refreshFallback();
+    try {
+      this.callbacks.applyFallbackModeChange();
+    } catch (error) {
+      this.callbacks.setContextLost(true);
+      rethrowAfterRunningTasks(error, [
+        () => this.callbacks.applyFallbackModeChange(),
+      ]);
+    }
+    runTasksPreservingFirstFailure([
+      () => this.callbacks.recordContextRestore(),
+      () => this.callbacks.refreshFallback(),
+    ]);
   }
 
   /** Surface resource-rebuild failures while retaining fallback mode. */

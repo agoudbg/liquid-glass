@@ -221,15 +221,20 @@ export class MaterialPresentationController {
   }
 
   /** Synchronize CSS fallback state into every material presentation. */
-  public setFallbackMode(enabled: boolean): void {
+  public setFallbackMode(enabled: boolean, publish = true): void {
     if (this.fallbackMode === enabled) return;
     this.fallbackMode = enabled;
     const materials = [...this.registrations.values()];
-    for (const materialRuntime of materials) {
-      setMaterialFallbackMode(materialRuntime.registration, enabled);
-      materialRuntime.interaction.setFallbackMode(enabled);
-    }
-    this.publishAll(materials);
+    runTasksPreservingFirstFailure(materials.flatMap((materialRuntime) => [
+      () => setMaterialFallbackMode(materialRuntime.registration, enabled),
+      () => materialRuntime.interaction.setFallbackMode(enabled),
+    ]));
+    if (publish) this.publishAll(materials);
+  }
+
+  /** Publish every current material presentation after a coordinated mode commit. */
+  public publishPresentations(): void {
+    this.publishAll([...this.registrations.values()]);
   }
 
   /** Synchronize inactive-page blur state into every material presentation. */

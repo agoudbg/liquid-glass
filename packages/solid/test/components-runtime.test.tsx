@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BackdropCanvas } from '../src/BackdropCanvas';
 import { LiquidGlass } from '../src/LiquidGlass';
 import { LiquidGlassMaterial } from '../src/LiquidGlassMaterial';
+import type { MaterialRenderControls } from '../src/types';
 import {
   cleanupSolidHarnesses,
   createContextHarness,
@@ -140,6 +141,46 @@ describe('Solid adapter runtime behavior', () => {
     expect(contextHarness.material.setInteractionState).toHaveBeenCalledTimes(1);
     expect(contextHarness.material.handle.update).toHaveBeenLastCalledWith(expect.objectContaining({ isMoveable: true }));
     expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+  });
+
+  it('forwards continuous layout controls through the material child function', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    let controls: MaterialRenderControls | undefined;
+    mountSolid(() => (
+      <LiquidGlass engine={engineHarness.engine}>
+        <LiquidGlassMaterial>
+          {(nextControls) => {
+            controls = nextControls;
+            return (
+              <button
+                data-updating={String(nextControls.updating())}
+                onClick={() => (
+                  nextControls.updating()
+                    ? nextControls.stopUpdating()
+                    : nextControls.startUpdating()
+                )}
+              >
+                Toggle layout updates
+              </button>
+            );
+          }}
+        </LiquidGlassMaterial>
+      </LiquidGlass>
+    ));
+    await Promise.resolve();
+    const button = document.querySelector<HTMLButtonElement>('button[data-updating]');
+    if (!button || !controls) throw new Error('Material controls did not mount.');
+
+    button.click();
+    await Promise.resolve();
+    expect(contextHarness.material.handle.startLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(button.dataset.updating).toBe('true');
+
+    button.click();
+    await Promise.resolve();
+    expect(contextHarness.material.handle.stopLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(button.dataset.updating).toBe('false');
   });
 
   it('preserves proxy target identity across reactive updates and clears it in place', async () => {

@@ -9,7 +9,7 @@ import type {
   MaterialPresentationState,
 } from '@agou/liquid-glass-core';
 import { InteractionEngine } from '@agou/liquid-glass-core';
-import { cleanup, render, waitFor } from '@testing-library/react';
+import { act, cleanup, render, waitFor } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -53,6 +53,8 @@ function createMaterialHarness(
     }),
     refreshLayout: vi.fn<MaterialHandle['refreshLayout']>(),
     setInteractionState: vi.fn<MaterialHandle['setInteractionState']>(),
+    startLayoutUpdates: vi.fn<MaterialHandle['startLayoutUpdates']>(),
+    stopLayoutUpdates: vi.fn<MaterialHandle['stopLayoutUpdates']>(),
     update: vi.fn<MaterialHandle['update']>(),
   };
   return { destroy, handle };
@@ -243,6 +245,38 @@ describe('React adapter lifecycle', () => {
         expect.objectContaining({ blur: undefined }),
       );
     });
+  });
+
+  it('forwards continuous layout controls through the material render prop', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    const mounted = render(
+      <LiquidGlass engine={engineHarness.engine}>
+        <LiquidGlassMaterial>
+          {(controls) => (
+            <button
+              data-testid="updating-state"
+              data-updating={String(controls.updating)}
+              onClick={controls.updating
+                ? controls.stopUpdating
+                : controls.startUpdating}
+            >
+              Toggle layout updates
+            </button>
+          )}
+        </LiquidGlassMaterial>
+      </LiquidGlass>,
+    );
+
+    const control = await mounted.findByTestId('updating-state');
+
+    act(() => control.click());
+    expect(contextHarness.material.handle.startLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(control.dataset.updating).toBe('true');
+
+    act(() => control.click());
+    expect(contextHarness.material.handle.stopLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(control.dataset.updating).toBe('false');
   });
 
   it('updates options without replacing the context or material registration', async () => {

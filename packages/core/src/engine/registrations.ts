@@ -209,6 +209,10 @@ export interface MaterialHandleCallbacks {
   setInteractionState(state: InteractionState): void;
   /** Request layout remeasurement. */
   refreshLayout(): void;
+  /** Start continuous layout rendering. */
+  startLayoutUpdates(): void;
+  /** Stop continuous layout rendering. */
+  stopLayoutUpdates(): void;
   /** Release the material. */
   destroy(): void;
 }
@@ -254,6 +258,16 @@ export class MaterialRegistrationHandle implements MaterialHandle {
   /** Request material layout remeasurement. */
   public refreshLayout(): void {
     this.callbacks.refreshLayout();
+  }
+
+  /** Start continuous layout rendering. */
+  public startLayoutUpdates(): void {
+    this.callbacks.startLayoutUpdates();
+  }
+
+  /** Stop continuous layout rendering. */
+  public stopLayoutUpdates(): void {
+    this.callbacks.stopLayoutUpdates();
   }
 
   /** Idempotently release the material registration. */

@@ -32,6 +32,7 @@ export interface ContextFrameDiagnosticsState {
 /** Internal state exposed by the material frame coordinator. */
 export interface MaterialFrameDiagnosticsState extends ContextFrameDiagnosticsState {
   readonly activeMaterials: number;
+  readonly continuousMaterials: number;
   readonly pendingUpdates: number;
   readonly renderRequested: boolean;
 }

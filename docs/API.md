@@ -175,6 +175,8 @@ Material handles expose:
 - `onPresentation(listener)` for immediate and subsequent snapshots.
 - `setInteractionState(state)` for framework pointer translation.
 - `refreshLayout()` for explicit remeasurement.
+- `startLayoutUpdates()` to render every frame during an external layout animation.
+- `stopLayoutUpdates()` to stop continuous rendering and capture the final layout.
 - `destroy()` for idempotent teardown.
 
 ## Appearance Options
@@ -191,6 +193,10 @@ Framework material components also accept:
 Adapters map appearance and interaction output to stable `--lg-*` CSS custom
 properties without forcing framework component renders on every animation
 frame.
+
+Material render children and Vue default slots receive `updating`,
+`startUpdating()`, and `stopUpdating()` controls. Use them around transitions
+that continuously change material geometry so core tracks every animation frame.
 
 ## Events
 

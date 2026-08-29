@@ -243,6 +243,23 @@ describe('MaterialFrameCoordinator', () => {
     expect(harness.frames.frames.size).toBe(0);
   });
 
+  it('renders continuously until the owner stops layout updates', () => {
+    const harness = createHarness();
+
+    harness.coordinator.startContinuousRender('material');
+    expect(harness.frames.frames.size).toBe(1);
+    harness.frames.flushNext();
+    expect(harness.renderMaterials).toHaveBeenCalledOnce();
+    expect(harness.frames.frames.size).toBe(1);
+    harness.frames.flushNext(32);
+    expect(harness.renderMaterials).toHaveBeenCalledTimes(2);
+    expect(harness.frames.frames.size).toBe(1);
+
+    harness.coordinator.stopContinuousRender('material');
+    expect(harness.frames.cancelled).toHaveLength(1);
+    expect(harness.coordinator.getDiagnosticsState().continuousMaterials).toBe(0);
+  });
+
   it('preserves first-error priority and rearms after later render failure', () => {
     const renderError = new Error('render failed');
     const harness = createHarness(() => {

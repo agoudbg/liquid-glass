@@ -194,6 +194,8 @@ export class MaterialPresentationController {
       onPresentation: (listener) => this.onPresentation(materialRuntime, listener),
       setInteractionState: (state) => this.setInteractionState(materialRuntime, state),
       refreshLayout: () => this.refreshLayout(materialRuntime),
+      startLayoutUpdates: () => this.startLayoutUpdates(materialRuntime),
+      stopLayoutUpdates: () => this.stopLayoutUpdates(materialRuntime),
       destroy: () => this.remove(materialRuntime),
     });
 
@@ -371,6 +373,17 @@ export class MaterialPresentationController {
     this.requestRender();
   }
 
+  private startLayoutUpdates(materialRuntime: MaterialRuntimeState): void {
+    this.assertRegistration(materialRuntime);
+    this.frames.startContinuousRender(materialRuntime.registration.id);
+  }
+
+  private stopLayoutUpdates(materialRuntime: MaterialRuntimeState): void {
+    this.assertRegistration(materialRuntime);
+    this.frames.stopContinuousRender(materialRuntime.registration.id);
+    this.refreshLayout(materialRuntime);
+  }
+
   private setViewportVisibility(
     registration: MaterialRegistration,
     inViewport: boolean,
@@ -471,17 +484,7 @@ export class MaterialPresentationController {
   }
 
   private publishAll(materials: MaterialRuntimeState[]): void {
-    let publishError: unknown;
-    let publishFailed = false;
-    for (const materialRuntime of materials) {
-      try {
-        materialRuntime.interaction.publish();
-      } catch (error) {
-        if (!publishFailed) publishError = error;
-        publishFailed = true;
-      }
-    }
-    if (publishFailed) throw publishError;
+    runTasksPreservingFirstFailure(materials.map(({ interaction }) => () => interaction.publish()));
   }
 
   private assertRegistration(materialRuntime: MaterialRuntimeState): void {

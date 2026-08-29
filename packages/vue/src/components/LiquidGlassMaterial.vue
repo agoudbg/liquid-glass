@@ -127,6 +127,7 @@ watch(
       registration,
       materialAppearance(),
     );
+    if (updating.value) registration.startLayoutUpdates();
     let themeColorMode: AutomaticBackgroundColorMode | null = null;
     const stopThemeFeedback = registration.onPresentation((snapshot) => {
       if (themeColorMode === null) {
@@ -178,13 +179,19 @@ watch(
 );
 
 function startUpdating(): void {
+  if (updating.value) return;
+  const currentHandle = handle.value;
+  if (!currentHandle) return;
+  currentHandle.startLayoutUpdates();
   updating.value = true;
-  handle.value?.refreshLayout();
 }
 
 function stopUpdating(): void {
+  if (!updating.value) return;
+  const currentHandle = handle.value;
+  if (!currentHandle) return;
+  currentHandle.stopLayoutUpdates();
   updating.value = false;
-  handle.value?.refreshLayout();
 }
 
 const exposed: LiquidGlassMaterialExposed = {

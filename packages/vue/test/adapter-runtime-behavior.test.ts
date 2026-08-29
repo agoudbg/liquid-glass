@@ -14,6 +14,12 @@ import {
   dispatchPointer,
 } from './fixtures/adapter-harness';
 
+interface MaterialSlotControls {
+  readonly updating: boolean;
+  startUpdating(): void;
+  stopUpdating(): void;
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -84,6 +90,40 @@ describe('Vue adapter runtime behavior', () => {
 
     await wrapper.setProps({ blur: 9 });
     expect(material.style.getPropertyValue('--lg-fallback-blur')).toBe('6px');
+    wrapper.unmount();
+  });
+
+  it('forwards continuous layout controls through the default slot', async () => {
+    const materialHandle = createMaterialHandle();
+    const harness = createContextHarness(materialHandle);
+    const wrapper = mount(LiquidGlassMaterial, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+      slots: {
+        default: (controls: MaterialSlotControls) => h('button', {
+          'data-updating': String(controls.updating),
+          onClick: controls.updating
+            ? controls.stopUpdating
+            : controls.startUpdating,
+        }, 'Toggle layout updates'),
+      },
+    });
+    await nextTick();
+
+    await wrapper.get('button').trigger('click');
+    await nextTick();
+    expect(materialHandle.startLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(wrapper.get('button').attributes('data-updating')).toBe('true');
+
+    await wrapper.get('button').trigger('click');
+    await nextTick();
+    expect(materialHandle.stopLayoutUpdates).toHaveBeenCalledTimes(1);
+    expect(wrapper.get('button').attributes('data-updating')).toBe('false');
     wrapper.unmount();
   });
 

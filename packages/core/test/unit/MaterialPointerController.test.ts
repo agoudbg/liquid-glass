@@ -94,6 +94,8 @@ function materialHandle() {
     onPresentation: vi.fn<MaterialHandle['onPresentation']>(() => vi.fn()),
     refreshLayout: vi.fn(),
     setInteractionState,
+    startLayoutUpdates: vi.fn(),
+    stopLayoutUpdates: vi.fn(),
     update: vi.fn(),
   };
   return { handle, setInteractionState };

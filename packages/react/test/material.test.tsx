@@ -51,6 +51,8 @@ function createHarness(initialPresentation = createPresentation()) {
     }),
     refreshLayout: vi.fn(),
     setInteractionState,
+    startLayoutUpdates: vi.fn(),
+    stopLayoutUpdates: vi.fn(),
     update: vi.fn(),
   };
   const context = {

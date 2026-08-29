@@ -70,6 +70,7 @@ export const LiquidGlassMaterial = forwardRef<
   const pointerControllerRef = useRef<MaterialPointerController | null>(null);
   const presentationControllerRef = useRef<MaterialDomPresentationController | null>(null);
   const [updating, setUpdating] = useState(false);
+  const updatingRef = useRef(false);
 
   const changes = useMemo<MaterialChanges>(() => ({
     radius,
@@ -166,6 +167,7 @@ export const LiquidGlassMaterial = forwardRef<
       registration,
       appearanceRef.current,
     );
+    if (updatingRef.current) registration.startLayoutUpdates();
     handleRef.current = registration;
     pointerControllerRef.current = pointerController;
     presentationControllerRef.current = presentationController;
@@ -213,12 +215,18 @@ export const LiquidGlassMaterial = forwardRef<
   const controls: MaterialRenderControls = {
     updating,
     startUpdating: () => {
+      const handle = handleRef.current;
+      if (!handle || updatingRef.current) return;
+      handle.startLayoutUpdates();
+      updatingRef.current = true;
       setUpdating(true);
-      handleRef.current?.refreshLayout();
     },
     stopUpdating: () => {
+      const handle = handleRef.current;
+      if (!handle || !updatingRef.current) return;
+      handle.stopLayoutUpdates();
+      updatingRef.current = false;
       setUpdating(false);
-      handleRef.current?.refreshLayout();
     },
   };
 

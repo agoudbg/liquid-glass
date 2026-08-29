@@ -59,6 +59,8 @@ function harness(initial = presentation()) {
     }),
     refreshLayout: vi.fn(),
     setInteractionState: vi.fn(),
+    startLayoutUpdates: vi.fn(),
+    stopLayoutUpdates: vi.fn(),
     update: vi.fn(),
   } satisfies MaterialHandle;
   const emit = (next: MaterialPresentationState): void => {

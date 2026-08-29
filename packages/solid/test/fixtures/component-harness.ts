@@ -59,6 +59,8 @@ function createMaterialHarness(
     }),
     refreshLayout: vi.fn<MaterialHandle['refreshLayout']>(),
     setInteractionState,
+    startLayoutUpdates: vi.fn<MaterialHandle['startLayoutUpdates']>(),
+    stopLayoutUpdates: vi.fn<MaterialHandle['stopLayoutUpdates']>(),
     update: vi.fn<MaterialHandle['update']>(),
   };
   const emitPresentation = (next: MaterialPresentationState): void => {

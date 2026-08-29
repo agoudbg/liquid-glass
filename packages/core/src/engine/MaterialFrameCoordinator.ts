@@ -60,6 +60,7 @@ export interface MaterialFrameCoordinatorCallbacks {
  */
 export class MaterialFrameCoordinator {
   private readonly activeMaterialIds = new Set<string>();
+  private readonly continuousMaterialIds = new Set<string>();
   private readonly frameScheduler: ContextFrameScheduler;
   private pendingUpdates = new Map<string, PendingMaterialUpdate>();
   private currentRetiredMaterialIds: Set<string> | null = null;
@@ -152,9 +153,23 @@ export class MaterialFrameCoordinator {
     this.activeMaterialIds.delete(materialId);
   }
 
+  /** Keep rendering while an external owner continuously changes layout. */
+  public startContinuousRender(materialId: string): void {
+    if (this.isStopped()) return;
+    this.continuousMaterialIds.add(materialId);
+    this.ensureFrame();
+  }
+
+  /** Stop continuous layout rendering and cancel an otherwise idle frame. */
+  public stopContinuousRender(materialId: string): void {
+    this.continuousMaterialIds.delete(materialId);
+    this.cancelWhenIdle();
+  }
+
   /** Remove every kind of queued work owned by a retired material. */
   public retire(materialId: string): void {
     this.activeMaterialIds.delete(materialId);
+    this.continuousMaterialIds.delete(materialId);
     this.pendingUpdates.delete(materialId);
     this.currentRetiredMaterialIds?.add(materialId);
   }
@@ -163,6 +178,7 @@ export class MaterialFrameCoordinator {
   public cancelWhenIdle(): void {
     if (
       this.activeMaterialIds.size === 0
+      && this.continuousMaterialIds.size === 0
       && this.pendingUpdates.size === 0
       && !this.renderRequested
     ) {
@@ -175,6 +191,7 @@ export class MaterialFrameCoordinator {
     return {
       ...this.frameScheduler.getDiagnosticsState(),
       activeMaterials: this.activeMaterialIds.size,
+      continuousMaterials: this.continuousMaterialIds.size,
       pendingUpdates: this.pendingUpdates.size,
       renderRequested: this.renderRequested,
     };
@@ -186,6 +203,7 @@ export class MaterialFrameCoordinator {
     this.destroyed = true;
     this.frameScheduler.cancel();
     this.activeMaterialIds.clear();
+    this.continuousMaterialIds.clear();
     this.pendingUpdates.clear();
     this.renderRequested = false;
   }
@@ -273,6 +291,7 @@ export class MaterialFrameCoordinator {
     const shouldRender = hasUncoveredUpdate
       || hasUncoveredPendingUpdate
       || this.renderRequested
+      || this.continuousMaterialIds.size > 0
       || presentationChanged;
     this.renderRequested = false;
     if (shouldRender) {
@@ -289,6 +308,7 @@ export class MaterialFrameCoordinator {
       !this.isStopped()
       && (
         this.activeMaterialIds.size > 0
+        || this.continuousMaterialIds.size > 0
         || this.pendingUpdates.size > 0
         || this.renderRequested
       )

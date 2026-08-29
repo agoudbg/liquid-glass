@@ -139,6 +139,7 @@ export function LiquidGlassMaterial(
       registration,
       untrack(readAppearance),
     );
+    if (untrack(updating)) registration.startLayoutUpdates();
     handle = registration;
     pointerController = pointer;
     presentationController = presentation;
@@ -177,12 +178,14 @@ export function LiquidGlassMaterial(
   const controls: MaterialRenderControls = {
     updating,
     startUpdating: () => {
+      if (!handle || updating()) return;
+      handle.startLayoutUpdates();
       setUpdating(true);
-      handle?.refreshLayout();
     },
     stopUpdating: () => {
+      if (!handle || !updating()) return;
+      handle.stopLayoutUpdates();
       setUpdating(false);
-      handle?.refreshLayout();
     },
   };
   const imperativeHandle: LiquidGlassMaterialHandle = {

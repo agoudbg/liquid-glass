@@ -84,6 +84,8 @@ export function createMaterialHandle(id = 'material-1'): TestMaterialHandle {
     presentationUnsubscribed,
     refreshLayout: vi.fn(),
     setInteractionState: vi.fn(),
+    startLayoutUpdates: vi.fn(),
+    stopLayoutUpdates: vi.fn(),
     update: vi.fn(),
   };
   return handle;

@@ -279,6 +279,10 @@ export interface MaterialHandle extends RegistrationHandle {
   setInteractionState(state: InteractionState): void;
   /** Re-measure this material during the next composite. */
   refreshLayout(): void;
+  /** Render every frame while an external owner continuously changes layout. */
+  startLayoutUpdates(): void;
+  /** Stop continuous layout rendering. */
+  stopLayoutUpdates(): void;
 }
 
 /**

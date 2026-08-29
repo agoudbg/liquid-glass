@@ -14,8 +14,15 @@ import type {
   TextureDirtyReason,
 } from '../types/context';
 import type { BackdropCapturedPayload } from '../types/events';
-import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
 import { generateUUID } from '../utils/uuid';
+import {
+  prepareDomBackdropSourceUpdate,
+  snapshotDomBackdropSourceConfig,
+} from './backdrop-config';
 import {
   needsViewportRecapture,
   resolveCaptureViewport,
@@ -107,7 +114,7 @@ export class DomBackdropCaptureController {
   ): BackdropSourceHandle<DomBackdropSourceConfig> {
     const registration: DomBackdropRegistration = {
       id: generateUUID(),
-      config: { ...config },
+      config: snapshotDomBackdropSourceConfig(config),
       canvas: null,
       viewportRect: null,
       dirty: true,
@@ -128,11 +135,13 @@ export class DomBackdropCaptureController {
       this.callbacks.requestComposite('structural');
       return handle;
     } catch (error) {
-      this.observers.untrack(registration);
-      registration.destroyed = true;
-      this.sources.delete(registration.id);
-      this.sourceRemoved(registration);
-      throw error;
+      rethrowAfterRunningTasks(error, [
+        () => {
+          registration.destroyed = true;
+          this.sources.delete(registration.id);
+        },
+        () => this.sourceRemoved(registration),
+      ]);
     }
   }
 
@@ -182,15 +191,17 @@ export class DomBackdropCaptureController {
 
   /** Tear down observation and DOM capture work after a source leaves the map. */
   public sourceRemoved(registration: BackdropRegistration): void {
-    this.observers.untrack(registration);
-    if (!isDomBackdropRegistration(registration) || !this.scheduler) {
-      return;
-    }
-    if (!this.hasDomSources()) {
-      this.retireScheduler();
-      return;
-    }
-    this.restartSchedulerIfCapturing();
+    runTasksPreservingFirstFailure([
+      () => this.observers.untrack(registration),
+      () => {
+        if (!isDomBackdropRegistration(registration) || !this.scheduler) return;
+        if (!this.hasDomSources()) {
+          this.retireScheduler();
+          return;
+        }
+        this.restartSchedulerIfCapturing();
+      },
+    ]);
   }
 
   /** Suspend rasterization while retaining observers and dirty source state. */
@@ -233,8 +244,16 @@ export class DomBackdropCaptureController {
     changes: BackdropSourceChanges<DomBackdropSourceConfig>,
   ): void {
     this.callbacks.assertRegistration(registration);
-    registration.config = { ...registration.config, ...changes };
-    this.sourceUpdated(registration);
+    const prepared = prepareDomBackdropSourceUpdate(registration.config, changes);
+    if (!prepared) return;
+    const previousConfig = registration.config;
+    registration.config = prepared.next;
+    try {
+      this.sourceUpdated(registration);
+    } catch (error) {
+      registration.config = previousConfig;
+      rethrowAfterRunningTasks(error, [() => this.sourceUpdated(registration)]);
+    }
     this.invalidate(registration);
     this.callbacks.requestComposite('external');
   }

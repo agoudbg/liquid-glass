@@ -443,4 +443,64 @@ describe('DomBackdropCaptureController', () => {
     expect(sources.size).toBe(0);
     expect(controller.active).toBe(false);
   });
+
+  it('restores the previous configuration after observer rebinding fails', () => {
+    const { runtime } = createFrameRuntime();
+    let observerCount = 0;
+    runtime.createResizeObserver = () => {
+      observerCount += 1;
+      return {
+        disconnect: vi.fn(),
+        observe: () => {
+          if (observerCount === 2) {
+            throw new Error('observer update failed');
+          }
+        },
+        takeRecords: () => [],
+        unobserve: vi.fn(),
+      } as ResizeObserver;
+    };
+    const sources = new Map<string, BackdropRegistration>();
+    const controller = createController(runtime, sources);
+    const handle = controller.add({
+      kind: 'dom',
+      element: createElement({ x: 0, y: 0, width: 320, height: 180 }),
+      watchNodeChanges: false,
+      watchResize: true,
+      zIndex: 1,
+    });
+
+    expect(() => handle.update({ zIndex: 2 })).toThrow('observer update failed');
+    expect(sources.get(handle.id)?.config.zIndex).toBe(1);
+    expect(controller.getDiagnosticsState().resources.resizeObservers).toBe(1);
+    controller.destroy();
+  });
+
+  it('preserves add failure while completing observer and scheduler rollback', () => {
+    const { runtime } = createFrameRuntime();
+    const operationFailure = new Error('composite failed');
+    runtime.createResizeObserver = () => ({
+      disconnect: () => {
+        throw new Error('observer cleanup failed');
+      },
+      observe: vi.fn(),
+      takeRecords: () => [],
+      unobserve: vi.fn(),
+    } as ResizeObserver);
+    const sources = new Map<string, BackdropRegistration>();
+    const controller = createController(runtime, sources, {
+      requestComposite: () => {
+        throw operationFailure;
+      },
+    });
+
+    expect(() => controller.add({
+      kind: 'dom',
+      element: createElement({ x: 0, y: 0, width: 320, height: 180 }),
+      watchNodeChanges: false,
+      watchResize: true,
+    })).toThrow(operationFailure);
+    expect(sources.size).toBe(0);
+    expect(controller.active).toBe(false);
+  });
 });

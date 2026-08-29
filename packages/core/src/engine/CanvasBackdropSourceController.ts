@@ -4,7 +4,15 @@ import type {
   CanvasBackdropSourceConfig,
   TextureDirtyReason,
 } from '../types/context';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
 import { generateUUID } from '../utils/uuid';
+import {
+  prepareCanvasBackdropSourceUpdate,
+  snapshotCanvasBackdropSourceConfig,
+} from './backdrop-config';
 import type {
   BackdropRegistration,
   CanvasBackdropRegistration,
@@ -41,7 +49,7 @@ export class CanvasBackdropSourceController {
   ): BackdropSourceHandle<CanvasBackdropSourceConfig> {
     const registration: CanvasBackdropRegistration = {
       id: generateUUID(),
-      config: { ...config },
+      config: snapshotCanvasBackdropSourceConfig(config),
       canvas: this.runtime.createCanvas(),
       dirty: true,
       destroyed: false,
@@ -57,10 +65,13 @@ export class CanvasBackdropSourceController {
       this.callbacks.requestComposite('structural');
       return handle;
     } catch (error) {
-      this.callbacks.sourceRemoved(registration);
-      registration.destroyed = true;
-      this.sources.delete(registration.id);
-      throw error;
+      rethrowAfterRunningTasks(error, [
+        () => {
+          registration.destroyed = true;
+          this.sources.delete(registration.id);
+        },
+        () => this.callbacks.sourceRemoved(registration),
+      ]);
     }
   }
 
@@ -69,8 +80,18 @@ export class CanvasBackdropSourceController {
     changes: BackdropSourceChanges<CanvasBackdropSourceConfig>,
   ): void {
     this.callbacks.assertRegistration(registration);
-    registration.config = { ...registration.config, ...changes };
-    this.callbacks.sourceUpdated(registration);
+    const prepared = prepareCanvasBackdropSourceUpdate(registration.config, changes);
+    if (!prepared) return;
+    const previousConfig = registration.config;
+    registration.config = prepared.next;
+    try {
+      this.callbacks.sourceUpdated(registration);
+    } catch (error) {
+      registration.config = previousConfig;
+      rethrowAfterRunningTasks(error, [
+        () => this.callbacks.sourceUpdated(registration),
+      ]);
+    }
     registration.dirty = true;
     this.callbacks.requestComposite('external');
   }
@@ -87,7 +108,9 @@ export class CanvasBackdropSourceController {
     }
     registration.destroyed = true;
     this.sources.delete(registration.id);
-    this.callbacks.sourceRemoved(registration);
-    this.callbacks.requestComposite('structural');
+    runTasksPreservingFirstFailure([
+      () => this.callbacks.sourceRemoved(registration),
+      () => this.callbacks.requestComposite('structural'),
+    ]);
   }
 }

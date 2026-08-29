@@ -15,7 +15,11 @@ import type {
 import type { DiagnosticsSnapshot } from '../types/diagnostics';
 import type { GlassEventMap } from '../types/events';
 import type { ProxyInterface } from '../types/external-material';
-import { rethrowAfterRunningTasks } from '../utils/run-tasks';
+import {
+  rethrowAfterRunningTasks,
+  runTasksPreservingFirstFailure,
+} from '../utils/run-tasks';
+import { readBackdropSourceKind } from './backdrop-config';
 import { CanvasBackdropSourceController } from './CanvasBackdropSourceController';
 import { resolveContextContent } from './context-content';
 import { createDiagnosticsListenerError } from './context-diagnostics-error';
@@ -323,6 +327,7 @@ export class GlassContextImpl implements GlassContext {
     config: BackdropSourceConfig,
   ): BackdropSourceHandle {
     this.assertUsable();
+    readBackdropSourceKind(config);
     const handle = config.kind === 'dom'
       ? this.domCapture.add(config)
       : this.canvasSources.add(config);
@@ -481,10 +486,10 @@ export class GlassContextImpl implements GlassContext {
     }
     registration.destroyed = true;
     this.sources.delete(registration.id);
-    this.domCapture.sourceRemoved(registration);
-    if (!this.destroyStarted) {
-      this.refresh('structural');
-    }
+    runTasksPreservingFirstFailure([
+      () => this.domCapture.sourceRemoved(registration),
+      ...this.destroyStarted ? [] : [() => this.refresh('structural')],
+    ]);
   }
   private assertUsable(): void {
     assertContextUsable(this.destroyStarted);

@@ -70,6 +70,9 @@ detachment remains safe, and lifecycle state getters remain available.
 
 `context.updateOptions(nextOptions)` replaces the complete option snapshot.
 Pass every option that should remain active.
+Both creation and updates reject unknown fields or incorrect runtime types with
+`INVALID_CONFIG` before mutating context state. The documented non-finite
+`renderPrecision` fallback remains supported.
 
 ## GlassContext
 

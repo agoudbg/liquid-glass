@@ -46,6 +46,7 @@
 }
 
 .diagnostics dt {
+  flex: 0 0 auto;
   color: rgba(237, 242, 239, 0.48);
   text-transform: uppercase;
 }

@@ -61,6 +61,10 @@ test('keeps every workbench scene usable across the acceptance viewports', async
 test('matches the polished workbench at desktop and mobile sizes', async ({
   page,
 }) => {
+  test.skip(
+    process.platform !== 'win32',
+    'Workbench screenshot baselines are calibrated for Windows Chrome.',
+  );
   test.setTimeout(60_000);
   for (const visual of VISUAL_CASES) {
     await page.setViewportSize({

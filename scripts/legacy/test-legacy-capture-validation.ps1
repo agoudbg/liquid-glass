@@ -45,14 +45,27 @@ try {
     if ($nodeRead -cne 'beta') {
       throw 'Trusted snapshot lease blocked a concurrent Node read.'
     }
-    [IO.File]::WriteAllText($secondPath, "blocked`n")
-  } catch [IO.IOException] {
-    $writeWasBlocked = $true
+    try {
+      [IO.File]::WriteAllText($secondPath, "blocked`n")
+    } catch [IO.IOException] {
+      $writeWasBlocked = $true
+    }
+    if ($IsWindows -and !$writeWasBlocked) {
+      throw 'Trusted snapshot lease did not block a concurrent write.'
+    }
+    if (!$writeWasBlocked) {
+      # Unix file sharing is advisory, so integrity checks remain the portable guard.
+      try {
+        [void](Assert-TrustedToolchainSnapshot `
+          -SnapshotRoot $temporaryRoot `
+          -ExpectedEvidence $evidence)
+        throw 'Concurrent snapshot mutation was accepted.'
+      } catch {
+        if ($_.Exception.Message -cnotmatch 'changed after capture start') { throw }
+      }
+    }
   } finally {
     foreach ($handle in $lease.Handles) { $handle.Dispose() }
-  }
-  if (!$writeWasBlocked) {
-    throw 'Trusted snapshot lease did not block a concurrent write.'
   }
 
   [IO.File]::WriteAllText($secondPath, "changed`n")

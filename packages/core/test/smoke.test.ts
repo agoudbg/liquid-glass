@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import packageJson from '../package.json';
 import * as core from '../src/index.js';
 
 /**
@@ -8,7 +9,7 @@ import * as core from '../src/index.js';
  */
 describe('@agou/liquid-glass-core', () => {
   it('exports CORE_VERSION', () => {
-    expect(core.CORE_VERSION).toBe('0.1.0');
+    expect(core.CORE_VERSION).toBe(packageJson.version);
   });
 
   it('CORE_VERSION is a string', () => {

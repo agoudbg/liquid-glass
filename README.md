@@ -232,6 +232,36 @@ On Windows, `pnpm test:visual` resolves the exact Chrome for Testing
 downloads the official archive into a versioned local cache after verifying its
 SHA-256; later runs revalidate the calibrated distribution files before reuse.
 
+## Release Workflow
+
+User-facing package changes use Changesets:
+
+```bash
+pnpm changeset
+```
+
+After the change is merged into `main`, GitHub Actions creates or updates a
+`Version Packages` pull request. Merging that pull request runs the complete
+release gate, publishes the four fixed-version packages to npm, creates package
+tags, and creates a GitHub Release. Ordinary commits without a changeset do not
+publish packages.
+
+The initial prerelease line starts at `1.0.0-alpha.0`:
+
+```bash
+pnpm changeset pre enter alpha
+```
+
+Add a one-time major changeset for the four packages. Later alpha releases use
+`alpha.1`, `alpha.2`, and so on, and are available through the npm `alpha`
+dist-tag. To publish the stable line, run `pnpm changeset pre exit` and merge
+the generated Version Packages pull request.
+
+The four npm packages must each configure GitHub Actions Trusted Publishing for
+this repository and `.github/workflows/publish.yml`. The GitHub repository must
+also allow Actions to create and approve pull requests. No long-lived npm token
+is stored in the repository.
+
 ## Documentation
 
 - [API reference](docs/API.md)

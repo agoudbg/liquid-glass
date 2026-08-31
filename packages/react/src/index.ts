@@ -11,6 +11,8 @@
 
 import './styles/glass.css';
 
+import packageJson from '../package.json';
+
 export { BackdropCanvas } from './BackdropCanvas';
 export { BackdropConverter } from './BackdropConverter';
 export { LiquidGlass } from './LiquidGlass';
@@ -37,4 +39,4 @@ export { CORE_VERSION } from '@agou/liquid-glass-core';
 /**
  * React adapter package version.
  */
-export const REACT_ADAPTER_VERSION = '0.1.0';
+export const REACT_ADAPTER_VERSION = packageJson.version;

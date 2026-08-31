@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import packageJson from '../../package.json';
+
 const COLD_IMPORT_TIMEOUT_MS = 15_000;
 
 describe('SSR-safe primitive imports', () => {
@@ -19,7 +21,7 @@ describe('SSR-safe primitive imports', () => {
 
   it('imports the public entry point without browser globals', async () => {
     await expect(import('../../src/index.js')).resolves.toMatchObject({
-      CORE_VERSION: '0.1.0',
+      CORE_VERSION: packageJson.version,
     });
   }, COLD_IMPORT_TIMEOUT_MS);
 

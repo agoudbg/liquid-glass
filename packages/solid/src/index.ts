@@ -11,6 +11,8 @@
 
 import './styles/glass.css';
 
+import packageJson from '../package.json';
+
 export { BackdropCanvas } from './BackdropCanvas';
 export { BackdropConverter } from './BackdropConverter';
 export { LiquidGlass } from './LiquidGlass';
@@ -37,4 +39,4 @@ export { CORE_VERSION } from '@agou/liquid-glass-core';
 /**
  * Solid adapter package version.
  */
-export const SOLID_ADAPTER_VERSION = '0.1.0';
+export const SOLID_ADAPTER_VERSION = packageJson.version;

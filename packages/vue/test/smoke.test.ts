@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import packageJson from '../package.json';
 import { VUE_ADAPTER_VERSION } from '../src/index.js';
 
 /**
@@ -7,6 +8,6 @@ import { VUE_ADAPTER_VERSION } from '../src/index.js';
  */
 describe('@agou/liquid-glass-vue', () => {
   it('exports VUE_ADAPTER_VERSION', () => {
-    expect(VUE_ADAPTER_VERSION).toBe('0.1.0');
+    expect(VUE_ADAPTER_VERSION).toBe(packageJson.version);
   });
 });

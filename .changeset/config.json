@@ -1,0 +1,25 @@
+{
+  "changelog": "@changesets/cli/changelog",
+  "commit": false,
+  "fixed": [
+    [
+      "@agou/liquid-glass-core",
+      "@agou/liquid-glass-vue",
+      "@agou/liquid-glass-react",
+      "@agou/liquid-glass-solid"
+    ]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": [],
+  "bumpVersionsWithWorkspaceProtocolOnly": false,
+  "changedFilePatterns": [
+    "**"
+  ],
+  "privatePackages": {
+    "version": false,
+    "tag": false
+  }
+}

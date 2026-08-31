@@ -1,0 +1,65 @@
+name: Publish
+
+on:
+  pull_request:
+    types: [closed]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  publish:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.title == 'Version Packages'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Checkout merged release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Upgrade npm for Trusted Publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate release commit
+        run: >-
+          node scripts/release/verify-release-commit.mjs
+          --base "${{ github.event.pull_request.base.sha }}"
+          --head "${{ github.event.pull_request.merge_commit_sha }}"
+
+      - name: Run release gates
+        run: pnpm run ci
+
+      - name: Publish packages and create GitHub Release
+        uses: changesets/action/publish@v2
+        with:
+          github-token: ${{ github.token }}
+          script: pnpm release
+          create-github-releases: true
+          push-git-tags: true
+        env:
+          NPM_CONFIG_PROVENANCE: true

@@ -10,11 +10,13 @@
  * @packageDocumentation
  */
 
+import packageJson from '../package.json';
+
 /**
  * Core package version.
  * Matches the package.json version field.
  */
-export const CORE_VERSION = '0.1.0';
+export const CORE_VERSION = packageJson.version;
 
 export * from './appearance/index';
 export * from './engine/index';

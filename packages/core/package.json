@@ -5,6 +5,10 @@
   "type": "module",
   "license": "MIT",
   "author": "agou",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agoudbg/liquid-glass.git"
+  },
   "keywords": [
     "webgl2",
     "glass",

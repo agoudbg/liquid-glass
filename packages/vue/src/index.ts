@@ -11,6 +11,8 @@
 
 import './styles/glass.css';
 
+import packageJson from '../package.json';
+
 export { default as LgBackdropCanvas } from './components/LgBackdropCanvas.vue';
 export { default as LgBackdropConverter } from './components/LgBackdropConverter.vue';
 export { default as LiquidGlass } from './components/LiquidGlass.vue';
@@ -36,4 +38,4 @@ export { CORE_VERSION } from '@agou/liquid-glass-core';
 /**
  * Vue adapter package version.
  */
-export const VUE_ADAPTER_VERSION = '0.1.0';
+export const VUE_ADAPTER_VERSION = packageJson.version;

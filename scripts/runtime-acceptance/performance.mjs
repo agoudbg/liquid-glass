@@ -275,6 +275,61 @@ function summarizeRuns(runs) {
     captureP95MedianMs: round(median(runs.map(({ capture }) => capture.p95Ms))),
     frameP95MedianMs: round(median(runs.map(({ frame }) => frame.p95Ms))),
     longTaskCountMedian: median(runs.map(({ longTaskCount }) => longTaskCount)),
+    longTaskDurationP95MedianMs: round(median(runs.map(({ capture, frame }) => (
+      Math.max(capture.longTaskDurationP95Ms, frame.longTaskDurationP95Ms)
+    )))),
+  };
+}
+
+/** Evaluate completed candidate and legacy runs against relative latency budgets. */
+export function evaluateRelativePerformanceRuns(runs) {
+  assert(runs.candidate.length > 0, 'Candidate performance runs are missing.');
+  assert.equal(
+    runs.candidate.length,
+    runs.legacy.length,
+    'Candidate and legacy performance run counts differ.',
+  );
+  const summary = {
+    candidate: summarizeRuns(runs.candidate),
+    legacy: summarizeRuns(runs.legacy),
+  };
+  const budgets = {
+    captureP95MaximumMs: round(summary.legacy.captureP95MedianMs * 1.15),
+    frameP95MaximumMs: round(summary.legacy.frameP95MedianMs * 1.1),
+    longTaskDurationP95MaximumMs: round(
+      summary.legacy.longTaskDurationP95MedianMs * 1.1,
+    ),
+  };
+  const failures = [];
+  if (summary.candidate.frameP95MedianMs > budgets.frameP95MaximumMs) {
+    failures.push(
+      `Candidate P95 frame time ${
+        String(summary.candidate.frameP95MedianMs)
+      }ms exceeds ${String(budgets.frameP95MaximumMs)}ms.`,
+    );
+  }
+  if (summary.candidate.captureP95MedianMs > budgets.captureP95MaximumMs) {
+    failures.push(
+      `Candidate P95 capture latency ${
+        String(summary.candidate.captureP95MedianMs)
+      }ms exceeds ${String(budgets.captureP95MaximumMs)}ms.`,
+    );
+  }
+  if (
+    summary.candidate.longTaskDurationP95MedianMs
+      > budgets.longTaskDurationP95MaximumMs
+  ) {
+    failures.push(
+      `Candidate P95 long-task duration ${
+        String(summary.candidate.longTaskDurationP95MedianMs)
+      }ms exceeds ${String(budgets.longTaskDurationP95MaximumMs)}ms.`,
+    );
+  }
+  return {
+    budgets,
+    failures,
+    passed: failures.length === 0,
+    summary,
   };
 }
 
@@ -304,50 +359,17 @@ export async function runRelativePerformanceAcceptance(options) {
     }
   }
 
-  const summary = {
-    candidate: summarizeRuns(runs.candidate),
-    legacy: summarizeRuns(runs.legacy),
-  };
-  const budgets = {
-    captureP95MaximumMs: round(summary.legacy.captureP95MedianMs * 1.15),
-    frameP95MaximumMs: round(summary.legacy.frameP95MedianMs * 1.1),
-    longTaskCountMaximum: summary.legacy.longTaskCountMedian,
-  };
-  const failures = [];
-  if (summary.candidate.frameP95MedianMs > budgets.frameP95MaximumMs) {
-    failures.push(
-      `Candidate P95 frame time ${
-        String(summary.candidate.frameP95MedianMs)
-      }ms exceeds ${String(budgets.frameP95MaximumMs)}ms.`,
-    );
-  }
-  if (summary.candidate.captureP95MedianMs > budgets.captureP95MaximumMs) {
-    failures.push(
-      `Candidate P95 capture latency ${
-        String(summary.candidate.captureP95MedianMs)
-      }ms exceeds ${String(budgets.captureP95MaximumMs)}ms.`,
-    );
-  }
-  if (summary.candidate.longTaskCountMedian > budgets.longTaskCountMaximum) {
-    failures.push(
-      `Candidate long-task count ${
-        String(summary.candidate.longTaskCountMedian)
-      } exceeds legacy ${String(budgets.longTaskCountMaximum)}.`,
-    );
-  }
+  const evaluation = evaluateRelativePerformanceRuns(runs);
   return {
-    budgets,
+    ...evaluation,
     config: options.config,
-    failures,
     formal: options.config.runs === 3
       && options.config.sampleMs === 15_000
       && options.config.warmupMs === 5_000,
-    passed: failures.length === 0,
     runs,
     scenarios: {
       capture: 'S003',
       frame: 'S004',
     },
-    summary,
   };
 }

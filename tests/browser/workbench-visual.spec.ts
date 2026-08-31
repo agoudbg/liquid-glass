@@ -127,7 +127,17 @@ async function expectNoHorizontalOverflow(page: Page): Promise<void> {
         const style = getComputedStyle(element);
         return element.scrollWidth > element.clientWidth + 1
           && style.textOverflow !== 'ellipsis'
-          ? [element.textContent?.trim() || element.tagName]
+          ? [{
+              clientWidth: element.clientWidth,
+              dataAction: element.getAttribute('data-action'),
+              dataLabSource: element.getAttribute('data-lab-source'),
+              id: element.id || null,
+              scene: document.querySelector('#app')?.getAttribute('data-scene'),
+              scrollWidth: element.scrollWidth,
+              tagName: element.tagName,
+              text: element.textContent?.trim() || element.tagName,
+              viewportWidth,
+            }]
           : [];
       });
     return {

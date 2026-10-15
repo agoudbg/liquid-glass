@@ -27,20 +27,18 @@ export function resolveExternalRendererMaterial(
   const relativeX = (
     clientRect.x
     - containerRect.left
-    - transform.translateX
     + scaleOffsetX
   );
   const relativeY = (
     clientRect.y
     - containerRect.top
-    - transform.translateY
     + scaleOffsetY
   );
   const visible = !(
-    relativeX + naturalWidth < 0
-    || relativeY + naturalHeight < 0
-    || relativeX > containerRect.width
-    || relativeY > containerRect.height
+    clientRect.x + clientRect.width <= containerRect.left
+    || clientRect.y + clientRect.height <= containerRect.top
+    || clientRect.x >= containerRect.right
+    || clientRect.y >= containerRect.bottom
   );
   if (!visible) return null;
 
@@ -52,6 +50,7 @@ export function resolveExternalRendererMaterial(
       width: naturalWidth,
       height: naturalHeight,
     },
+    // Viewport bounds already include translation; retain only the linear scale.
     matrix: [
       transform.scaleX,
       0,

@@ -5,7 +5,7 @@ import { externalMaterialConfig } from '../fixtures/external-material';
 import { domRect } from '../fixtures/glass-context-rendering';
 
 describe('resolveExternalRendererMaterial', () => {
-  it('removes viewport transform effects and applies target scroll', () => {
+  it('preserves translated viewport bounds and applies target scroll', () => {
     const material = resolveExternalRendererMaterial(
       'external-1',
       externalMaterialConfig({
@@ -27,12 +27,30 @@ describe('resolveExternalRendererMaterial', () => {
       opacity: 1,
       radii: [16, 20, 24, 12],
       rect: {
-        x: 62,
-        y: 45,
+        x: 72,
+        y: 49,
         width: 50,
         height: 20,
       },
     });
+  });
+
+  it('culls against transformed bounds at both canvas edges', () => {
+    const container = domRect({ x: 0, y: 0, width: 200, height: 100 });
+    const resolve = (x: number, translateX: number) => resolveExternalRendererMaterial(
+      'translated',
+      externalMaterialConfig({
+        clientRect: { x, y: 20, width: 100, height: 40 },
+        transform: { scaleX: 2, scaleY: 1, translateX, translateY: 0 },
+      }),
+      container,
+      { x: 0, y: 0 },
+    );
+
+    expect(resolve(-80, -100)).not.toBeNull();
+    expect(resolve(180, 100)).not.toBeNull();
+    expect(resolve(210, 100)).toBeNull();
+    expect(resolve(-110, -100)).toBeNull();
   });
 
   it('preserves legacy zero-scale sizing while culling outside materials', () => {

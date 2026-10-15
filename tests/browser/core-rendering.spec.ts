@@ -123,3 +123,42 @@ test('samples a positioned backdrop in the same local space as a scaled material
 
   expect(pixel).toEqual([0, 255, 0, 255]);
 });
+
+test('hides dedicated canvases immediately and releases culled pixels before showing again', async ({ page }) => {
+  const result = await page.evaluate(async (url) => {
+    const { createRenderingFixture, readOpaqueBounds } = await import(url) as
+      typeof import('./support/core-rendering-fixture');
+    const fixture = createRenderingFixture({ renderMode: 'dedicated' });
+    try {
+      fixture.context.addMaterial({
+        element: fixture.element, radius: 0, disableInteractions: true, refractIntensity: 0,
+      });
+      fixture.context.refresh();
+      const previous = fixture.element.querySelector('canvas')!;
+      fixture.element.style.visibility = 'hidden';
+      const hiddenImmediately = getComputedStyle(previous).visibility;
+      fixture.context.refresh('visibility');
+      const retained = fixture.element.querySelector('canvas') !== null;
+      fixture.element.style.visibility = 'visible';
+      fixture.context.refresh('visibility');
+      const current = fixture.element.querySelector('canvas')!;
+      return {
+        hiddenImmediately,
+        retained,
+        released: previous.width === 0 && previous.height === 0,
+        replaced: previous !== current,
+        restored: readOpaqueBounds(current),
+      };
+    } finally {
+      fixture.destroy();
+    }
+  }, fixtureUrl);
+
+  expect(result).toEqual({
+    hiddenImmediately: 'hidden',
+    retained: false,
+    released: true,
+    replaced: true,
+    restored: { left: 100, top: 80, width: 100, height: 80 },
+  });
+});

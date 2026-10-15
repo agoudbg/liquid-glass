@@ -195,7 +195,7 @@ describe('GlassEngine dedicated presentation', () => {
     expect(firstDedicated?.style.visibility).toBe('hidden');
     expect(firstDedicated?.style.opacity).toBe('0');
     context.setFallbackMode(false);
-    expect(firstDedicated?.style.visibility).toBe('visible');
+    expect(firstDedicated?.style.visibility).toBe('inherit');
     expect(firstDedicated?.style.opacity).toBe('1');
 
     context.updateOptions({

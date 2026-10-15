@@ -150,6 +150,8 @@ export class ContextMaterialRenderController {
         });
       }
     }
+    // Culled owners will not be presented again, so discard their previous frame.
+    this.dedicated.retain(new Set(dedicated.map(({ material }) => material.id)));
     return { dedicated };
   }
 }

@@ -304,7 +304,8 @@ export class DedicatedMaterialPresentationController {
       canvas.style.height = '100%';
       canvas.style.borderRadius = 'inherit';
       canvas.style.pointerEvents = 'none';
-      canvas.style.transition = 'visibility 0.2s ease, opacity 0.2s ease';
+      // Visibility must follow the owner immediately, including before the next RAF.
+      canvas.style.transition = 'opacity 0.2s ease';
       this.syncVisibility(canvas);
       element.insertBefore(canvas, element.firstChild);
       const context = canvas.getContext('2d');
@@ -349,7 +350,8 @@ export class DedicatedMaterialPresentationController {
   }
 
   private syncVisibility(canvas: HTMLCanvasElement): void {
-    canvas.style.visibility = this.fallbackMode ? 'hidden' : 'visible';
+    // A visible child must not override a consumer-hidden material owner.
+    canvas.style.visibility = this.fallbackMode ? 'hidden' : 'inherit';
     canvas.style.opacity = this.fallbackMode ? '0' : '1';
   }
 

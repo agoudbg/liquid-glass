@@ -97,7 +97,7 @@ describe('DedicatedMaterialPresentationController', () => {
       width: '100%',
       zIndex: '-1',
     });
-    expect(canvas?.style.visibility).toBe('visible');
+    expect(canvas?.style.visibility).toBe('inherit');
     expect(canvas?.style.opacity).toBe('1');
     expect(canvas?.width).toBe(80);
     expect(canvas?.height).toBe(40);
@@ -231,7 +231,7 @@ describe('DedicatedMaterialPresentationController', () => {
     expect(target.canvases[0]?.style.opacity).toBe('0');
 
     target.controller.setFallbackMode(false);
-    expect(target.canvases[0]?.style.visibility).toBe('visible');
+    expect(target.canvases[0]?.style.visibility).toBe('inherit');
     expect(target.canvases[0]?.style.opacity).toBe('1');
   });
 

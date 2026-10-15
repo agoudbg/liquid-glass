@@ -9,6 +9,37 @@ import {
 } from '../fixtures/material-context';
 
 describe('GlassContext dedicated material updates', () => {
+  it('releases a culled canvas and presents a fresh frame when its owner returns', () => {
+    const mounted = mountMaterialContext();
+    const material = new FakeMaterialElement({ x: 36, y: 28, width: 120, height: 56 });
+    material.parentElement = mounted.container as unknown as HTMLElement;
+    const readStyle = mounted.harness.runtime.getComputedStyle;
+    let hidden = false;
+    mounted.harness.runtime.getComputedStyle = (element) => ({
+      ...readStyle(element),
+      visibility: element === (material as unknown as HTMLElement) && hidden
+        ? 'hidden'
+        : 'visible',
+    }) as CSSStyleDeclaration;
+    const handle = mounted.context.addMaterial({
+      element: material as unknown as HTMLElement,
+      renderMode: 'dedicated',
+    });
+    const firstCanvas = material.children[0];
+
+    hidden = true;
+    mounted.context.refresh('visibility');
+    expect(material.children).toHaveLength(0);
+    expect(firstCanvas).toMatchObject({ width: 0, height: 0 });
+    expect(handle.destroyed).toBe(false);
+
+    hidden = false;
+    mounted.context.refresh('visibility');
+    expect(material.children).toHaveLength(1);
+    expect(material.children[0]).not.toBe(firstCanvas);
+    mounted.context.destroy();
+  });
+
   it('switches a material override without replacing its registration handle', () => {
     const mounted = mountMaterialContext();
     const material = new FakeMaterialElement({

@@ -60,6 +60,33 @@ function createRuntime(): GlassEngineRuntime {
 }
 
 describe('resolveRendererMaterial', () => {
+  it('undoes container viewport scale before resolving local material coordinates', () => {
+    const container = new StyledElement(
+      { x: 10, y: 20, width: 400, height: 300 },
+      computedStyle(),
+    );
+    const element = new StyledElement(
+      { x: 0, y: 0, width: 100, height: 80 },
+      computedStyle(),
+    );
+    container.getBoundingClientRect = () => domRect({
+      x: 10, y: 20, width: 200, height: 75,
+    });
+    element.getBoundingClientRect = () => domRect({
+      x: 60, y: 40, width: 50, height: 20,
+    });
+    element.parentElement = container as unknown as HTMLElement;
+
+    expect(resolveRendererMaterial(
+      'scaled-container',
+      { element: element as unknown as HTMLElement },
+      container as unknown as HTMLElement,
+      container.getBoundingClientRect(),
+      createRuntime(),
+      { x: 7, y: 9 },
+    )?.rect).toEqual({ x: 107, y: 89, width: 100, height: 80 });
+  });
+
   it('uses legacy optical defaults and cumulative ancestor opacity', () => {
     const container = new StyledElement(
       { x: 10, y: 20, width: 300, height: 200 },

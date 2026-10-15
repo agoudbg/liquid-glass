@@ -1,6 +1,7 @@
 import type { RendererMaterial } from '../renderer';
 import type { ExternalMaterialConfig } from '../types/external-material';
 import { toShaderCornerRadii } from '../utils/radius';
+import type { ContextViewportScale } from './context-coordinates';
 
 /**
  * Resolve one viewport-positioned external material into target canvas space.
@@ -9,6 +10,7 @@ import { toShaderCornerRadii } from '../utils/radius';
  * @param config - Validated external material configuration.
  * @param containerRect - Target context bounds in viewport coordinates.
  * @param contentOffset - Scroll offset into full-content canvas coordinates.
+ * @param viewportScale - Target container scale removed from viewport bounds.
  * @returns Renderer material data, or null when fully outside the target.
  */
 export function resolveExternalRendererMaterial(
@@ -16,22 +18,23 @@ export function resolveExternalRendererMaterial(
   config: ExternalMaterialConfig,
   containerRect: DOMRectReadOnly,
   contentOffset: { x: number; y: number },
+  viewportScale: ContextViewportScale = { x: 1, y: 1 },
 ): RendererMaterial | null {
   const { clientRect, transform } = config;
   const safeScaleX = transform.scaleX === 0 ? 1 : transform.scaleX;
   const safeScaleY = transform.scaleY === 0 ? 1 : transform.scaleY;
-  const naturalWidth = clientRect.width / safeScaleX;
-  const naturalHeight = clientRect.height / safeScaleY;
-  const scaleOffsetX = (clientRect.width - naturalWidth) / 2;
-  const scaleOffsetY = (clientRect.height - naturalHeight) / 2;
+  const localWidth = clientRect.width / viewportScale.x;
+  const localHeight = clientRect.height / viewportScale.y;
+  const naturalWidth = localWidth / safeScaleX;
+  const naturalHeight = localHeight / safeScaleY;
+  const scaleOffsetX = (localWidth - naturalWidth) / 2;
+  const scaleOffsetY = (localHeight - naturalHeight) / 2;
   const relativeX = (
-    clientRect.x
-    - containerRect.left
+    (clientRect.x - containerRect.left) / viewportScale.x
     + scaleOffsetX
   );
   const relativeY = (
-    clientRect.y
-    - containerRect.top
+    (clientRect.y - containerRect.top) / viewportScale.y
     + scaleOffsetY
   );
   const visible = !(

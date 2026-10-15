@@ -8,7 +8,6 @@ import type {
 } from '../types/context';
 import type { MaterialsRenderedPayload } from '../types/events';
 import { runTasksPreservingFirstFailure } from '../utils/run-tasks';
-import { parseCSSTransformMatrix } from '../utils/transforms';
 import {
   type BackdropPixelData,
   captureBackdropPixels,
@@ -117,6 +116,7 @@ export class ContextRenderCoordinator {
       this.canvases.presentationCanvas,
       sources,
       callbacks.onBackdropCaptured,
+      container,
     );
   }
 
@@ -174,22 +174,13 @@ export class ContextRenderCoordinator {
       : null;
     try {
       const containerRect = this.container.getBoundingClientRect();
-      const containerMatrix = parseCSSTransformMatrix(
-        this.runtime.getComputedStyle(this.container).transform,
-      );
-      const hasLinearTransform = containerMatrix[0] !== 1
-        || containerMatrix[1] !== 0
-        || containerMatrix[2] !== 0
-        || containerMatrix[3] !== 1;
       const logicalWidth = resolveContextLogicalDimension(
         this.container.clientWidth,
         containerRect.width,
-        hasLinearTransform,
       );
       const logicalHeight = resolveContextLogicalDimension(
         this.container.clientHeight,
         containerRect.height,
-        hasLinearTransform,
       );
       const fullContentPresentation = this.callbacks.isScrollable()
         && !this.callbacks.isViewportMode();

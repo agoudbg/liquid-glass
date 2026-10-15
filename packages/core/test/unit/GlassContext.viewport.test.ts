@@ -41,7 +41,7 @@ describe('GlassContext viewport presentation', () => {
     context.destroy();
   });
 
-  it('retains transformed bounding dimensions for viewport-coordinate rendering', () => {
+  it('keeps transformed containers sized in untransformed layout pixels', () => {
     const harness = createRuntimeHarness(1.5, 'matrix(2, 0, 0, 2, 0, 0)');
     const container = new FakeElement(
       { x: 10, y: 20, width: 402, height: 198 },
@@ -53,7 +53,7 @@ describe('GlassContext viewport presentation', () => {
 
     context.refresh();
 
-    expect(context.canvas).toMatchObject({ width: 603, height: 297 });
+    expect(context.canvas).toMatchObject({ width: 299, height: 146 });
     context.destroy();
   });
 

@@ -43,6 +43,7 @@ function isEnabled(policy: boolean | ViewportCaptureConfig): boolean {
  * @param fullSize - Complete source content size in CSS pixels.
  * @param viewportRect - Visible viewport bounds in the same coordinate space.
  * @param policy - Whether and how bounded capture is enabled.
+ * @param viewportScale - Scale from source layout pixels to viewport pixels.
  * @returns A clamped source-local region, or `null` when fully outside view.
  */
 export function calculateViewportCaptureRect(
@@ -50,6 +51,7 @@ export function calculateViewportCaptureRect(
   fullSize: Size,
   viewportRect: RectLike,
   policy: boolean | ViewportCaptureConfig,
+  viewportScale: { x: number; y: number } = { x: 1, y: 1 },
 ): ViewportCaptureRect | null {
   if (!isEnabled(policy)) {
     return { x: 0, y: 0, width: fullSize.width, height: fullSize.height };
@@ -72,10 +74,10 @@ export function calculateViewportCaptureRect(
   const config = typeof policy === 'boolean' ? {} : policy;
   const bufferX = normalizeBuffer(config.bufferX, 0);
   const bufferY = normalizeBuffer(config.bufferY, DEFAULT_BUFFER_Y);
-  const left = Math.max(0, visibleLeft - elementRect.x - bufferX);
-  const top = Math.max(0, visibleTop - elementRect.y - bufferY);
-  const right = Math.min(fullSize.width, visibleRight - elementRect.x + bufferX);
-  const bottom = Math.min(fullSize.height, visibleBottom - elementRect.y + bufferY);
+  const left = Math.max(0, (visibleLeft - elementRect.x) / viewportScale.x - bufferX);
+  const top = Math.max(0, (visibleTop - elementRect.y) / viewportScale.y - bufferY);
+  const right = Math.min(fullSize.width, (visibleRight - elementRect.x) / viewportScale.x + bufferX);
+  const bottom = Math.min(fullSize.height, (visibleBottom - elementRect.y) / viewportScale.y + bufferY);
 
   return {
     x: left,
@@ -94,6 +96,7 @@ export function shouldRecaptureViewport(
   viewportRect: RectLike,
   policy: boolean | ViewportCaptureConfig,
   capturedRect: ViewportCaptureRect | null,
+  viewportScale: { x: number; y: number } = { x: 1, y: 1 },
 ): boolean {
   if (!isEnabled(policy)) {
     return false;
@@ -103,6 +106,7 @@ export function shouldRecaptureViewport(
     fullSize,
     viewportRect,
     { enabled: true, bufferX: 0, bufferY: 0 },
+    viewportScale,
   );
   if (!visibleRect) {
     return false;

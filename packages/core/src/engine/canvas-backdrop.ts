@@ -1,4 +1,5 @@
 import { GlassError } from '../errors/GlassError';
+import type { ContextViewportScale } from './context-coordinates';
 import type {
   BackdropRegistration,
   CanvasBackdropRegistration,
@@ -89,6 +90,7 @@ function mirrorToVisibleCanvas(source: CanvasBackdropRegistration): void {
  * @param containerRect - Owning context bounds in CSS pixels.
  * @param deviceScale - Effective DPR multiplied by render precision.
  * @param contentOffset - Scroll offset into full-content presentation coordinates.
+ * @param viewportScale - Container scale removed from viewport source measurements.
  * @returns Metadata for capture events in source stacking order.
  */
 export function drawBackdropComposite(
@@ -99,6 +101,7 @@ export function drawBackdropComposite(
   containerRect: DOMRectReadOnly,
   deviceScale: number,
   contentOffset: { x: number; y: number } = { x: 0, y: 0 },
+  viewportScale: ContextViewportScale = { x: 1, y: 1 },
 ): CanvasBackdropCapture[] {
   compositeCanvas.width = presentationWidth;
   compositeCanvas.height = presentationHeight;
@@ -117,14 +120,18 @@ export function drawBackdropComposite(
 
   for (const source of orderedSources) {
     const sourceRect = getBackdropBoundsElement(source).getBoundingClientRect();
+    const sourceX = (sourceRect.left - containerRect.left) / viewportScale.x;
+    const sourceY = (sourceRect.top - containerRect.top) / viewportScale.y;
     if (isCanvasBackdropRegistration(source)) {
       const configuredScale = source.config.scale ?? 1;
       const sourceScale = Number.isFinite(configuredScale) && configuredScale > 0
         ? configuredScale
         : 1;
       const effectiveScale = deviceScale * sourceScale;
-      const expectedWidth = Math.max(1, Math.round(sourceRect.width * effectiveScale));
-      const expectedHeight = Math.max(1, Math.round(sourceRect.height * effectiveScale));
+      const sourceWidth = sourceRect.width / viewportScale.x;
+      const sourceHeight = sourceRect.height / viewportScale.y;
+      const expectedWidth = Math.max(1, Math.round(sourceWidth * effectiveScale));
+      const expectedHeight = Math.max(1, Math.round(sourceHeight * effectiveScale));
       const needsDraw = source.dirty
         || source.canvas.width !== expectedWidth
         || source.canvas.height !== expectedHeight;
@@ -132,8 +139,8 @@ export function drawBackdropComposite(
         const drawVersion = source.drawVersion;
         drawAuthoritativeSource(
           source,
-          sourceRect.width,
-          sourceRect.height,
+          sourceWidth,
+          sourceHeight,
           effectiveScale,
         );
         if (source.destroyed) continue;
@@ -155,18 +162,10 @@ export function drawBackdropComposite(
 
       compositeContext.drawImage(
         source.canvas,
-        (
-          sourceRect.left
-          - containerRect.left
-          + contentOffset.x
-        ) * deviceScale,
-        (
-          sourceRect.top
-          - containerRect.top
-          + contentOffset.y
-        ) * deviceScale,
-        sourceRect.width * deviceScale,
-        sourceRect.height * deviceScale,
+        (sourceX + contentOffset.x) * deviceScale,
+        (sourceY + contentOffset.y) * deviceScale,
+        sourceWidth * deviceScale,
+        sourceHeight * deviceScale,
       );
       continue;
     }
@@ -181,14 +180,12 @@ export function drawBackdropComposite(
     compositeContext.drawImage(
       source.canvas,
       (
-        sourceRect.left
-        - containerRect.left
+        sourceX
         + source.viewportRect.x
         + contentOffset.x
       ) * deviceScale,
       (
-        sourceRect.top
-        - containerRect.top
+        sourceY
         + source.viewportRect.y
         + contentOffset.y
       ) * deviceScale,

@@ -5,6 +5,18 @@ import { externalMaterialConfig } from '../fixtures/external-material';
 import { domRect } from '../fixtures/glass-context-rendering';
 
 describe('resolveExternalRendererMaterial', () => {
+  it('maps viewport bounds into a scaled target without scaling scroll offsets', () => {
+    expect(resolveExternalRendererMaterial(
+      'scaled-target',
+      externalMaterialConfig({
+        clientRect: { x: 60, y: 40, width: 50, height: 20 },
+      }),
+      domRect({ x: 10, y: 20, width: 200, height: 75 }),
+      { x: 7, y: 9 },
+      { x: 0.5, y: 0.25 },
+    )?.rect).toEqual({ x: 107, y: 89, width: 100, height: 80 });
+  });
+
   it('preserves translated viewport bounds and applies target scroll', () => {
     const material = resolveExternalRendererMaterial(
       'external-1',

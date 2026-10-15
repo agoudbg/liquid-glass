@@ -28,6 +28,7 @@ import {
   resolveCaptureViewport,
   resolveViewportPolicy,
 } from './capture-viewport-policy';
+import { resolveContextViewportScale } from './context-coordinates';
 import {
   type DomCaptureDiagnosticsState,
   readDiagnosticsTimestamp,
@@ -303,6 +304,7 @@ export class DomBackdropCaptureController {
   ): Promise<void> {
     const capture = this.runtime.captureDomElement ?? captureDomElement;
     const containerRect = this.container.getBoundingClientRect();
+    const viewportScale = resolveContextViewportScale(this.container, containerRect);
     const deviceScale = this.callbacks.getDeviceScale();
     const sources = [...this.sources.values()].filter(isDomBackdropRegistration);
 
@@ -321,8 +323,8 @@ export class DomBackdropCaptureController {
         this.runtime,
       );
       const fullSize = {
-        width: Math.max(source.config.element.scrollWidth, sourceRect.width),
-        height: Math.max(source.config.element.scrollHeight, sourceRect.height),
+        width: Math.max(source.config.element.scrollWidth, sourceRect.width / viewportScale.x),
+        height: Math.max(source.config.element.scrollHeight, sourceRect.height / viewportScale.y),
       };
       const capturePolicy = resolveViewportPolicy(
         source.config,
@@ -335,6 +337,7 @@ export class DomBackdropCaptureController {
             fullSize,
             viewportRect,
             capturePolicy,
+            viewportScale,
           );
 
       if (capturePolicy !== false && boundedRect === null) {
@@ -423,12 +426,14 @@ export class DomBackdropCaptureController {
   }
 
   private shouldInvalidateOnScroll(source: DomBackdropRegistration): boolean {
+    const containerRect = this.container.getBoundingClientRect();
     return needsViewportRecapture(
       source,
-      this.container.getBoundingClientRect(),
+      containerRect,
       this.callbacks.getViewportMode(),
       this.callbacks.getOptions().scrollable ?? false,
       this.runtime,
+      resolveContextViewportScale(this.container, containerRect),
     );
   }
 

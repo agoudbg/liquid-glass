@@ -7,6 +7,7 @@ import type {
   ProxyInterface,
 } from '../types/external-material';
 import { generateUUID } from '../utils/uuid';
+import { resolveContextViewportScale } from './context-coordinates';
 import {
   prepareExternalMaterialUpdate,
   snapshotExternalMaterialConfig,
@@ -80,6 +81,7 @@ export class ExternalMaterialController {
     contentOffset: { x: number; y: number },
   ): RendererMaterial[] {
     const materials: RendererMaterial[] = [];
+    const viewportScale = resolveContextViewportScale(this.container, containerRect);
     for (const registration of this.registrations.values()) {
       if (registration.destroyed) continue;
       const material = resolveExternalRendererMaterial(
@@ -87,6 +89,7 @@ export class ExternalMaterialController {
         registration.config,
         containerRect,
         contentOffset,
+        viewportScale,
       );
       if (material) materials.push(material);
     }

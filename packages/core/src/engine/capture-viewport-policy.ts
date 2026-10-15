@@ -96,6 +96,7 @@ export function needsViewportRecapture(
   viewportMode: boolean,
   scrollable: boolean,
   runtime: GlassEngineRuntime,
+  viewportScale: { x: number; y: number } = { x: 1, y: 1 },
 ): boolean {
   const policy = resolveViewportPolicy(source.config, viewportMode);
   const enabled = typeof policy === 'boolean'
@@ -108,8 +109,8 @@ export function needsViewportRecapture(
   return shouldRecaptureViewport(
     sourceRect,
     {
-      width: Math.max(source.config.element.scrollWidth, sourceRect.width),
-      height: Math.max(source.config.element.scrollHeight, sourceRect.height),
+      width: Math.max(source.config.element.scrollWidth, sourceRect.width / viewportScale.x),
+      height: Math.max(source.config.element.scrollHeight, sourceRect.height / viewportScale.y),
     },
     resolveCaptureViewport(
       containerRect,
@@ -119,5 +120,6 @@ export function needsViewportRecapture(
     ),
     policy,
     source.viewportRect,
+    viewportScale,
   );
 }

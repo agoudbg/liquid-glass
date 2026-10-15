@@ -1,4 +1,5 @@
 import { drawBackdropComposite } from './canvas-backdrop';
+import { resolveContextViewportScale } from './context-coordinates';
 import type { BackdropRegistration } from './registrations';
 import { isCanvasBackdropRegistration } from './registrations';
 
@@ -22,6 +23,7 @@ export class ContextBackdropComposite {
     private readonly presentationCanvas: HTMLCanvasElement,
     private readonly sources: Map<string, BackdropRegistration>,
     private readonly onCaptured: (capture: ContextBackdropCapture) => void,
+    private readonly container: HTMLElement,
   ) {}
 
   /** Draw current source bitmaps in stacking order for the given container. */
@@ -38,6 +40,7 @@ export class ContextBackdropComposite {
       containerRect,
       deviceScale,
       contentOffset,
+      resolveContextViewportScale(this.container, containerRect),
     );
     for (const capture of captures) {
       this.onCaptured(capture);

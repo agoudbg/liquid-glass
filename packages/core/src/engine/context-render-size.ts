@@ -7,20 +7,17 @@ export interface ContextLogicalSize {
 }
 
 /**
- * Resolve one logical dimension from the stable client box or transformed bounds.
+ * Resolve one logical dimension without applying an inherited CSS transform twice.
  *
  * @param clientDimension - Untransformed client-box dimension.
  * @param boundingDimension - Viewport-space bounding dimension.
- * @param useBoundingDimension - Whether a linear transform invalidates the client box.
  * @returns Finite logical dimension used by renderer sizing.
  */
 export function resolveContextLogicalDimension(
   clientDimension: number,
   boundingDimension: number,
-  useBoundingDimension: boolean,
 ): number {
-  return !useBoundingDimension
-    && Number.isFinite(clientDimension)
+  return Number.isFinite(clientDimension)
     && clientDimension >= 0
     ? clientDimension
     : boundingDimension;

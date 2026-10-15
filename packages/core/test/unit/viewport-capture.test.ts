@@ -7,6 +7,16 @@ import {
 } from '../../src/backdrop/viewport';
 
 describe('calculateViewportCaptureRect', () => {
+  it('converts scaled viewport intersections into source-local capture pixels', () => {
+    expect(calculateViewportCaptureRect(
+      { x: -20, y: -100, width: 200, height: 500 },
+      { width: 400, height: 1000 },
+      { x: 0, y: 0, width: 100, height: 150 },
+      { enabled: true, bufferX: 10, bufferY: 20 },
+      { x: 0.5, y: 0.5 },
+    )).toEqual({ x: 30, y: 180, width: 220, height: 340 });
+  });
+
   it('intersects the source with the viewport and applies bounded buffers', () => {
     expect(calculateViewportCaptureRect(
       { x: -40, y: 100, width: 500, height: 1000 },

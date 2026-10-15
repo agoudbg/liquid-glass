@@ -46,11 +46,12 @@ interface MaterialRenderPartition {
 }
 
 /**
- * Present one shared render through uniform and dedicated canvas surfaces.
+ * Distribute a canonical frame across uniform and dedicated canvas surfaces.
  *
  * The complete ordered frame is copied once, then dedicated regions are
  * removed from the shared canvas and extracted into their owning elements.
- * This preserves the reference implementation's mixed-mode compositing.
+ * Translucent dedicated owners receive an additional pass that leaves their
+ * opacity to the DOM while event consumers retain the canonical frame.
  */
 export class ContextMaterialRenderController {
   private readonly dedicated: DedicatedMaterialPresentationController;
@@ -60,14 +61,14 @@ export class ContextMaterialRenderController {
     this.dedicated = new DedicatedMaterialPresentationController(runtime);
   }
 
-  /** Render once and distribute the complete frame across presentation modes. */
+  /** Render the canonical frame and any opacity-compensated dedicated passes. */
   public render(input: ContextMaterialRenderInput): RendererFrameResult {
     const partition = this.partition(
       input.registrations,
       input.materials,
       input.renderMode,
     );
-    const frameResult = input.hasBackdrop
+    let frameResult = input.hasBackdrop
       ? input.renderer.render(input.materials)
       : { drawCalls: 0, glError: 0 };
     if (!input.hasBackdrop) {
@@ -76,8 +77,28 @@ export class ContextMaterialRenderController {
     input.beforePresentUniform?.();
     input.presentUniform();
 
-    for (const target of partition.dedicated) {
+    // Extract fully opaque owners before a dedicated pass changes the source.
+    const targets = [...partition.dedicated].sort(
+      (left, right) => right.material.opacity - left.material.opacity,
+    );
+    const translucentIds = new Set(targets
+      .filter(({ material }) => material.opacity < 1)
+      .map(({ material }) => material.id));
+    let dedicatedFrameReady = false;
+    for (const target of targets) {
       input.excludeDedicated(target.material, input.deviceScale);
+      if (input.hasBackdrop && target.material.opacity < 1 && !dedicatedFrameReady) {
+        // The child canvas inherits this opacity chain from its DOM owner. Keep
+        // it out of this bitmap while preserving the canonical event/uniform frame.
+        const dedicatedFrame = input.renderer.render(input.materials.map((material) => (
+          translucentIds.has(material.id) ? { ...material, opacity: 1 } : material
+        )));
+        dedicatedFrameReady = true;
+        frameResult = {
+          drawCalls: frameResult.drawCalls + dedicatedFrame.drawCalls,
+          glError: frameResult.glError || dedicatedFrame.glError,
+        };
+      }
       this.dedicated.present({
         deviceScale: input.deviceScale,
         element: target.element,

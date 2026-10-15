@@ -238,6 +238,7 @@ export class ContextRenderCoordinator {
         this.backdropPixels = null;
         this.backdropTextureReady = false;
         const frameResult = this.materialRenderer.render({
+          beforePresentUniform: () => this.preserveMaterialFrame(),
           deviceScale: this.callbacks.getDeviceScale(),
           excludeDedicated: (material, deviceScale) => {
             this.canvases.excludeDedicatedMaterial(
@@ -293,6 +294,7 @@ export class ContextRenderCoordinator {
             presentationWidth,
             presentationHeight,
           );
+          this.preserveMaterialFrame();
         },
         deviceScale: this.callbacks.getDeviceScale(),
         excludeDedicated: (material, deviceScale) => {
@@ -437,6 +439,15 @@ export class ContextRenderCoordinator {
     }
   }
 
+  private preserveMaterialFrame(): void {
+    if (
+      this.callbacks.hasFullCanvasRenderedListeners()
+      || this.callbacks.hasMaterialsRenderedListeners()
+    ) {
+      this.canvases.captureMaterialFrame();
+    }
+  }
+
   private emitRenderedFrame(
     themeColors?: Readonly<Record<string, AutomaticBackgroundColorMode>>,
     hasBackdrop: boolean = false,
@@ -450,9 +461,6 @@ export class ContextRenderCoordinator {
       return;
     }
 
-    if (!this.callbacks.isFallbackMode()) {
-      this.canvases.captureMaterialFrame();
-    }
     const scale = this.callbacks.getDeviceScale();
     const width = Math.max(1, Math.round(Math.max(1, viewportWidth) * scale));
     const height = Math.max(1, Math.round(Math.max(1, viewportHeight) * scale));

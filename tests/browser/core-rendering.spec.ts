@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 
 import { expect, test } from '@playwright/test';
 
+import { comparePngPixels } from './support/renderer';
+
 const fixtureUrl = `/@fs/${realpathSync(fileURLToPath(
   new URL('./support/core-rendering-fixture.ts', import.meta.url),
 )).replace(/\\/gu, '/')}`;
@@ -162,3 +164,65 @@ test('hides dedicated canvases immediately and releases culled pixels before sho
     restored: { left: 100, top: 80, width: 100, height: 80 },
   });
 });
+
+for (const ancestorOpacity of [1, 0.5]) {
+  test(`applies dedicated opacity once with ancestor opacity ${ancestorOpacity}`, async ({ page }) => {
+    const results = await page.evaluate(async ({ url, ancestorOpacity }) => {
+      const { createRenderingFixture } = await import(url) as
+        typeof import('./support/core-rendering-fixture');
+      const fixtures: ReturnType<typeof createRenderingFixture>[] = [];
+      try {
+        const alphas = (['uniform', 'dedicated'] as const).map((renderMode, index) => {
+          const fixture = createRenderingFixture({ renderMode });
+          fixtures.push(fixture);
+          fixture.root.style.left = `${index * 400}px`;
+          fixture.element.style.opacity = '0.5';
+          const ancestor = document.createElement('div');
+          ancestor.style.opacity = String(ancestorOpacity);
+          fixture.root.append(ancestor);
+          ancestor.append(fixture.element);
+          let eventAlpha = -1;
+          fixture.context.on('materialsRendered', ({ canvas }) => {
+            eventAlpha = canvas.getContext('2d')!.getImageData(150, 120, 1, 1).data[3];
+          });
+          fixture.context.addMaterial({
+            element: fixture.element, radius: 0, disableInteractions: true, refractIntensity: 0,
+          });
+          // A second translucent owner and an opaque owner exercise the shared
+          // presentation pass without changing the canonical event frame.
+          for (const [top, opacity] of [[170, 0.25], [0, 1]]) {
+            const other = fixture.element.cloneNode() as HTMLDivElement;
+            other.style.top = `${top}px`;
+            other.style.opacity = String(opacity);
+            ancestor.append(other);
+            fixture.context.addMaterial({
+              element: other, radius: 0, disableInteractions: true, refractIntensity: 0,
+            });
+          }
+          fixture.context.refresh();
+          return eventAlpha;
+        });
+        window.addEventListener('core-rendering-cleanup', () => {
+          fixtures.forEach((fixture) => fixture.destroy());
+        }, { once: true });
+        return alphas;
+      } catch (error) {
+        fixtures.forEach((fixture) => fixture.destroy());
+        throw error;
+      }
+    }, { url: fixtureUrl, ancestorOpacity });
+
+    try {
+      const uniform = await page.screenshot({ clip: { x: 100, y: 0, width: 100, height: 250 } });
+      const dedicated = await page.screenshot({ clip: { x: 500, y: 0, width: 100, height: 250 } });
+      const difference = await comparePngPixels(page, uniform, dedicated);
+      expect(difference.changedPixelRatio).toBe(0);
+      expect(results).toEqual([
+        Math.round(255 * 0.5 * ancestorOpacity),
+        Math.round(255 * 0.5 * ancestorOpacity),
+      ]);
+    } finally {
+      await page.evaluate(() => window.dispatchEvent(new Event('core-rendering-cleanup')));
+    }
+  });
+}

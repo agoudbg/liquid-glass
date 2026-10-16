@@ -1,6 +1,6 @@
 {
   "name": "@agou/liquid-glass-solid",
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.0",
   "description": "Solid adapter for @agou/liquid-glass-core",
   "type": "module",
   "license": "MIT",

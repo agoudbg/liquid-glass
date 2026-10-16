@@ -1,6 +1,6 @@
 {
   "name": "@agou/liquid-glass-core",
-  "version": "0.1.0",
+  "version": "1.0.0-alpha.0",
   "description": "Framework-agnostic WebGL2 liquid glass rendering engine",
   "type": "module",
   "license": "MIT",

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:net';
 import { join } from 'node:path';
 
@@ -114,11 +115,19 @@ export function launchPackedConsumerBrowser() {
 
 /** Prove a packed adapter can be imported without browser globals. */
 export async function verifyPackedConsumerSsrImport(consumerDirectory, consumer) {
+  const coreManifest = JSON.parse(await readFile(
+    new URL('../packages/core/package.json', import.meta.url),
+    'utf8',
+  ));
+  assert.equal(typeof coreManifest.version, 'string', 'Core package must declare a version.');
   const probe = `
+    import assert from 'node:assert/strict';
     const adapter = await import(${JSON.stringify(consumer.adapter)});
-    if (adapter.CORE_VERSION !== '0.1.0') {
-      throw new Error('Packed adapter did not expose the expected core version.');
-    }
+    assert.equal(
+      adapter.CORE_VERSION,
+      ${JSON.stringify(coreManifest.version)},
+      'Packed adapter did not expose the expected core version.',
+    );
   `;
   await runNodeProbe(
     ['--input-type=module', '--eval', probe],

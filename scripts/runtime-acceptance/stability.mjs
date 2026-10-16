@@ -300,7 +300,11 @@ export async function runFiveMinuteStabilityAcceptance(options) {
       ? 'vue'
       : FRAMEWORKS[(iteration - 1) % FRAMEWORKS.length];
     await page.setViewportSize({ height: 900, width: 1440 });
-    await page.locator('[data-testid="scene-select"]').selectOption('S012');
+    const sceneSelect = page.locator('[data-testid="scene-select"]');
+    // A synthetic change on the current scene resets readiness without remounting.
+    if (await sceneSelect.inputValue() !== 'S012') {
+      await sceneSelect.selectOption('S012');
+    }
     await waitForReady(page, {
       framework: currentFramework,
       scene: 'S012',

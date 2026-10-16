@@ -45,4 +45,16 @@ The package also exports `BackdropConverter`, `LiquidGlassContext`, and
 The package publishes a dedicated `node` conditional entry for SSR imports.
 Mount components only in client code.
 
+## Agent Skill
+
+AI coding agents can install the library's integration skill from the
+application directory:
+
+```bash
+npx skills add agoudbg/liquid-glass --skill liquid-glass
+```
+
+It includes Solid examples, backdrop and layout rules, SSR guidance, and
+troubleshooting. See the [skill and installation options](https://github.com/agoudbg/liquid-glass#agent-skill).
+
 MIT licensed.

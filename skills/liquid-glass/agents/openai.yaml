@@ -1,0 +1,4 @@
+interface:
+  display_name: "Liquid Glass"
+  short_description: "Integrate and troubleshoot Liquid Glass in web apps"
+  default_prompt: "Use $liquid-glass to integrate the library into this application and verify the rendered effect."

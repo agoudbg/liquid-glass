@@ -47,4 +47,16 @@ The package also exports `BackdropConverter`, `LiquidGlassContext`, and
 The container and material require application-owned dimensions. Imports are
 SSR-safe; mount components only in client code.
 
+## Agent Skill
+
+AI coding agents can install the library's integration skill from the
+application directory:
+
+```bash
+npx skills add agoudbg/liquid-glass --skill liquid-glass
+```
+
+It includes React examples, backdrop and layout rules, SSR guidance, and
+troubleshooting. See the [skill and installation options](https://github.com/agoudbg/liquid-glass#agent-skill).
+
 MIT licensed.

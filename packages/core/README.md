@@ -52,4 +52,16 @@ The public contract includes typed events, contextual errors, deterministic
 registration handles, nested full-canvas composition, proxy delegation,
 interaction presets, and structured resource diagnostics.
 
+## Agent Skill
+
+AI coding agents can install the library's integration skill from the
+application directory:
+
+```bash
+npx skills add agoudbg/liquid-glass --skill liquid-glass
+```
+
+It includes core lifecycle examples, backdrop rules, presentation ownership,
+and troubleshooting. See the [skill and installation options](https://github.com/agoudbg/liquid-glass#agent-skill).
+
 MIT licensed.

@@ -46,6 +46,30 @@ Use `@agou/liquid-glass-core` directly when a framework wrapper is not needed.
 pnpm add @agou/liquid-glass-core
 ```
 
+## Agent Skill
+
+AI coding agents can use the bundled [Liquid Glass skill](skills/liquid-glass/SKILL.md)
+to integrate the library into an application. It includes framework-specific
+examples, DOM and canvas backdrop guidance, client-only mounting rules,
+troubleshooting, and browser verification steps.
+
+Install it from your application directory with the
+[Skills CLI](https://github.com/vercel-labs/skills):
+
+```bash
+npx skills add agoudbg/liquid-glass --skill liquid-glass
+```
+
+Select your coding agent when prompted. To install from a local checkout,
+replace `agoudbg/liquid-glass` with the checkout's path. You can also copy the
+complete `skills/liquid-glass` folder, including `references` and `agents`, into
+your agent's supported skills directory. Installing an npm package does not
+install the skill.
+
+Ask your agent to use `liquid-glass` when adding or troubleshooting the effect.
+The skill describes consuming the packages; `AGENTS.md` describes developing
+this repository.
+
 ## Shared Backdrop
 
 The examples below use the same deterministic canvas source. Draw callbacks

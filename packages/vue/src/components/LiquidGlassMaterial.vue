@@ -117,6 +117,7 @@ const materialStyle = computed<Record<string, string>>(() => {
 function materialAppearance() {
   return {
     backgroundColor: props.backgroundColor,
+    edgeStyle: props.edgeStyle,
     illuminationAngle: props.illuminationAngle,
     illuminationIntensity: props.illuminationIntensity,
     thickness: props.thickness,
@@ -206,6 +207,7 @@ watch(
 watch(
   () => [
     props.backgroundColor,
+    props.edgeStyle,
     props.illuminationAngle,
     props.illuminationIntensity,
     props.thickness,

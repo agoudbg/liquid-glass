@@ -68,6 +68,7 @@ export const LiquidGlassMaterial = forwardRef<
     className,
     disableInteractions,
     dispersion = 0.01,
+    edgeStyle,
     illuminationAngle = 45,
     illuminationIntensity = 0.5,
     interactionConfig,
@@ -144,12 +145,14 @@ export const LiquidGlassMaterial = forwardRef<
 
   const appearance = useMemo<MaterialDomAppearance>(() => ({
     backgroundColor,
+    edgeStyle,
     illuminationAngle,
     illuminationIntensity,
     thickness,
     useCustomColor,
   }), [
     backgroundColor,
+    edgeStyle,
     illuminationAngle,
     illuminationIntensity,
     thickness,

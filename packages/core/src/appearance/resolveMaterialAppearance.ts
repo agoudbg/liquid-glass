@@ -1,3 +1,4 @@
+import { GlassError } from '../errors/GlassError';
 import { BUTTON_PRESET } from '../interaction/presets';
 import type {
   MaterialAppearanceInput,
@@ -175,8 +176,18 @@ function highlightGradient(opacity: number, hdrFactor: number): string {
       rgba(255, 255, 255, 0) 100%)`;
 }
 
+function darkEdgeSpecularGradient(intensity: number): string {
+  // Fixed inner glints complement the shaded flanks without outlining every edge.
+  // Keep this light independent of the legacy rim angle and optical thickness.
+  return `linear-gradient(180deg, rgba(255, 255, 255, ${cssNumber(intensity)}) 0%, `
+    + `rgba(255, 255, 255, ${cssNumber(intensity * 0.15)}) 28%, `
+    + 'rgba(255, 255, 255, 0) 45%, rgba(255, 255, 255, 0) 60%, '
+    + `rgba(255, 255, 255, ${cssNumber(intensity * 0.35)}) 82%, `
+    + `rgba(255, 255, 255, ${cssNumber(intensity * 0.9)}) 100%)`;
+}
+
 /**
- * Resolve the legacy material's complete CSS custom-property contract.
+ * Resolve material CSS tokens while preserving the original appearance by default.
  *
  * The resolver repairs the reference implementation's malformed inset-shadow
  * color by retaining the tint hue and replacing its alpha with `0x33`.
@@ -189,6 +200,13 @@ function highlightGradient(opacity: number, hdrFactor: number): string {
 export function resolveMaterialAppearance(
   input: MaterialAppearanceInput = {},
 ): MaterialAppearanceTokens {
+  const edgeStyle = input.edgeStyle === undefined ? 'illuminated' : input.edgeStyle;
+  if (edgeStyle !== 'illuminated' && edgeStyle !== 'dark') {
+    throw new GlassError('INVALID_CONFIG', 'Invalid materialAppearance.edgeStyle.', {
+      phase: 'configuration',
+      details: { field: 'materialAppearance.edgeStyle', value: edgeStyle },
+    });
+  }
   const thickness = validatedNumber(input.thickness ?? 10, 'thickness', 0);
   const angle = validatedNumber(input.illuminationAngle ?? 45, 'illuminationAngle');
   const intensity = validatedNumber(
@@ -247,7 +265,14 @@ export function resolveMaterialAppearance(
     '--lg-inset-shadow-size': `${cssNumber(Math.max(5, thickness))}px`,
     '--lg-illumination-angle': `${cssNumber(angle)}deg`,
     '--lg-illumination-intensity': cssNumber(intensity),
-    '--lg-illumination-gradient': illuminationGradient(angle, intensity),
+    '--lg-illumination-gradient': edgeStyle === 'dark'
+      ? darkEdgeSpecularGradient(intensity)
+      : illuminationGradient(angle, intensity),
+    // Horizontal inset projections follow local curvature and vanish along the
+    // lit top/bottom edges, including on elongated pills and asymmetric corners.
+    '--lg-edge-contour-shadow': edgeStyle === 'dark'
+      ? 'inset 1px 0 0 rgba(0, 0, 0, 0.38), inset -0.5px 0 0 rgba(0, 0, 0, 0.18)'
+      : 'none',
     '--lg-scale-x': cssNumber(scaleX),
     '--lg-scale-y': cssNumber(scaleY),
     '--lg-translate-x': `${cssNumber(translateX)}px`,

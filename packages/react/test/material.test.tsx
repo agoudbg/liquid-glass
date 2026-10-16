@@ -1,6 +1,7 @@
 import type {
   GlassContext,
   GlassEngine,
+  MaterialEdgeStyle,
   MaterialHandle,
   MaterialPresentationListener,
   MaterialPresentationState,
@@ -136,6 +137,40 @@ afterEach(() => {
 });
 
 describe('React material presentation', () => {
+  it('switches edge styles in place and restores the default illuminated rim', async () => {
+    const harness = createHarness();
+    const view = (edgeStyle?: MaterialEdgeStyle) => (
+      <LiquidGlass engine={harness.engine}>
+        <LiquidGlassMaterial edgeStyle={edgeStyle}>Glass content</LiquidGlassMaterial>
+      </LiquidGlass>
+    );
+    const mounted = render(view());
+    await waitFor(() => {
+      expect(harness.material.onPresentation).toHaveBeenCalledTimes(1);
+    });
+    const material = mounted.container.querySelector<HTMLElement>('.liquid-glass-material');
+    if (!material) throw new Error('Material did not mount.');
+    const illuminatedGradient = material.style.getPropertyValue('--lg-illumination-gradient');
+    expect(illuminatedGradient).toContain('conic-gradient');
+    expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+
+    mounted.rerender(view('dark'));
+    await waitFor(() => {
+      expect(material.getAttribute('data-edge-style')).toBe('dark');
+    });
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toContain('linear-gradient');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).not.toContain('conic-gradient');
+    expect(material.hasAttribute('edgestyle')).toBe(false);
+    expect(material.hasAttribute('edge-style')).toBe(false);
+
+    mounted.rerender(view('illuminated'));
+    await waitFor(() => {
+      expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+    });
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toBe(illuminatedGradient);
+    expect(harness.context.addMaterial).toHaveBeenCalledTimes(1);
+  });
+
   it('updates moveable behavior without replacing the material registration', async () => {
     const harness = createHarness();
     const view = (isMoveable: boolean) => (

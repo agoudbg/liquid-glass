@@ -20,6 +20,7 @@ export function resolveLabMaterials(lab: Readonly<LabState>): readonly SceneMate
     name: 'Optical surface',
     options: {
       ...appearance,
+      edgeStyle: lab.appearance.edgeStyle,
       radius: lab.shape.radius,
       radiusTL: lab.shape.radiusTL,
       radiusTR: lab.shape.radiusTR,

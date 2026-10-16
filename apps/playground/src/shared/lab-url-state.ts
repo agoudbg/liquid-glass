@@ -1,6 +1,7 @@
 import {
   createDefaultLabState,
   DEFAULT_LAB_URL_VALUES,
+  isLabEdgeStyle,
   normalizeLabTintColor,
 } from './lab-state';
 import type { LabState } from './types';
@@ -35,6 +36,7 @@ export function parseLabUrlState(params: URLSearchParams): LabState {
   });
   const preset = params.get('interaction');
   const source = params.get('source');
+  const edgeStyle = params.get('edgeStyle');
 
   return {
     optics: {
@@ -56,6 +58,9 @@ export function parseLabUrlState(params: URLSearchParams): LabState {
     },
     appearance: {
       ...lab.appearance,
+      edgeStyle: edgeStyle && isLabEdgeStyle(edgeStyle)
+        ? edgeStyle
+        : lab.appearance.edgeStyle,
       useCustomColor: params.get('customColor') === 'on',
       backgroundColor: parseColor(
         params.get('color'),
@@ -139,6 +144,7 @@ export function writeLabUrlState(
   params.set('radiusBL', String(lab.shape.radiusBL));
   params.set('renderOrder', String(lab.render.order));
   params.set('customColor', lab.appearance.useCustomColor ? 'on' : 'off');
+  params.set('edgeStyle', lab.appearance.edgeStyle);
   params.set('color', lab.appearance.backgroundColor);
   params.set('lightAngle', String(lab.appearance.illuminationAngle));
   params.set('lightIntensity', String(lab.appearance.illuminationIntensity));

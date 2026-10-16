@@ -189,14 +189,26 @@ Framework material components also accept:
 
 | Option | Type | Description |
 | --- | --- | --- |
+| `edgeStyle` | `'illuminated' \| 'dark'` | Defaults to `illuminated`. Select `dark` for an iOS 27-style dark contour with stationary inner specular light. |
 | `useCustomColor` | `boolean` | Use an explicit tint instead of sampled theme colors. |
 | `backgroundColor` | `string` | CSS tint used when custom color is active. |
-| `illuminationAngle` | `number` | Rim-light direction in degrees. |
-| `illuminationIntensity` | `number` | Rim-light strength in the inclusive `0..1` range. |
+| `illuminationAngle` | `number` | Rim-light direction in degrees for `illuminated` edges. Dark edges do not rotate. |
+| `illuminationIntensity` | `number` | Rim-light strength in the inclusive `0..1` range. With dark edges, adjusts the inner reflection while retaining the dark contour. |
 
 Adapters map appearance and interaction output to stable `--lg-*` CSS custom
 properties without forcing framework component renders on every animation
 frame.
+
+Use `edgeStyle="dark"` in React and Solid, or `edge-style="dark"` in Vue.
+The dark treatment follows the darkened edge and brighter specular highlights
+described in [Apple's WWDC26 design update](https://developer.apple.com/videos/play/wwdc2026/102/)
+and the [iOS 27 control image](https://www.apple.com/v/os/g/images/shared/improvements/design__b82s0uhegkmu_large.jpg).
+Directional inset shading darkens the lateral arcs and fades along the lit top
+and bottom edges. Its strengths are a visual approximation of that reference.
+It changes CSS edge presentation only: existing optics, tint, pointer response,
+and the default illuminated appearance are preserved. Choose it explicitly on
+any supported browser; it does not read the iOS system Liquid Glass slider.
+The Lab inspector exposes both edge styles for comparison on the same backdrop.
 
 Material render children and Vue default slots receive `updating`,
 `startUpdating()`, and `stopUpdating()` controls. Use them around transitions

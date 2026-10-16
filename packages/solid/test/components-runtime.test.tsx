@@ -1,5 +1,6 @@
 import type {
   CustomDrawCallback,
+  MaterialEdgeStyle,
   ProxyTargetInterface,
 } from '@agou/liquid-glass-core';
 import { createSignal, ErrorBoundary } from 'solid-js';
@@ -24,6 +25,42 @@ afterEach(() => {
 });
 
 describe('Solid adapter runtime behavior', () => {
+  it('switches edge styles in place and restores the default illuminated rim', async () => {
+    const contextHarness = createContextHarness();
+    const engineHarness = createEngineHarness(contextHarness.context);
+    let setEdgeStyle: ((value: MaterialEdgeStyle) => void) | undefined;
+    const dispose = mountSolid(() => {
+      const [edgeStyle, updateEdgeStyle] = createSignal<MaterialEdgeStyle>();
+      setEdgeStyle = updateEdgeStyle;
+      return (
+        <LiquidGlass engine={engineHarness.engine}>
+          <LiquidGlassMaterial edgeStyle={edgeStyle()}>Glass content</LiquidGlassMaterial>
+        </LiquidGlass>
+      );
+    });
+    await Promise.resolve();
+    const material = document.querySelector<HTMLElement>('.liquid-glass-material');
+    if (!material || !setEdgeStyle) throw new Error('Material did not mount.');
+    const illuminatedGradient = material.style.getPropertyValue('--lg-illumination-gradient');
+    expect(illuminatedGradient).toContain('conic-gradient');
+    expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+
+    setEdgeStyle('dark');
+    await Promise.resolve();
+    expect(material.getAttribute('data-edge-style')).toBe('dark');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toContain('linear-gradient');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).not.toContain('conic-gradient');
+    expect(material.hasAttribute('edgestyle')).toBe(false);
+    expect(material.hasAttribute('edge-style')).toBe(false);
+
+    setEdgeStyle('illuminated');
+    await Promise.resolve();
+    expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toBe(illuminatedGradient);
+    expect(contextHarness.addMaterial).toHaveBeenCalledTimes(1);
+    dispose();
+  });
+
   it('samples a nested context through the nearest parent lifecycle', async () => {
     const parentHarness = createContextHarness();
     const childHarness = createContextHarness();

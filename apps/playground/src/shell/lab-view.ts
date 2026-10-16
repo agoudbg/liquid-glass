@@ -61,6 +61,17 @@ export function renderLabWorkbench(
   requireElement<HTMLElement>(root, '[data-lab-custom]').hidden =
     state.lab.interaction.preset !== 'custom';
 
+  requireElement<HTMLSelectElement>(root, '[data-lab-edge-style]').value =
+    state.lab.appearance.edgeStyle;
+  const angle = requireElement<HTMLInputElement>(
+    root,
+    '[data-lab-number="illuminationAngle"]',
+  );
+  angle.disabled = state.lab.appearance.edgeStyle === 'dark';
+  angle.title = angle.disabled
+    ? 'The dark edge uses fixed lighting.'
+    : '';
+
   for (const button of query<HTMLButtonElement>(
     root,
     'button[data-lab-source]',

@@ -121,6 +121,33 @@
   z-index: 1;
 }
 
+/* Inset projections shade curved flanks and leave the lit top/bottom clear. */
+.liquid-glass-material[data-edge-style='dark']::before {
+  z-index: 1;
+  padding: 0;
+  background: transparent;
+  box-shadow: var(--lg-edge-contour-shadow);
+  -webkit-mask: none;
+  mask: none;
+}
+
+.liquid-glass-material[data-edge-style='dark']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border: 1px solid transparent;
+  padding: 1px;
+  border-radius: inherit;
+  background: var(--lg-illumination-gradient);
+  background-clip: padding-box;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .liquid-glass-material > .liquid-glass-dedicated-canvas {
   position: absolute;
   inset: 0;
@@ -197,6 +224,8 @@
   box-shadow: none !important;
 }
 
-.liquid-glass-material[is-blurred='true']::before {
+.liquid-glass-material[is-blurred='true']::before,
+.liquid-glass-material[is-blurred='true']::after {
   background: transparent !important;
+  box-shadow: none !important;
 }

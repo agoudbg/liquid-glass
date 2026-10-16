@@ -65,6 +65,7 @@ export class MaterialDomPresentationController {
     this.highlight.classList.remove('visible');
     this.element.removeAttribute('allowing-color-transition');
     this.element.removeAttribute('is-blurred');
+    this.element.removeAttribute('data-edge-style');
   }
 
   private applyPresentation(): void {
@@ -81,6 +82,7 @@ export class MaterialDomPresentationController {
     for (const [property, value] of Object.entries(tokens)) {
       this.element.style.setProperty(property, value);
     }
+    this.element.setAttribute('data-edge-style', this.appearance.edgeStyle ?? 'illuminated');
     this.element.setAttribute('is-blurred', String(presentation.blurred));
     this.highlight.classList.toggle('visible', highlightVisible(presentation));
   }

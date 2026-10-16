@@ -1,5 +1,6 @@
 import type {
   InteractionPreset,
+  MaterialEdgeStyle,
   PartialInteractionConfig,
 } from '@agou/liquid-glass-core';
 
@@ -81,6 +82,7 @@ export function createDefaultLabState(
     },
     shape: createLabShapeState(values.radius),
     appearance: {
+      edgeStyle: 'illuminated',
       useCustomColor: false,
       backgroundColor: '#d9f2ea29',
       illuminationAngle: 34,
@@ -268,6 +270,22 @@ export function updateLabColor(
       useCustomColor: true,
     },
   };
+}
+
+/** Apply a public edge treatment without mutating prior Lab state. */
+export function updateLabEdgeStyle(
+  state: Readonly<LabState>,
+  edgeStyle: MaterialEdgeStyle,
+): LabState {
+  return {
+    ...state,
+    appearance: { ...state.appearance, edgeStyle },
+  };
+}
+
+/** Narrow an external option value to a supported material edge treatment. */
+export function isLabEdgeStyle(value: string): value is MaterialEdgeStyle {
+  return value === 'illuminated' || value === 'dark';
 }
 
 /** Normalize an RGB color input to a restrained translucent CSS tint. */

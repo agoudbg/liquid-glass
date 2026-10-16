@@ -2,6 +2,7 @@ export type {
   MaterialAppearanceInput,
   MaterialAppearanceOptions,
   MaterialAppearanceTokens,
+  MaterialEdgeStyle,
   MaterialHighlightAppearanceConfig,
   MaterialInteractionAppearanceOutput,
   MaterialThemeAppearance,

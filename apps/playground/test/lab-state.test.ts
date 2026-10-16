@@ -148,6 +148,7 @@ describe('isolated Lab state', () => {
           radiusBL: 42,
         },
         appearance: {
+          edgeStyle: 'illuminated',
           useCustomColor: true,
           backgroundColor: 'rgba(20, 80, 110, 0.2)',
           illuminationAngle: 128,

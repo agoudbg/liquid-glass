@@ -1,5 +1,8 @@
 import type { AutomaticBackgroundColorMode } from './context';
 
+/** Material edge treatment: the original rotating light or an iOS 27-style dark contour. */
+export type MaterialEdgeStyle = 'illuminated' | 'dark';
+
 /**
  * Portable visual options shared by framework material adapters.
  *
@@ -7,11 +10,13 @@ import type { AutomaticBackgroundColorMode } from './context';
  * the shared CSS appearance contract without coupling core to a framework.
  */
 export interface MaterialAppearanceOptions {
+  /** Edge treatment; defaults to the original `illuminated` rim. */
+  edgeStyle?: MaterialEdgeStyle;
   /** Use an explicit tint instead of backdrop-derived theme colors. */
   useCustomColor?: boolean;
   /** Explicit CSS color used for the material tint. */
   backgroundColor?: string;
-  /** Direction of the rim illumination in degrees. */
+  /** Direction of the original illuminated rim in degrees; unused by dark edges. */
   illuminationAngle?: number;
   /** Rim illumination strength in the inclusive 0-1 range. */
   illuminationIntensity?: number;
@@ -99,8 +104,10 @@ export interface MaterialAppearanceTokens {
   '--lg-illumination-angle': string;
   /** Rim illumination peak alpha. */
   '--lg-illumination-intensity': string;
-  /** Fully resolved legacy conic-gradient value. */
+  /** Resolved rim light: rotating for illuminated edges, stationary for dark edges. */
   '--lg-illumination-gradient': string;
+  /** Directional dark flanks, fading out along the lit top and bottom edges. */
+  '--lg-edge-contour-shadow': string;
   /** Horizontal interaction scale. */
   '--lg-scale-x': string;
   /** Vertical interaction scale. */

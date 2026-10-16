@@ -38,6 +38,13 @@ export const LAB_INSPECTOR_MARKUP = `
 
     <section class="lab-control-group" aria-labelledby="appearance-heading">
       <h3 id="appearance-heading">Appearance</h3>
+      <label class="select-control" for="edge-style-control">
+        <span>Edge</span>
+        <select id="edge-style-control" data-lab-edge-style>
+          <option value="illuminated">Illuminated (original)</option>
+          <option value="dark">Dark edge (iOS 27)</option>
+        </select>
+      </label>
       <label class="check-control">
         <input type="checkbox" data-lab-boolean="useCustomColor" />
         <span>Custom tint</span>

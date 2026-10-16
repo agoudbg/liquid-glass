@@ -76,6 +76,7 @@ export function LiquidGlassMaterial(
     'class',
     'disableInteractions',
     'dispersion',
+    'edgeStyle',
     'illuminationAngle',
     'illuminationIntensity',
     'interactionConfig',
@@ -130,6 +131,7 @@ export function LiquidGlassMaterial(
   function readAppearance(): MaterialDomAppearance {
     return {
       backgroundColor: local.backgroundColor,
+      edgeStyle: local.edgeStyle,
       illuminationAngle: local.illuminationAngle,
       illuminationIntensity: local.illuminationIntensity,
       thickness: local.thickness,

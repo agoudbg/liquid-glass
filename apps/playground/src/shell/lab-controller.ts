@@ -1,11 +1,13 @@
 import {
   createDefaultLabState,
   isLabBooleanControl,
+  isLabEdgeStyle,
   isLabInteractionPreset,
   isLabNumericControl,
   isLabSourceKind,
   updateLabBooleanControl,
   updateLabColor,
+  updateLabEdgeStyle,
   updateLabInteractionPreset,
   updateLabNumericControl,
   updateLabSourceKind,
@@ -108,6 +110,16 @@ export function bindLabControls(bindings: LabControlBindings): () => void {
     updateWhenEditable(
       (lab) => updateLabInteractionPreset(lab, preset),
     );
+  });
+
+  const edgeStyle = requireElement<HTMLSelectElement>(
+    bindings.root,
+    '[data-lab-edge-style]',
+  );
+  listen(edgeStyle, 'change', () => {
+    const value = edgeStyle.value;
+    if (!isLabEdgeStyle(value)) return;
+    updateWhenEditable((lab) => updateLabEdgeStyle(lab, value));
   });
 
   for (const button of query<HTMLButtonElement>(

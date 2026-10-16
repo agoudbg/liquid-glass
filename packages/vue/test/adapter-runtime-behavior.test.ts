@@ -31,6 +31,38 @@ afterEach(() => {
 });
 
 describe('Vue adapter runtime behavior', () => {
+  it('switches edge styles in place and restores the default illuminated rim', async () => {
+    const harness = createContextHarness(createMaterialHandle());
+    const wrapper = mount(LiquidGlassMaterial, {
+      global: {
+        provide: {
+          [LIQUID_GLASS_CONTEXT_KEY as symbol]: {
+            context: shallowRef(harness.context),
+          },
+        },
+      },
+    });
+    await nextTick();
+
+    const material = wrapper.get('.liquid-glass-material').element as HTMLElement;
+    const illuminatedGradient = material.style.getPropertyValue('--lg-illumination-gradient');
+    expect(illuminatedGradient).toContain('conic-gradient');
+    expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+
+    await wrapper.setProps({ edgeStyle: 'dark' });
+    expect(material.getAttribute('data-edge-style')).toBe('dark');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toContain('linear-gradient');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).not.toContain('conic-gradient');
+    expect(material.hasAttribute('edgestyle')).toBe(false);
+    expect(material.hasAttribute('edge-style')).toBe(false);
+
+    await wrapper.setProps({ edgeStyle: 'illuminated' });
+    expect(material.getAttribute('data-edge-style')).toBe('illuminated');
+    expect(material.style.getPropertyValue('--lg-illumination-gradient')).toBe(illuminatedGradient);
+    expect(harness.addMaterial).toHaveBeenCalledTimes(1);
+    wrapper.unmount();
+  });
+
   it('updates a backdrop registration without requesting a redundant refresh', async () => {
     const backdropHandle = createBackdropHandle();
     const harness = createContextHarness(createMaterialHandle(), backdropHandle);

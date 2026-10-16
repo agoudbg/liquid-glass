@@ -174,4 +174,42 @@ describe('material appearance resolver', () => {
       'Invalid numeric configuration for "materialAppearance.highlightOpacity"',
     );
   });
+
+  it('preserves the original appearance when illuminated edges are selected explicitly', () => {
+    expect(resolveMaterialAppearance({ edgeStyle: 'illuminated' })).toEqual(
+      resolveMaterialAppearance(),
+    );
+  });
+
+  it('keeps the dark contour and inner specular light independent of the legacy angle', () => {
+    const first = resolveMaterialAppearance({ edgeStyle: 'dark', illuminationAngle: 0 });
+    const rotated = resolveMaterialAppearance({ edgeStyle: 'dark', illuminationAngle: 180 });
+    expect(first['--lg-edge-contour-shadow']).toContain('rgba(0, 0, 0,');
+    expect(first['--lg-illumination-gradient']).toMatch(/^linear-gradient/u);
+    expect(first['--lg-illumination-gradient']).toBe(rotated['--lg-illumination-gradient']);
+    expect(first['--lg-edge-contour-shadow']).toBe(rotated['--lg-edge-contour-shadow']);
+  });
+
+  it('adjusts dark-edge reflections without fading the silhouette or material content', () => {
+    const visible = resolveMaterialAppearance({ edgeStyle: 'dark', illuminationIntensity: 1 });
+    const unlit = resolveMaterialAppearance({ edgeStyle: 'dark', illuminationIntensity: 0 });
+    expect(unlit['--lg-illumination-gradient']).not.toBe(visible['--lg-illumination-gradient']);
+    expect(unlit['--lg-illumination-gradient']).not.toMatch(/rgba\(255, 255, 255, (?!0\))/u);
+    expect(unlit['--lg-edge-contour-shadow']).toBe(visible['--lg-edge-contour-shadow']);
+    expect(unlit['--lg-material-opacity']).toBe('1');
+    expect(unlit['--lg-background-tint']).toBe(visible['--lg-background-tint']);
+  });
+
+  it.each(THEME_EXPECTATIONS)('preserves %s theme colors with dark edges', (themeColorMode) => {
+    const original = resolveMaterialAppearance({ themeColorMode });
+    const dark = resolveMaterialAppearance({ edgeStyle: 'dark', themeColorMode });
+    expect(dark['--lg-background-tint']).toBe(original['--lg-background-tint']);
+    expect(dark['--lg-foreground-color']).toBe(original['--lg-foreground-color']);
+  });
+
+  it('rejects an unsupported edge style at the JavaScript boundary', () => {
+    expect(() => resolveMaterialAppearance({
+      edgeStyle: 'unknown',
+    } as unknown as MaterialAppearanceInput)).toThrow('Invalid materialAppearance.edgeStyle');
+  });
 });

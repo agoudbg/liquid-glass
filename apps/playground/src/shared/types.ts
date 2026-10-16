@@ -2,6 +2,7 @@ import type {
   DiagnosticsSnapshot,
   GlassContext,
   InteractionPreset,
+  MaterialEdgeStyle,
   PartialInteractionConfig,
   RenderMode,
   ViewportCaptureRect,
@@ -45,6 +46,8 @@ export interface LabShapeState {
 
 /** CSS appearance values owned only by the editable Lab scene. */
 export interface LabAppearanceState {
+  /** Select the original rim light or the stationary dark edge. */
+  edgeStyle: MaterialEdgeStyle;
   /** Whether the material uses an explicit tint. */
   useCustomColor: boolean;
   /** Explicit tint used when custom color is enabled. */
